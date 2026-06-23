@@ -8,24 +8,24 @@ import { cn } from "@/lib/utils";
 const menuItems = [
   { href: "/dashboard", label: "Dashboard", description: "Ringkasan kinerja" },
   {
-    href: "/dashboard/assessments",
+    href: "/assessments",
     label: "Penilaian Harian",
     description: "Input dan pantau penilaian"
   },
   {
-    href: "/dashboard/units",
+    href: "/units",
     label: "Unit",
     description: "Kelola unit kerja PST"
   },
-  { href: "/dashboard/officers", label: "Petugas PST", description: "Kelola master petugas" },
+  { href: "/officers", label: "Petugas PST", description: "Kelola master petugas" },
   {
-    href: "/dashboard/reward-punishment",
+    href: "/reward-punishment",
     label: "Reward & Punishment",
     description: "Rekomendasi dan keputusan"
   },
-  { href: "/dashboard/reports", label: "Laporan", description: "Export PDF dan Excel" },
+  { href: "/reports", label: "Laporan", description: "Export PDF dan Excel" },
   {
-    href: "/dashboard/settings/users",
+    href: "/settings/users",
     label: "Pengaturan",
     description: "User dan kriteria"
   }
