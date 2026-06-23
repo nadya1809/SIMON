@@ -252,33 +252,33 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 - [x] Admin dapat mengelola kriteria
 - [x] Form assessment hanya memakai kriteria aktif
 
-## Fase 6 — Manajemen User
+## Fase 6 — Manajemen User `[x]`
 
 ### Backend
 
-- [ ] Buat endpoint `GET /api/users`
-- [ ] Buat endpoint `POST /api/users`
-- [ ] Buat endpoint `PATCH /api/users/[id]` jika diperlukan
-- [ ] Validasi role:
+- [x] Buat endpoint `GET /api/users`
+- [x] Buat endpoint `POST /api/users`
+- [x] Buat endpoint `PATCH /api/users/[id]` jika diperlukan
+- [x] Validasi role:
   - `ADMIN`
   - `SUPERVISOR`
   - `PIMPINAN`
-- [ ] Hash password saat create/reset
-- [ ] Cegah duplikasi email
-- [ ] Dukung status aktif/nonaktif user
+- [x] Hash password saat create/reset
+- [x] Cegah duplikasi email
+- [x] Dukung status aktif/nonaktif user
 
 ### Frontend
 
-- [ ] Buat halaman daftar user
-- [ ] Buat form tambah user
-- [ ] Buat form edit user
-- [ ] Tampilkan role dan status aktif
+- [x] Buat halaman daftar user
+- [x] Buat form tambah user
+- [x] Buat form edit user
+- [x] Tampilkan role dan status aktif
 
 ### Verifikasi
 
-- [ ] Admin dapat membuat akun Supervisor
-- [ ] Admin dapat membuat akun Pimpinan
-- [ ] User nonaktif tidak bisa login
+- [x] Admin dapat membuat akun Supervisor
+- [x] Admin dapat membuat akun Pimpinan
+- [x] User nonaktif tidak bisa login
 
 ## Fase 7 — Penilaian Harian
 

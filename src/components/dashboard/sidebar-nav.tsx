@@ -28,6 +28,11 @@ const menuItems = [
     href: "/settings/criteria",
     label: "Kriteria",
     description: "Kelola struktur penilaian"
+  },
+  {
+    href: "/settings/users",
+    label: "User",
+    description: "Kelola akun sistem"
   }
 ];
 
