@@ -1,0 +1,419 @@
+"use client";
+
+import { useDeferredValue, useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { FormField } from "@/components/forms/form-field";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { SuccessFeedback } from "@/components/ui/success-feedback";
+import { Table } from "@/components/ui/table";
+import { officerSchema, type OfficerFormValues } from "@/lib/validations/officer";
+
+type UnitOption = {
+  id: string;
+  name: string;
+};
+
+type OfficerItem = {
+  id: string;
+  nip: string;
+  name: string;
+  position: string | null;
+  unitId: string | null;
+  isActive: boolean;
+  unit: UnitOption | null;
+};
+
+type OfficerManagementProps = {
+  initialOfficers: OfficerItem[];
+  units: UnitOption[];
+  userName: string;
+  role: string;
+};
+
+type SortOption = "name" | "nip" | "unit";
+type StatusFilter = "all" | "active" | "inactive";
+
+export function OfficerManagement({
+  initialOfficers,
+  units,
+  userName,
+  role
+}: OfficerManagementProps) {
+  const [officers, setOfficers] = useState<OfficerItem[]>(initialOfficers);
+  const [editingOfficer, setEditingOfficer] = useState<OfficerItem | null>(null);
+  const [feedback, setFeedback] = useState("");
+  const [requestError, setRequestError] = useState("");
+  const [search, setSearch] = useState("");
+  const [unitFilter, setUnitFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sortBy, setSortBy] = useState<SortOption>("name");
+  const [visibleRows, setVisibleRows] = useState(10);
+  const [isActiveValue, setIsActiveValue] = useState(true);
+  const [isPending, startTransition] = useTransition();
+  const deferredSearch = useDeferredValue(search);
+
+  const form = useForm<OfficerFormValues>({
+    resolver: zodResolver(officerSchema),
+    defaultValues: {
+      nip: "",
+      name: "",
+      position: "",
+      unitId: "",
+      isActive: true
+    }
+  });
+
+  const { register, handleSubmit, reset, formState, setValue } = form;
+
+  function resetForm() {
+    setEditingOfficer(null);
+    setRequestError("");
+    setFeedback("");
+    setIsActiveValue(true);
+    reset({
+      nip: "",
+      name: "",
+      position: "",
+      unitId: "",
+      isActive: true
+    });
+  }
+
+  function startEditMode(officer: OfficerItem) {
+    setEditingOfficer(officer);
+    setRequestError("");
+    setFeedback("");
+    setIsActiveValue(officer.isActive);
+    reset({
+      nip: officer.nip,
+      name: officer.name,
+      position: officer.position ?? "",
+      unitId: officer.unitId ?? "",
+      isActive: officer.isActive
+    });
+  }
+
+  const filteredOfficers = officers
+    .filter((officer) => {
+      const normalizedSearch = deferredSearch.trim().toLowerCase();
+
+      if (
+        normalizedSearch &&
+        !`${officer.name} ${officer.nip}`.toLowerCase().includes(normalizedSearch)
+      ) {
+        return false;
+      }
+
+      if (unitFilter !== "all" && officer.unitId !== unitFilter) {
+        return false;
+      }
+
+      if (statusFilter === "active" && !officer.isActive) {
+        return false;
+      }
+
+      if (statusFilter === "inactive" && officer.isActive) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "nip") {
+        return a.nip.localeCompare(b.nip);
+      }
+
+      if (sortBy === "unit") {
+        return (a.unit?.name ?? "").localeCompare(b.unit?.name ?? "");
+      }
+
+      return a.name.localeCompare(b.name);
+    });
+
+  const displayedOfficers = filteredOfficers.slice(0, visibleRows);
+
+  async function onSubmit(values: OfficerFormValues) {
+    setRequestError("");
+    setFeedback("");
+
+    const endpoint = editingOfficer
+      ? `/api/officers/${editingOfficer.id}`
+      : "/api/officers";
+    const method = editingOfficer ? "PATCH" : "POST";
+
+    startTransition(async () => {
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(values)
+      });
+
+      const result = (await response.json()) as {
+        message: string;
+        data?: OfficerItem;
+      };
+
+      if (!response.ok || !result.data) {
+        setRequestError(result.message || "Gagal menyimpan data petugas.");
+        return;
+      }
+
+      const nextOfficer = result.data;
+
+      if (editingOfficer) {
+        setOfficers((current) =>
+          current.map((item) =>
+            item.id === nextOfficer.id ? nextOfficer : item
+          )
+        );
+        setFeedback("Data petugas berhasil diperbarui.");
+      } else {
+        setOfficers((current) => [...current, nextOfficer]);
+        setFeedback("Petugas baru berhasil ditambahkan.");
+      }
+
+      resetForm();
+    });
+  }
+
+  return (
+    <DashboardShell
+      title="Master Data Petugas PST"
+      description="Kelola daftar petugas PST yang akan dinilai. Modul ini mendukung pencarian, filter unit, status aktif, dan pengeditan cepat untuk skala data yang lebih besar."
+      userName={userName}
+      role={role}
+    >
+      <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+        <div className="space-y-5">
+          <div className="grid gap-4 rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-4">
+            <FormField label="Cari petugas">
+              <Input
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setVisibleRows(10);
+                }}
+                placeholder="Cari nama atau NIP"
+              />
+            </FormField>
+
+            <FormField label="Filter unit">
+              <Select
+                value={unitFilter}
+                onChange={(event) => {
+                  setUnitFilter(event.target.value);
+                  setVisibleRows(10);
+                }}
+              >
+                <option value="all">Semua unit</option>
+                {units.map((unit) => (
+                  <option key={unit.id} value={unit.id}>
+                    {unit.name}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+
+            <FormField label="Status aktif">
+              <Select
+                value={statusFilter}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value as StatusFilter);
+                  setVisibleRows(10);
+                }}
+              >
+                <option value="all">Semua status</option>
+                <option value="active">Aktif</option>
+                <option value="inactive">Nonaktif</option>
+              </Select>
+            </FormField>
+
+            <FormField label="Urutkan">
+              <Select
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value as SortOption)}
+              >
+                <option value="name">Nama</option>
+                <option value="nip">NIP</option>
+                <option value="unit">Unit</option>
+              </Select>
+            </FormField>
+          </div>
+
+          <Table
+            headers={["NIP", "Nama", "Unit", "Posisi", "Status", "Aksi"]}
+          >
+            {displayedOfficers.length ? (
+              displayedOfficers.map((officer) => (
+                <tr key={officer.id} className="border-t border-[var(--border)]">
+                  <td className="px-5 py-4 font-medium">{officer.nip}</td>
+                  <td className="px-5 py-4">
+                    <div>
+                      <p className="font-semibold">{officer.name}</p>
+                      <p className="text-xs text-[var(--muted)]">
+                        Detail singkat petugas PST
+                      </p>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-[var(--muted)]">
+                    {officer.unit?.name ?? "-"}
+                  </td>
+                  <td className="px-5 py-4 text-[var(--muted)]">
+                    {officer.position || "-"}
+                  </td>
+                  <td className="px-5 py-4">
+                    <Badge variant={officer.isActive ? "success" : "warning"}>
+                      {officer.isActive ? "Aktif" : "Nonaktif"}
+                    </Badge>
+                  </td>
+                  <td className="px-5 py-4">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => startEditMode(officer)}
+                    >
+                      Edit
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} className="px-5 py-8">
+                  <EmptyState
+                    title="Belum ada petugas yang cocok"
+                    description="Tambahkan petugas baru atau ubah filter pencarian untuk melihat data lain."
+                    icon="P"
+                  />
+                </td>
+              </tr>
+            )}
+          </Table>
+
+          {filteredOfficers.length > displayedOfficers.length ? (
+            <div className="flex justify-center">
+              <Button
+                variant="secondary"
+                onClick={() => setVisibleRows((current) => current + 10)}
+              >
+                Tampilkan lebih banyak
+              </Button>
+            </div>
+          ) : null}
+        </div>
+
+        <Dialog
+          title={editingOfficer ? "Edit petugas" : "Tambah petugas baru"}
+          description="Gunakan NIP unik untuk setiap petugas. Status nonaktif akan mempertahankan histori data lama."
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <Badge variant={editingOfficer ? "warning" : "success"}>
+              {editingOfficer ? "Mode edit" : "Mode tambah"}
+            </Badge>
+            {editingOfficer ? (
+              <Button variant="ghost" size="sm" onClick={resetForm}>
+                Batal edit
+              </Button>
+            ) : null}
+          </div>
+
+          {feedback ? (
+            <div className="mb-4">
+              <SuccessFeedback title={feedback} />
+            </div>
+          ) : null}
+
+          {requestError ? (
+            <div className="mb-4 rounded-2xl border border-[#f4c7c3] bg-[#fff5f4] px-4 py-3 text-sm text-[#8f261c]">
+              {requestError}
+            </div>
+          ) : null}
+
+          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+            <FormField
+              label="NIP"
+              hint="Harus unik untuk setiap petugas."
+              error={formState.errors.nip?.message}
+            >
+              <Input placeholder="Masukkan NIP petugas" {...register("nip")} />
+            </FormField>
+
+            <FormField
+              label="Nama petugas"
+              error={formState.errors.name?.message}
+            >
+              <Input
+                placeholder="Masukkan nama lengkap petugas"
+                {...register("name")}
+              />
+            </FormField>
+
+            <FormField
+              label="Posisi"
+              hint="Opsional, misalnya Front Office atau Petugas Layanan."
+              error={formState.errors.position?.message}
+            >
+              <Input
+                placeholder="Masukkan posisi petugas"
+                {...register("position")}
+              />
+            </FormField>
+
+            <FormField
+              label="Unit"
+              hint="Boleh dikosongkan jika belum ditentukan."
+            >
+              <Select {...register("unitId")}>
+                <option value="">Belum ditentukan</option>
+                {units.map((unit) => (
+                  <option key={unit.id} value={unit.id}>
+                    {unit.name}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+
+            <FormField label="Status petugas">
+              <button
+                type="button"
+                onClick={() => {
+                  const nextValue = !isActiveValue;
+                  setIsActiveValue(nextValue);
+                  setValue("isActive", nextValue);
+                }}
+                className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-white px-4 py-3 text-sm"
+              >
+                <span>
+                  {isActiveValue
+                    ? "Petugas aktif dan bisa dipakai untuk penilaian"
+                    : "Petugas nonaktif, histori tetap dipertahankan"}
+                </span>
+                <Badge variant={isActiveValue ? "success" : "warning"}>
+                  {isActiveValue ? "Aktif" : "Nonaktif"}
+                </Badge>
+              </button>
+              <input type="hidden" value={isActiveValue ? "true" : "false"} />
+            </FormField>
+
+            <Button className="w-full" type="submit" disabled={isPending}>
+              {isPending
+                ? "Menyimpan..."
+                : editingOfficer
+                  ? "Simpan perubahan"
+                  : "Tambah petugas"}
+            </Button>
+          </form>
+        </Dialog>
+      </section>
+    </DashboardShell>
+  );
+}

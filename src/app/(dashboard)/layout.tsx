@@ -11,7 +11,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-transparent">
-      <div className="mx-auto flex min-h-screen max-w-7xl gap-6 px-4 py-6 md:px-6">
+      <div className="mx-auto flex min-h-screen gap-6 px-4 py-6 md:px-6">
         <aside className="hidden w-80 rounded-[2rem] border border-[var(--border)] bg-white p-6 shadow-sm lg:block">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--accent)]">

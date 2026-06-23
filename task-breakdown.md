@@ -189,42 +189,42 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 - [x] Admin dapat menambah unit
 - [x] Admin dapat mengubah data unit
 
-## Fase 4 — Master Data Petugas
+## Fase 4 — Master Data Petugas `[x]`
 
 ### Backend
 
-- [ ] Buat schema validasi petugas
-- [ ] Buat endpoint `GET /api/officers`
-- [ ] Tambahkan filter:
+- [x] Buat schema validasi petugas
+- [x] Buat endpoint `GET /api/officers`
+- [x] Tambahkan filter:
   - pencarian nama
   - pencarian NIP
   - filter unit
   - filter status aktif
-- [ ] Buat endpoint `POST /api/officers`
-- [ ] Buat endpoint `GET /api/officers/[id]`
-- [ ] Buat endpoint `PATCH /api/officers/[id]`
-- [ ] Buat endpoint nonaktifkan petugas
-- [ ] Pastikan `nip` unik
+- [x] Buat endpoint `POST /api/officers`
+- [x] Buat endpoint `GET /api/officers/[id]`
+- [x] Buat endpoint `PATCH /api/officers/[id]`
+- [x] Buat endpoint nonaktifkan petugas
+- [x] Pastikan `nip` unik
 
 ### Frontend
 
-- [ ] Buat halaman daftar petugas
-- [ ] Buat table petugas dengan pencarian dan filter
-- [ ] Buat form tambah petugas
-- [ ] Buat form edit petugas
-- [ ] Tampilkan badge aktif/nonaktif
-- [ ] Buat detail singkat petugas jika diperlukan
+- [x] Buat halaman daftar petugas
+- [x] Buat table petugas dengan pencarian dan filter
+- [x] Buat form tambah petugas
+- [x] Buat form edit petugas
+- [x] Tampilkan badge aktif/nonaktif
+- [x] Buat detail singkat petugas jika diperlukan
 
 ### UX untuk skala 40+ petugas
 
-- [ ] Tambahkan pagination atau limit rows
-- [ ] Buat sorting nama/NIP/unit
-- [ ] Pastikan daftar tetap ringan dan mudah dipakai
+- [x] Tambahkan pagination atau limit rows
+- [x] Buat sorting nama/NIP/unit
+- [x] Pastikan daftar tetap ringan dan mudah dipakai
 
 ### Verifikasi
 
-- [ ] Admin dapat CRUD petugas
-- [ ] Data petugas siap dipakai di penilaian
+- [x] Admin dapat CRUD petugas
+- [x] Data petugas siap dipakai di penilaian
 
 ## Fase 5 — Master Data Kriteria
 
