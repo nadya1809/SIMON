@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  PIMPINAN
+}
+
+enum RewardPunishmentType {
+  REWARD
+  PUNISHMENT
+}
+
+enum RewardPunishmentStatus {
+  RECOMMENDED
+  APPROVED
+  REJECTED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  assessments  DailyAssessment[]  @relation("Assessor")
+  decisions    RewardPunishment[] @relation("DecidedBy")
+  auditLogs    AuditLog[]
+}
+
+model Unit {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  officers    Officer[]
+}
+
+model Officer {
+  id        String    @id @default(cuid())
+  nip       String    @unique
+  name      String
+  position  String?
+  unitId    String?
+  unit      Unit?     @relation(fields: [unitId], references: [id])
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  assessments       DailyAssessment[]
+  rewardPunishments RewardPunishment[]
+
+  @@index([unitId])
+}
+
+model Criteria {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+
+  scores AssessmentScore[]
+}
+
+model DailyAssessment {
+  id             String           @id @default(cuid())
+  officerId      String
+  officer        Officer          @relation(fields: [officerId], references: [id])
+  assessorId     String
+  assessor       User             @relation("Assessor", fields: [assessorId], references: [id])
+  assessmentDate DateTime         @db.Date
+  status         AttendanceStatus @default(PRESENT)
+  averageScore   Float?
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  scores AssessmentScore[]
+
+  @@unique([officerId, assessmentDate])
+  @@index([assessmentDate])
+  @@index([assessorId])
+}
+
+model AssessmentScore {
+  id                String          @id @default(cuid())
+  dailyAssessmentId String
+  dailyAssessment   DailyAssessment @relation(fields: [dailyAssessmentId], references: [id], onDelete: Cascade)
+  criteriaId        String
+  criteria          Criteria        @relation(fields: [criteriaId], references: [id])
+  score             Int
+
+  @@unique([dailyAssessmentId, criteriaId])
+}
+
+model RewardPunishment {
+  id           String                 @id @default(cuid())
+  officerId    String
+  officer      Officer                @relation(fields: [officerId], references: [id])
+  type         RewardPunishmentType
+  category     String
+  periodStart  DateTime               @db.Date
+  periodEnd    DateTime               @db.Date
+  triggerScore Float
+  status       RewardPunishmentStatus @default(RECOMMENDED)
+  decidedById  String?
+  decidedBy    User?                  @relation("DecidedBy", fields: [decidedById], references: [id])
+  decidedAt    DateTime?
+  notes        String?
+  createdAt    DateTime               @default(now())
+
+  @@index([officerId])
+  @@index([status])
+  @@index([periodStart])
+  @@index([periodEnd])
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id])
+  action     AuditAction
+  entity     String
+  entityId   String
+  beforeData Json?
+  afterData  Json?
+  createdAt  DateTime    @default(now())
+
+  @@index([entity, entityId])
+}
