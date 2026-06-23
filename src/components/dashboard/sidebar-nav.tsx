@@ -25,9 +25,9 @@ const menuItems = [
   },
   { href: "/reports", label: "Laporan", description: "Export PDF dan Excel" },
   {
-    href: "/settings/users",
-    label: "Pengaturan",
-    description: "User dan kriteria"
+    href: "/settings/criteria",
+    label: "Kriteria",
+    description: "Kelola struktur penilaian"
   }
 ];
 

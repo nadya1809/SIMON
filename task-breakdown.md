@@ -226,31 +226,31 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 - [x] Admin dapat CRUD petugas
 - [x] Data petugas siap dipakai di penilaian
 
-## Fase 5 — Master Data Kriteria
+## Fase 5 — Master Data Kriteria `[x]`
 
 ### Backend
 
-- [ ] Buat endpoint `GET /api/criteria`
-- [ ] Buat endpoint `POST /api/criteria`
-- [ ] Buat endpoint `PATCH /api/criteria/[id]`
-- [ ] Pastikan `sortOrder` didukung
-- [ ] Pastikan kriteria bisa dinonaktifkan
+- [x] Buat endpoint `GET /api/criteria`
+- [x] Buat endpoint `POST /api/criteria`
+- [x] Buat endpoint `PATCH /api/criteria/[id]`
+- [x] Pastikan `sortOrder` didukung
+- [x] Pastikan kriteria bisa dinonaktifkan
 
 ### Frontend
 
-- [ ] Buat halaman daftar kriteria
-- [ ] Buat form tambah/edit kriteria
-- [ ] Tampilkan status aktif dan urutan tampil
+- [x] Buat halaman daftar kriteria
+- [x] Buat form tambah/edit kriteria
+- [x] Tampilkan status aktif dan urutan tampil
 
 ### Business safety
 
-- [ ] Lindungi agar seed kriteria default tidak hilang tanpa sengaja
-- [ ] Putuskan aturan jika kriteria nonaktif tapi punya histori score
+- [x] Lindungi agar seed kriteria default tidak hilang tanpa sengaja
+- [x] Putuskan aturan jika kriteria nonaktif tapi punya histori score
 
 ### Verifikasi
 
-- [ ] Admin dapat mengelola kriteria
-- [ ] Form assessment hanya memakai kriteria aktif
+- [x] Admin dapat mengelola kriteria
+- [x] Form assessment hanya memakai kriteria aktif
 
 ## Fase 6 — Manajemen User
 
