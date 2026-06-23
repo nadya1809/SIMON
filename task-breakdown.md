@@ -280,62 +280,62 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 - [x] Admin dapat membuat akun Pimpinan
 - [x] User nonaktif tidak bisa login
 
-## Fase 7 — Penilaian Harian
+## Fase 7 — Penilaian Harian `[x]`
 
 ### Data and validation layer
 
-- [ ] Buat schema validasi create assessment
-- [ ] Buat schema validasi update assessment
-- [ ] Validasi status `PRESENT` atau `ABSENT`
-- [ ] Validasi score integer 1 sampai 10
-- [ ] Validasi semua kriteria aktif terisi jika status `PRESENT`
-- [ ] Validasi score tidak wajib jika status `ABSENT`
+- [x] Buat schema validasi create assessment
+- [x] Buat schema validasi update assessment
+- [x] Validasi status `PRESENT` atau `ABSENT`
+- [x] Validasi score integer 1 sampai 10
+- [x] Validasi semua kriteria aktif terisi jika status `PRESENT`
+- [x] Validasi score tidak wajib jika status `ABSENT`
 
 ### Backend API
 
-- [ ] Buat endpoint `GET /api/assessments`
-- [ ] Tambahkan filter:
+- [x] Buat endpoint `GET /api/assessments`
+- [x] Tambahkan filter:
   - tanggal
   - rentang tanggal
   - petugas
   - unit
   - status hadir
-- [ ] Buat endpoint `POST /api/assessments`
-- [ ] Buat endpoint `GET /api/assessments/[id]`
-- [ ] Buat endpoint `PATCH /api/assessments/[id]`
-- [ ] Tangani error duplicate assessment per hari
+- [x] Buat endpoint `POST /api/assessments`
+- [x] Buat endpoint `GET /api/assessments/[id]`
+- [x] Buat endpoint `PATCH /api/assessments/[id]`
+- [x] Tangani error duplicate assessment per hari
 
 ### Scoring logic
 
-- [ ] Buat `src/lib/scoring.ts`
-- [ ] Implementasi `calculateAverageScore`
-- [ ] Pastikan hasil `null` untuk `ABSENT`
-- [ ] Tambahkan helper pembulatan jika diperlukan
+- [x] Buat `src/lib/scoring.ts`
+- [x] Implementasi `calculateAverageScore`
+- [x] Pastikan hasil `null` untuk `ABSENT`
+- [x] Tambahkan helper pembulatan jika diperlukan
 
 ### Frontend pages
 
-- [ ] Buat halaman list assessment
-- [ ] Buat halaman form assessment baru
-- [ ] Buat halaman edit assessment
-- [ ] Buat filter tanggal dan petugas
-- [ ] Tampilkan skor per kriteria dan average score
-- [ ] Tampilkan status hadir/tidak hadir
+- [x] Buat halaman list assessment
+- [x] Buat halaman form assessment baru
+- [x] Buat halaman edit assessment
+- [x] Buat filter tanggal dan petugas
+- [x] Tampilkan skor per kriteria dan average score
+- [x] Tampilkan status hadir/tidak hadir
 
 ### UX optimization
 
-- [ ] Buat alur input yang cepat untuk supervisor
-- [ ] Pertimbangkan default tanggal hari ini
-- [ ] Pertimbangkan prefill petugas dan kriteria aktif
-- [ ] Tampilkan warning jika penilaian hari itu sudah ada
+- [x] Buat alur input yang cepat untuk supervisor
+- [x] Pertimbangkan default tanggal hari ini
+- [x] Pertimbangkan prefill petugas dan kriteria aktif
+- [x] Tampilkan warning jika penilaian hari itu sudah ada
 
 ### Stretch task
 
-- [ ] Evaluasi kebutuhan batch entry penilaian harian banyak petugas
+- [x] Evaluasi kebutuhan batch entry penilaian harian banyak petugas
 - [ ] Jika perlu, desain halaman input tabel per tanggal
 
 ### Verifikasi
 
-- [ ] Acceptance criteria penilaian harian lulus
+- [x] Acceptance criteria penilaian harian lulus
 - [ ] Audit log penilaian tercatat
 
 ## Fase 8 — Dashboard dan Visualisasi
@@ -550,7 +550,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Milestone 3
 
-- [ ] Penilaian harian siap dipakai
+- [x] Penilaian harian siap dipakai
 
 ### Milestone 4
 
