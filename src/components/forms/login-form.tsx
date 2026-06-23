@@ -3,6 +3,9 @@
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/forms/form-field";
+import { Input } from "@/components/ui/input";
 
 type LoginFormProps = {
   callbackUrl: string;
@@ -40,29 +43,25 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
-      <label className="block space-y-2">
-        <span className="text-sm font-medium">Email</span>
-        <input
-          className="w-full rounded-2xl border border-[var(--border)] px-4 py-3 outline-none transition focus:border-[var(--accent)]"
+      <FormField label="Email">
+        <Input
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="admin@simon.local"
           required
         />
-      </label>
+      </FormField>
 
-      <label className="block space-y-2">
-        <span className="text-sm font-medium">Password</span>
-        <input
-          className="w-full rounded-2xl border border-[var(--border)] px-4 py-3 outline-none transition focus:border-[var(--accent)]"
+      <FormField label="Password">
+        <Input
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           placeholder="Masukkan password"
           required
         />
-      </label>
+      </FormField>
 
       {error ? (
         <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -70,13 +69,13 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
         </p>
       ) : null}
 
-      <button
-        className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+      <Button
+        className="w-full"
         type="submit"
         disabled={isLoading}
       >
         {isLoading ? "Sedang masuk..." : "Masuk"}
-      </button>
+      </Button>
     </form>
   );
 }

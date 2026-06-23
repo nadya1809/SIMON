@@ -102,7 +102,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 - [x] Proteksi seluruh route dashboard
 - [x] Proteksi route API yang butuh autentikasi
-- [ ] Tambahkan helper `requireAuth` untuk route handler
+- [x] Tambahkan helper `requireAuth` untuk route handler
 - [x] Pastikan user belum login diarahkan ke halaman login
 
 ## Fase 1.5 — Audit Log Foundation
@@ -135,19 +135,19 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 - [ ] Uji update menghasilkan before/after data
 - [ ] Uji delete menghasilkan jejak perubahan yang cukup
 
-## Fase 2 — Layout Aplikasi dan Shared UI
+## Fase 2 — Layout Aplikasi dan Shared UI `[x]`
 
 ### Dashboard shell
 
-- [ ] Buat layout dashboard `src/app/(dashboard)/layout.tsx`
-- [ ] Buat sidebar navigasi utama
-- [ ] Tambahkan topbar sederhana
-- [ ] Tampilkan identitas user login
-- [ ] Tambahkan tombol logout
+- [x] Buat layout dashboard `src/app/(dashboard)/layout.tsx`
+- [x] Buat sidebar navigasi utama
+- [x] Tambahkan topbar sederhana
+- [x] Tampilkan identitas user login
+- [x] Tambahkan tombol logout
 
 ### Shared components
 
-- [ ] Buat komponen UI dasar:
+- [x] Buat komponen UI dasar:
   - button
   - input
   - select
@@ -156,7 +156,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
   - table
   - dialog atau modal
   - date picker atau input tanggal
-- [ ] Buat komponen state:
+- [x] Buat komponen state:
   - loading state
   - empty state
   - error state
@@ -164,9 +164,9 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Form foundation
 
-- [ ] Siapkan pola reusable untuk form dengan React Hook Form + Zod
-- [ ] Siapkan helper error message form
-- [ ] Pastikan semua label UI memakai Bahasa Indonesia
+- [x] Siapkan pola reusable untuk form dengan React Hook Form + Zod
+- [x] Siapkan helper error message form
+- [x] Pastikan semua label UI memakai Bahasa Indonesia
 
 ## Fase 3 — Master Data Unit
 
