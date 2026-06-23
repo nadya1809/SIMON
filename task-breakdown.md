@@ -338,51 +338,51 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 - [x] Acceptance criteria penilaian harian lulus
 - [ ] Audit log penilaian tercatat
 
-## Fase 8 — Dashboard dan Visualisasi
+## Fase 8 — Dashboard dan Visualisasi `[x]`
 
 ### Dashboard backend
 
-- [ ] Buat endpoint `GET /api/dashboard/summary`
-- [ ] Tambahkan query params:
+- [x] Buat endpoint `GET /api/dashboard/summary`
+- [x] Tambahkan query params:
   - `from`
   - `to`
   - `unitId`
-- [ ] Buat service agregasi dashboard
-- [ ] Hitung rata-rata skor per petugas
-- [ ] Hitung tren harian
-- [ ] Hitung tren mingguan
-- [ ] Hitung tren bulanan
-- [ ] Hitung ranking petugas
-- [ ] Hitung distribusi skor per kriteria
-- [ ] Hitung perbandingan antar unit
+- [x] Buat service agregasi dashboard
+- [x] Hitung rata-rata skor per petugas
+- [x] Hitung tren harian
+- [x] Hitung tren mingguan
+- [x] Hitung tren bulanan
+- [x] Hitung ranking petugas
+- [x] Hitung distribusi skor per kriteria
+- [x] Hitung perbandingan antar unit
 
 ### Dashboard frontend
 
-- [ ] Buat halaman dashboard utama
-- [ ] Buat filter periode
-- [ ] Buat filter unit
-- [ ] Buat summary cards
-- [ ] Buat line chart tren
-- [ ] Buat bar chart atau pie chart distribusi kriteria
-- [ ] Buat tabel ranking petugas
-- [ ] Buat chart perbandingan unit
+- [x] Buat halaman dashboard utama
+- [x] Buat filter periode
+- [x] Buat filter unit
+- [x] Buat summary cards
+- [x] Buat line chart tren
+- [x] Buat bar chart atau pie chart distribusi kriteria
+- [x] Buat tabel ranking petugas
+- [x] Buat chart perbandingan unit
 
 ### UX and state handling
 
-- [ ] Tampilkan loading state yang jelas
-- [ ] Tampilkan empty state jika data kosong
-- [ ] Tampilkan pesan valid jika filter tidak menghasilkan data
+- [x] Tampilkan loading state yang jelas
+- [x] Tampilkan empty state jika data kosong
+- [x] Tampilkan pesan valid jika filter tidak menghasilkan data
 
 ### Performance
 
-- [ ] Profiling query dashboard untuk data 1 bulan
-- [ ] Tambahkan index tambahan jika perlu
-- [ ] Pastikan target < 3 detik realistis di lingkungan lokal
+- [x] Profiling query dashboard untuk data 1 bulan
+- [x] Tambahkan index tambahan jika perlu
+- [x] Pastikan target < 3 detik realistis di lingkungan lokal
 
 ### Verifikasi
 
-- [ ] Data dashboard sesuai hasil agregasi database
-- [ ] Semua komponen breakdown tampil benar
+- [x] Data dashboard sesuai hasil agregasi database
+- [x] Semua komponen breakdown tampil benar
 
 ## Fase 9 — Reward dan Punishment
 
@@ -554,7 +554,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Milestone 4
 
-- [ ] Dashboard MVP siap dipakai
+- [x] Dashboard MVP siap dipakai
 
 ### Milestone 5
 
