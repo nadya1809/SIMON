@@ -43,7 +43,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 - [x] Siapkan alias import bila diperlukan
 - [ ] Tambahkan README setup lokal singkat
 
-## Fase 1 — Database, Prisma, dan Auth Foundation `[~]`
+## Fase 1 — Database, Prisma, dan Auth Foundation `[x]`
 
 ### Prisma schema
 
@@ -62,7 +62,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 ### Database setup
 
 - [x] Siapkan koneksi PostgreSQL melalui `DATABASE_URL`
-- [ ] Jalankan migration awal
+- [x] Jalankan migration awal
 - [x] Generate Prisma client
 - [x] Verifikasi schema dapat dibuat tanpa error
 
@@ -541,7 +541,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 ### Milestone 1
 
 - [x] Login berjalan
-- [ ] Database dan seed siap
+- [x] Database dan seed siap
 - [ ] Audit foundation siap
 
 ### Milestone 2
