@@ -12,6 +12,11 @@ const menuItems = [
     label: "Penilaian Harian",
     description: "Input dan pantau penilaian"
   },
+  {
+    href: "/dashboard/units",
+    label: "Unit",
+    description: "Kelola unit kerja PST"
+  },
   { href: "/dashboard/officers", label: "Petugas PST", description: "Kelola master petugas" },
   {
     href: "/dashboard/reward-punishment",

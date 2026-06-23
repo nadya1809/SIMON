@@ -168,26 +168,26 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 - [x] Siapkan helper error message form
 - [x] Pastikan semua label UI memakai Bahasa Indonesia
 
-## Fase 3 — Master Data Unit
+## Fase 3 — Master Data Unit `[x]`
 
 ### Backend
 
-- [ ] Buat endpoint `GET /api/units`
-- [ ] Buat endpoint `POST /api/units`
-- [ ] Buat endpoint `PATCH /api/units/[id]`
-- [ ] Tentukan apakah `DELETE` dihindari dan diganti nonaktif/edit saja
-- [ ] Tambahkan validasi Zod untuk unit
+- [x] Buat endpoint `GET /api/units`
+- [x] Buat endpoint `POST /api/units`
+- [x] Buat endpoint `PATCH /api/units/[id]`
+- [x] Tentukan apakah `DELETE` dihindari dan diganti nonaktif/edit saja
+- [x] Tambahkan validasi Zod untuk unit
 
 ### Frontend
 
-- [ ] Buat halaman daftar unit
-- [ ] Buat form tambah/edit unit
-- [ ] Tampilkan relasi jumlah petugas per unit jika memungkinkan
+- [x] Buat halaman daftar unit
+- [x] Buat form tambah/edit unit
+- [x] Tampilkan relasi jumlah petugas per unit jika memungkinkan
 
 ### Verifikasi
 
-- [ ] Admin dapat menambah unit
-- [ ] Admin dapat mengubah data unit
+- [x] Admin dapat menambah unit
+- [x] Admin dapat mengubah data unit
 
 ## Fase 4 — Master Data Petugas
 
