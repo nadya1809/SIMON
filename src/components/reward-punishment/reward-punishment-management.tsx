@@ -19,6 +19,7 @@ import { FormField } from "@/components/forms/form-field";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTableShell } from "@/components/ui/data-table-shell";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -30,7 +31,6 @@ import { Select } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { showConfirmToast } from "@/lib/confirm-toast";
 import { formatAverageScore } from "@/lib/scoring";
 import {
   rewardPunishmentActionSchema,
@@ -171,6 +171,8 @@ export function RewardPunishmentManagement({
   const [selectedRecommendationId, setSelectedRecommendationId] = useState(
     initialRecommendations[0]?.id ?? ""
   );
+  const [confirmingRecommendation, setConfirmingRecommendation] =
+    useState<RecommendationItem | null>(null);
   const [search, setSearch] = useState("");
   const [unitFilter, setUnitFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -378,10 +380,16 @@ export function RewardPunishmentManagement({
       );
 
       if (selectedRecommendationId === recommendation.id) {
-        const nextRecommendation = recommendations.find(
-          (item) => item.id !== recommendation.id
-        );
-        setSelectedRecommendationId(nextRecommendation?.id ?? "");
+        setSelectedRecommendationId((currentId) => {
+          if (currentId !== recommendation.id) {
+            return currentId;
+          }
+
+          const nextRecommendation = recommendations.find(
+            (item) => item.id !== recommendation.id
+          );
+          return nextRecommendation?.id ?? "";
+        });
       }
 
       toast.success(result.message || "Rekomendasi berhasil dihapus.");
@@ -542,15 +550,7 @@ export function RewardPunishmentManagement({
                             icon: faTrash,
                             variant: "danger",
                             disabled: deletingRecommendationId === item.id,
-                            onClick: () =>
-                              showConfirmToast({
-                                title: `Hapus rekomendasi ${item.officer.name}?`,
-                                description:
-                                  "Rekomendasi yang dihapus tidak bisa dipulihkan lagi.",
-                                confirmLabel: "Ya, hapus",
-                                cancelLabel: "Batal",
-                                onConfirm: () => deleteRecommendation(item)
-                              })
+                            onClick: () => setConfirmingRecommendation(item)
                           }
                         ]}
                       />
@@ -766,6 +766,32 @@ export function RewardPunishmentManagement({
           </Dialog>
         </div>
       </section>
+
+      <ConfirmDialog
+        open={Boolean(confirmingRecommendation)}
+        title={
+          confirmingRecommendation
+            ? `Hapus rekomendasi ${confirmingRecommendation.officer.name}?`
+            : "Hapus rekomendasi?"
+        }
+        description="Rekomendasi yang dihapus tidak bisa dipulihkan lagi."
+        isLoading={
+          Boolean(confirmingRecommendation) &&
+          deletingRecommendationId === confirmingRecommendation?.id
+        }
+        onClose={() => {
+          if (!deletingRecommendationId) {
+            setConfirmingRecommendation(null);
+          }
+        }}
+        onConfirm={() => {
+          if (confirmingRecommendation) {
+            void deleteRecommendation(confirmingRecommendation).finally(() =>
+              setConfirmingRecommendation(null)
+            );
+          }
+        }}
+      />
     </DashboardShell>
   );
 }

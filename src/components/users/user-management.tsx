@@ -14,6 +14,7 @@ import { FormField } from "@/components/forms/form-field";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTableShell } from "@/components/ui/data-table-shell";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,7 +23,6 @@ import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
-import { showConfirmToast } from "@/lib/confirm-toast";
 import {
   userSchema,
   userUpdateSchema,
@@ -56,6 +56,7 @@ export function UserManagement({
 }: UserManagementProps) {
   const [users, setUsers] = useState<UserItem[]>(initialUsers);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
+  const [confirmingUser, setConfirmingUser] = useState<UserItem | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [isActiveValue, setIsActiveValue] = useState(true);
   const [isPending, startTransition] = useTransition();
@@ -261,15 +262,7 @@ export function UserManagement({
                             disabled:
                               user.id === currentUserId ||
                               deletingUserId === user.id,
-                            onClick: () =>
-                              showConfirmToast({
-                                title: `Hapus user ${user.name}?`,
-                                description:
-                                  "User hanya bisa dihapus jika bukan akun aktif yang sedang dipakai dan belum memiliki histori aktivitas sistem.",
-                                confirmLabel: "Ya, hapus",
-                                cancelLabel: "Batal",
-                                onConfirm: () => deleteUser(user)
-                              })
+                            onClick: () => setConfirmingUser(user)
                           }
                         ]}
                       />
@@ -395,6 +388,31 @@ export function UserManagement({
           </form>
         </Dialog>
       </section>
+
+      <ConfirmDialog
+        open={Boolean(confirmingUser)}
+        title={
+          confirmingUser
+            ? `Hapus user ${confirmingUser.name}?`
+            : "Hapus user?"
+        }
+        description="User hanya bisa dihapus jika bukan akun aktif yang sedang dipakai dan belum memiliki histori aktivitas sistem."
+        isLoading={
+          Boolean(confirmingUser) && deletingUserId === confirmingUser?.id
+        }
+        onClose={() => {
+          if (!deletingUserId) {
+            setConfirmingUser(null);
+          }
+        }}
+        onConfirm={() => {
+          if (confirmingUser) {
+            void deleteUser(confirmingUser).finally(() =>
+              setConfirmingUser(null)
+            );
+          }
+        }}
+      />
     </DashboardShell>
   );
 }

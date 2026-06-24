@@ -14,6 +14,7 @@ import { FormField } from "@/components/forms/form-field";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTableShell } from "@/components/ui/data-table-shell";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,7 +23,6 @@ import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { showConfirmToast } from "@/lib/confirm-toast";
 import {
   type CriteriaFormInput,
   criteriaSchema,
@@ -59,6 +59,8 @@ export function CriteriaManagement({
   const [editingCriteria, setEditingCriteria] = useState<CriteriaItem | null>(
     null
   );
+  const [confirmingCriteria, setConfirmingCriteria] =
+    useState<CriteriaItem | null>(null);
   const [deletingCriteriaId, setDeletingCriteriaId] = useState<string | null>(
     null
   );
@@ -251,15 +253,7 @@ export function CriteriaManagement({
                               variant: "danger",
                               disabled:
                                 isSeedDefault || deletingCriteriaId === item.id,
-                              onClick: () =>
-                                showConfirmToast({
-                                  title: `Hapus kriteria ${item.name}?`,
-                                  description:
-                                    "Kriteria hanya bisa dihapus jika bukan data seed dan belum memiliki histori skor.",
-                                  confirmLabel: "Ya, hapus",
-                                  cancelLabel: "Batal",
-                                  onConfirm: () => deleteCriteria(item)
-                                })
+                              onClick: () => setConfirmingCriteria(item)
                             }
                           ]}
                         />
@@ -375,6 +369,32 @@ export function CriteriaManagement({
           </form>
         </Dialog>
       </section>
+
+      <ConfirmDialog
+        open={Boolean(confirmingCriteria)}
+        title={
+          confirmingCriteria
+            ? `Hapus kriteria ${confirmingCriteria.name}?`
+            : "Hapus kriteria?"
+        }
+        description="Kriteria hanya bisa dihapus jika bukan data seed dan belum memiliki histori skor."
+        isLoading={
+          Boolean(confirmingCriteria) &&
+          deletingCriteriaId === confirmingCriteria?.id
+        }
+        onClose={() => {
+          if (!deletingCriteriaId) {
+            setConfirmingCriteria(null);
+          }
+        }}
+        onConfirm={() => {
+          if (confirmingCriteria) {
+            void deleteCriteria(confirmingCriteria).finally(() =>
+              setConfirmingCriteria(null)
+            );
+          }
+        }}
+      />
     </DashboardShell>
   );
 }

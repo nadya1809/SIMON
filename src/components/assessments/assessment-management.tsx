@@ -15,6 +15,7 @@ import { FormField } from "@/components/forms/form-field";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTableShell } from "@/components/ui/data-table-shell";
 import { DateInput } from "@/components/ui/date-input";
 import { Dialog } from "@/components/ui/dialog";
@@ -25,7 +26,6 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { showConfirmToast } from "@/lib/confirm-toast";
 import { formatAverageScore } from "@/lib/scoring";
 import {
   assessmentSchema,
@@ -115,6 +115,8 @@ export function AssessmentManagement({
 }: AssessmentManagementProps) {
   const [assessments, setAssessments] = useState(initialAssessments);
   const [editingAssessment, setEditingAssessment] =
+    useState<AssessmentItem | null>(null);
+  const [confirmingAssessment, setConfirmingAssessment] =
     useState<AssessmentItem | null>(null);
   const [statusValue, setStatusValue] = useState<"PRESENT" | "ABSENT">(
     "PRESENT"
@@ -477,15 +479,7 @@ export function AssessmentManagement({
                             icon: faTrash,
                             variant: "danger",
                             disabled: deletingAssessmentId === item.id,
-                            onClick: () =>
-                              showConfirmToast({
-                                title: `Hapus penilaian ${item.officer.name}?`,
-                                description:
-                                  "Data penilaian harian yang dihapus tidak bisa dipulihkan lagi.",
-                                confirmLabel: "Ya, hapus",
-                                cancelLabel: "Batal",
-                                onConfirm: () => deleteAssessment(item)
-                              })
+                            onClick: () => setConfirmingAssessment(item)
                           }
                         ]}
                       />
@@ -656,6 +650,32 @@ export function AssessmentManagement({
           </form>
         </Dialog>
       </section>
+
+      <ConfirmDialog
+        open={Boolean(confirmingAssessment)}
+        title={
+          confirmingAssessment
+            ? `Hapus penilaian ${confirmingAssessment.officer.name}?`
+            : "Hapus penilaian?"
+        }
+        description="Data penilaian harian yang dihapus tidak bisa dipulihkan lagi."
+        isLoading={
+          Boolean(confirmingAssessment) &&
+          deletingAssessmentId === confirmingAssessment?.id
+        }
+        onClose={() => {
+          if (!deletingAssessmentId) {
+            setConfirmingAssessment(null);
+          }
+        }}
+        onConfirm={() => {
+          if (confirmingAssessment) {
+            void deleteAssessment(confirmingAssessment).finally(() =>
+              setConfirmingAssessment(null)
+            );
+          }
+        }}
+      />
     </DashboardShell>
   );
 }

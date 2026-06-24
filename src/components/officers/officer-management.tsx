@@ -14,6 +14,7 @@ import { FormField } from "@/components/forms/form-field";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTableShell } from "@/components/ui/data-table-shell";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,7 +23,6 @@ import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
-import { showConfirmToast } from "@/lib/confirm-toast";
 import { officerSchema, type OfficerFormValues } from "@/lib/validations/officer";
 
 type UnitOption = {
@@ -57,6 +57,9 @@ export function OfficerManagement({
 }: OfficerManagementProps) {
   const [officers, setOfficers] = useState<OfficerItem[]>(initialOfficers);
   const [editingOfficer, setEditingOfficer] = useState<OfficerItem | null>(null);
+  const [confirmingOfficer, setConfirmingOfficer] = useState<OfficerItem | null>(
+    null
+  );
   const [deletingOfficerId, setDeletingOfficerId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [unitFilter, setUnitFilter] = useState("all");
@@ -329,15 +332,7 @@ export function OfficerManagement({
                             icon: faTrash,
                             variant: "danger",
                             disabled: deletingOfficerId === officer.id,
-                            onClick: () =>
-                              showConfirmToast({
-                                title: `Hapus petugas ${officer.name}?`,
-                                description:
-                                  "Penghapusan hanya diizinkan jika petugas belum memiliki histori penilaian atau reward dan punishment.",
-                                confirmLabel: "Ya, hapus",
-                                cancelLabel: "Batal",
-                                onConfirm: () => deleteOfficer(officer)
-                              })
+                            onClick: () => setConfirmingOfficer(officer)
                           }
                         ]}
                       />
@@ -473,6 +468,32 @@ export function OfficerManagement({
           </form>
         </Dialog>
       </section>
+
+      <ConfirmDialog
+        open={Boolean(confirmingOfficer)}
+        title={
+          confirmingOfficer
+            ? `Hapus petugas ${confirmingOfficer.name}?`
+            : "Hapus petugas?"
+        }
+        description="Penghapusan hanya diizinkan jika petugas belum memiliki histori penilaian atau reward dan punishment."
+        isLoading={
+          Boolean(confirmingOfficer) &&
+          deletingOfficerId === confirmingOfficer?.id
+        }
+        onClose={() => {
+          if (!deletingOfficerId) {
+            setConfirmingOfficer(null);
+          }
+        }}
+        onConfirm={() => {
+          if (confirmingOfficer) {
+            void deleteOfficer(confirmingOfficer).finally(() =>
+              setConfirmingOfficer(null)
+            );
+          }
+        }}
+      />
     </DashboardShell>
   );
 }

@@ -14,6 +14,7 @@ import { FormField } from "@/components/forms/form-field";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTableShell } from "@/components/ui/data-table-shell";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,7 +23,6 @@ import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { showConfirmToast } from "@/lib/confirm-toast";
 import type { UnitFormValues } from "@/lib/validations/unit";
 import { unitSchema } from "@/lib/validations/unit";
 
@@ -47,6 +47,7 @@ export function UnitManagement({
 }: UnitManagementProps) {
   const [units, setUnits] = useState<UnitItem[]>(initialUnits);
   const [editingUnit, setEditingUnit] = useState<UnitItem | null>(null);
+  const [confirmingUnit, setConfirmingUnit] = useState<UnitItem | null>(null);
   const [deletingUnitId, setDeletingUnitId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -208,15 +209,7 @@ export function UnitManagement({
                             icon: faTrash,
                             variant: "danger",
                             disabled: deletingUnitId === unit.id,
-                            onClick: () =>
-                              showConfirmToast({
-                                title: `Hapus unit ${unit.name}?`,
-                                description:
-                                  "Unit hanya bisa dihapus jika belum memiliki petugas terdaftar.",
-                                confirmLabel: "Ya, hapus",
-                                cancelLabel: "Batal",
-                                onConfirm: () => deleteUnit(unit)
-                              })
+                            onClick: () => setConfirmingUnit(unit)
                           }
                         ]}
                       />
@@ -293,6 +286,29 @@ export function UnitManagement({
           </form>
         </Dialog>
       </section>
+
+      <ConfirmDialog
+        open={Boolean(confirmingUnit)}
+        title={
+          confirmingUnit
+            ? `Hapus unit ${confirmingUnit.name}?`
+            : "Hapus unit?"
+        }
+        description="Unit hanya bisa dihapus jika belum memiliki petugas terdaftar."
+        isLoading={
+          Boolean(confirmingUnit) && deletingUnitId === confirmingUnit?.id
+        }
+        onClose={() => {
+          if (!deletingUnitId) {
+            setConfirmingUnit(null);
+          }
+        }}
+        onConfirm={() => {
+          if (confirmingUnit) {
+            void deleteUnit(confirmingUnit).finally(() => setConfirmingUnit(null));
+          }
+        }}
+      />
     </DashboardShell>
   );
 }
