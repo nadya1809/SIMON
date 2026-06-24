@@ -39,7 +39,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Konfigurasi awal
 
-- [ ] Buat file util dasar `src/lib/utils.ts` jika diperlukan
+- [x] Buat file util dasar `src/lib/utils.ts` jika diperlukan
 - [x] Siapkan alias import bila diperlukan
 - [x] Tambahkan README setup lokal singkat
 
@@ -131,9 +131,9 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Audit verification
 
-- [ ] Uji create menghasilkan audit log
-- [ ] Uji update menghasilkan before/after data
-- [ ] Uji delete menghasilkan jejak perubahan yang cukup
+- [x] Uji create menghasilkan audit log
+- [x] Uji update menghasilkan before/after data
+- [x] Uji delete menghasilkan jejak perubahan yang cukup
 
 ## Fase 2 — Layout Aplikasi dan Shared UI `[x]`
 
@@ -331,12 +331,12 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 ### Stretch task
 
 - [x] Evaluasi kebutuhan batch entry penilaian harian banyak petugas
-- [ ] Jika perlu, desain halaman input tabel per tanggal
+- [x] Jika perlu, desain halaman input tabel per tanggal
 
 ### Verifikasi
 
 - [x] Acceptance criteria penilaian harian lulus
-- [ ] Audit log penilaian tercatat
+- [x] Audit log penilaian tercatat
 
 ## Fase 8 — Dashboard dan Visualisasi `[x]`
 
@@ -389,7 +389,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 ### Business logic
 
 - [x] Buat helper kalkulasi skor agregat bulanan per petugas
-- [ ] Terapkan threshold:
+- [x] Terapkan threshold:
   - reward jika `>= 8.0`
   - punishment jika `<= 4.0`
 - [x] Pastikan hanya assessment `PRESENT` yang ikut skor rata-rata
@@ -471,38 +471,38 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Functional QA
 
-- [ ] Uji login/logout/session expiry
-- [ ] Uji manajemen petugas
-- [ ] Uji manajemen kriteria
-- [ ] Uji manajemen user
-- [ ] Uji assessment `PRESENT`
-- [ ] Uji assessment `ABSENT`
-- [ ] Uji duplicate assessment
+- [x] Uji login/logout/session expiry
+- [x] Uji manajemen petugas
+- [x] Uji manajemen kriteria
+- [x] Uji manajemen user
+- [x] Uji assessment `PRESENT`
+- [x] Uji assessment `ABSENT`
+- [x] Uji duplicate assessment
 - [x] Uji dashboard dengan data ada
-- [ ] Uji dashboard tanpa data
+- [x] Uji dashboard tanpa data
 - [x] Uji reward/punishment
-- [ ] Uji export PDF
-- [ ] Uji export Excel
+- [x] Uji export PDF
+- [x] Uji export Excel
 
 ### Security and robustness
 
-- [ ] Pastikan semua endpoint sensitif butuh login
-- [ ] Cegah user nonaktif mengakses sistem
-- [ ] Validasi input server-side di semua API
-- [ ] Pastikan error internal tidak membocorkan detail sensitif
+- [x] Pastikan semua endpoint sensitif butuh login
+- [x] Cegah user nonaktif mengakses sistem
+- [x] Validasi input server-side di semua API
+- [x] Pastikan error internal tidak membocorkan detail sensitif
 
 ### Data integrity
 
 - [x] Verifikasi audit log pada entitas penting
-- [ ] Verifikasi relasi data tetap aman saat data nonaktif
-- [ ] Verifikasi histori lama tidak rusak saat master data berubah
+- [x] Verifikasi relasi data tetap aman saat data nonaktif
+- [x] Verifikasi histori lama tidak rusak saat master data berubah
 
 ### UI polish
 
-- [ ] Rapikan loading state
-- [ ] Rapikan empty state
-- [ ] Rapikan validasi form
-- [ ] Rapikan copywriting Bahasa Indonesia
+- [x] Rapikan loading state
+- [x] Rapikan empty state
+- [x] Rapikan validasi form
+- [x] Rapikan copywriting Bahasa Indonesia
 
 ### Deployment readiness
 
@@ -527,14 +527,14 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Naming dan consistency
 
-- [ ] UI tetap Bahasa Indonesia
-- [ ] Nama variabel, fungsi, dan model tetap Bahasa Inggris
-- [ ] Folder route memakai kebab-case
+- [x] UI tetap Bahasa Indonesia
+- [x] Nama variabel, fungsi, dan model tetap Bahasa Inggris
+- [x] Folder route memakai kebab-case
 
 ### Logging dan observability
 
-- [ ] Tambahkan logging server minimal untuk error penting
-- [ ] Bedakan logging development dan production bila perlu
+- [x] Tambahkan logging server minimal untuk error penting
+- [x] Bedakan logging development dan production bila perlu
 
 ## Milestone yang Direkomendasikan
 
@@ -542,7 +542,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 - [x] Login berjalan
 - [x] Database dan seed siap
-- [ ] Audit foundation siap
+- [x] Audit foundation siap
 
 ### Milestone 2
 
@@ -562,7 +562,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Milestone 6
 
-- [ ] Siap UAT dan deployment internal
+- [x] Siap UAT dan deployment internal
 
 ## File Lanjutan Setelah Ini
 

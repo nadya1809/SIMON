@@ -4,6 +4,12 @@ import { calculateAverageScore } from "@/lib/scoring";
 import { getDashboardSummary } from "@/lib/dashboard";
 import { getMonthlyRecommendationCandidates } from "@/lib/reward-punishment";
 import { getReportData } from "@/lib/reports";
+import {
+  buildExcelReportBuffer,
+  buildPdfReportBuffer
+} from "@/lib/report-export";
+import bcrypt from "bcryptjs";
+import { Prisma, Role } from "@prisma/client";
 
 function formatDateInput(date: Date) {
   const year = date.getFullYear();
@@ -64,8 +70,117 @@ async function main() {
   let createdAssessmentIds: string[] = [];
   let createdOfficerId: string | null = null;
   let createdUnitId: string | null = null;
+  let createdUserId: string | null = null;
+  let createdCriteriaId: string | null = null;
 
   try {
+    const tempPassword = "QaSmokePass123!";
+    const tempUser = await prisma.user.create({
+      data: {
+        name: `User ${uniqueKey}`,
+        email: `${uniqueKey}@simon.local`,
+        passwordHash: await bcrypt.hash(tempPassword, 10),
+        role: Role.SUPERVISOR,
+        isActive: true
+      }
+    });
+
+    createdUserId = tempUser.id;
+
+    async function simulateCredentialLogin(email: string, password: string) {
+      const user = await prisma.user.findUnique({
+        where: {
+          email
+        }
+      });
+
+      if (!user || !user.isActive) {
+        return null;
+      }
+
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+
+      if (!isValidPassword) {
+        return null;
+      }
+
+      return user;
+    }
+
+    const loginSuccess = await simulateCredentialLogin(
+      tempUser.email,
+      tempPassword
+    );
+    assertCondition(loginSuccess, "Login user aktif harus berhasil.");
+
+    const loginWrongPassword = await simulateCredentialLogin(
+      tempUser.email,
+      "PasswordSalah!"
+    );
+    assertCondition(
+      loginWrongPassword === null,
+      "Login dengan password salah harus ditolak."
+    );
+
+    await prisma.user.update({
+      where: {
+        id: tempUser.id
+      },
+      data: {
+        isActive: false
+      }
+    });
+
+    const loginInactiveUser = await simulateCredentialLogin(
+      tempUser.email,
+      tempPassword
+    );
+    assertCondition(
+      loginInactiveUser === null,
+      "Login user nonaktif harus ditolak."
+    );
+
+    const activeUser = await prisma.user.update({
+      where: {
+        id: tempUser.id
+      },
+      data: {
+        isActive: true,
+        name: `User Update ${uniqueKey}`
+      }
+    });
+
+    assertCondition(
+      activeUser.name.includes("Update"),
+      "Update user temporary harus berhasil."
+    );
+
+    const tempCriteria = await prisma.criteria.create({
+      data: {
+        name: `Kriteria ${uniqueKey}`,
+        description: "Data temporary QA smoke",
+        sortOrder: 99,
+        isActive: true
+      }
+    });
+
+    createdCriteriaId = tempCriteria.id;
+
+    const updatedCriteria = await prisma.criteria.update({
+      where: {
+        id: tempCriteria.id
+      },
+      data: {
+        isActive: false,
+        description: "Updated criteria QA smoke"
+      }
+    });
+
+    assertCondition(
+      updatedCriteria.isActive === false,
+      "Update kriteria temporary harus berhasil."
+    );
+
     const unit = await prisma.unit.create({
       data: {
         name: `Unit ${uniqueKey}`,
@@ -86,6 +201,30 @@ async function main() {
     });
 
     createdOfficerId = officer.id;
+
+    const updatedOfficer = await prisma.officer.update({
+      where: {
+        id: officer.id
+      },
+      data: {
+        position: "QA Smoke Updated",
+        isActive: false
+      }
+    });
+
+    assertCondition(
+      updatedOfficer.isActive === false,
+      "Update officer temporary harus berhasil."
+    );
+
+    await prisma.officer.update({
+      where: {
+        id: officer.id
+      },
+      data: {
+        isActive: true
+      }
+    });
 
     const presentScores = criteria.slice(0, 2).map((item, index) => ({
       criteriaId: item.id,
@@ -118,6 +257,25 @@ async function main() {
     });
 
     createdAssessmentIds = [presentAssessment.id, absentAssessment.id];
+
+    try {
+      await prisma.dailyAssessment.create({
+        data: {
+          officerId: officer.id,
+          assessorId: actor.id,
+          assessmentDate: presentDate,
+          status: "PRESENT",
+          averageScore: 10
+        }
+      });
+      throw new Error("Duplicate assessment seharusnya gagal.");
+    } catch (error) {
+      assertCondition(
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002",
+        "Duplicate assessment harus memicu unique constraint P2002."
+      );
+    }
 
     const createAudit = await writeAuditLog({
       userId: actor.id,
@@ -170,6 +328,17 @@ async function main() {
       "Ranking dashboard harus memuat officer temporary."
     );
 
+    const emptyDashboard = await getDashboardSummary({
+      from: "2099-01-01",
+      to: "2099-01-31",
+      unitId: unit.id
+    });
+
+    assertCondition(
+      emptyDashboard.summaryCards.totalAssessments === 0,
+      "Dashboard tanpa data harus mengembalikan total 0."
+    );
+
     const rewardCandidates = await getMonthlyRecommendationCandidates(monthPeriod);
     const officerCandidate = rewardCandidates.candidates.find(
       (item) => item.officerId === officer.id
@@ -196,6 +365,40 @@ async function main() {
       "Report ranking harus memuat officer temporary."
     );
 
+    const excelBuffer = await buildExcelReportBuffer({
+      from: dateFrom,
+      to: dateTo,
+      unitId: unit.id
+    });
+    const pdfBuffer = await buildPdfReportBuffer({
+      from: dateFrom,
+      to: dateTo,
+      unitId: unit.id
+    });
+
+    assertCondition(excelBuffer.byteLength > 0, "Export Excel harus menghasilkan buffer.");
+    assertCondition(pdfBuffer.byteLength > 0, "Export PDF harus menghasilkan buffer.");
+
+    await prisma.officer.update({
+      where: {
+        id: officer.id
+      },
+      data: {
+        isActive: false
+      }
+    });
+
+    const reportWithInactiveOfficer = await getReportData({
+      from: dateFrom,
+      to: dateTo,
+      unitId: unit.id
+    });
+
+    assertCondition(
+      reportWithInactiveOfficer.rows.some((row) => row.officerId === officer.id),
+      "Histori officer nonaktif harus tetap bisa dibaca."
+    );
+
     const auditLogs = await prisma.auditLog.findMany({
       where: {
         id: {
@@ -204,22 +407,25 @@ async function main() {
       }
     });
 
-    assertCondition(
-      auditLogs.length === 2,
-      "Audit log temporary harus berhasil tersimpan."
-    );
+    assertCondition(auditLogs.length === 2, "Audit log temporary harus berhasil tersimpan.");
 
     console.log(
       JSON.stringify(
         {
           success: true,
           summary: {
+            loginSuccess: true,
+            loginWrongPasswordRejected: true,
+            loginInactiveRejected: true,
             totalAssessments: dashboard.summaryCards.totalAssessments,
             totalPresent: dashboard.summaryCards.totalPresent,
             totalAbsent: dashboard.summaryCards.totalAbsent,
+            dashboardEmptyStateTotal: emptyDashboard.summaryCards.totalAssessments,
             rewardCandidateType: officerCandidate?.type ?? null,
             rewardTriggerScore: officerCandidate?.triggerScore ?? null,
             reportRows: report.rows.length,
+            excelBytes: excelBuffer.byteLength,
+            pdfBytes: pdfBuffer.byteLength,
             auditLogs: auditLogs.length
           }
         },
@@ -228,14 +434,18 @@ async function main() {
       )
     );
   } finally {
-    if (createdAuditIds.length) {
-      await prisma.auditLog.deleteMany({
-        where: {
-          id: {
-            in: createdAuditIds
-          }
+    if (createdOfficerId) {
+      const deleteAudit = await writeAuditLog({
+        userId: actor.id,
+        action: "DELETE",
+        entity: "Officer",
+        entityId: createdOfficerId,
+        beforeData: {
+          id: createdOfficerId
         }
       });
+
+      createdAuditIds.push(deleteAudit.id);
     }
 
     if (createdAssessmentIds.length) {
@@ -257,9 +467,47 @@ async function main() {
     }
 
     if (createdUnitId) {
+      const deleteAudit = await writeAuditLog({
+        userId: actor.id,
+        action: "DELETE",
+        entity: "Unit",
+        entityId: createdUnitId,
+        beforeData: {
+          id: createdUnitId
+        }
+      });
+
+      createdAuditIds.push(deleteAudit.id);
+
       await prisma.unit.delete({
         where: {
           id: createdUnitId
+        }
+      });
+    }
+
+    if (createdCriteriaId) {
+      await prisma.criteria.delete({
+        where: {
+          id: createdCriteriaId
+        }
+      });
+    }
+
+    if (createdUserId) {
+      await prisma.user.delete({
+        where: {
+          id: createdUserId
+        }
+      });
+    }
+
+    if (createdAuditIds.length) {
+      await prisma.auditLog.deleteMany({
+        where: {
+          id: {
+            in: createdAuditIds
+          }
         }
       });
     }

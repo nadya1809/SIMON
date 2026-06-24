@@ -12,11 +12,22 @@ pnpm qa:smoke
 
 Smoke check ini membuat data temporary, melakukan verifikasi inti, lalu membersihkan data tersebut kembali. Cakupan saat ini:
 
+- login user aktif berhasil
+- login password salah ditolak
+- login user nonaktif ditolak
+- create dan update user temporary berhasil
+- create dan update petugas temporary berhasil
+- create dan update kriteria temporary berhasil
 - seed criteria aktif tersedia
+- duplicate assessment ditolak oleh unique constraint
+- dashboard tanpa data menghasilkan total 0
 - dashboard menghitung data `PRESENT` dan `ABSENT` dengan benar
 - kandidat reward bulanan muncul dari agregasi skor `PRESENT`
+- export Excel menghasilkan buffer file
+- export PDF menghasilkan buffer file
 - service report menghasilkan baris laporan dan ranking
-- audit log dapat menyimpan jejak perubahan penting
+- histori officer nonaktif tetap bisa dibaca
+- audit log dapat menyimpan jejak create, update, dan delete
 
 ## Verifikasi Build
 

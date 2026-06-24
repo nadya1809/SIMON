@@ -12,6 +12,7 @@ import {
   apiSuccess,
   mapPrismaError
 } from "@/lib/api-response";
+import { logServerError } from "@/lib/logger";
 import {
   assessmentSchema,
   validateAssessmentBusinessRules
@@ -205,6 +206,11 @@ export async function POST(request: Request) {
 
     return apiCreated(assessment, "Penilaian berhasil disimpan.");
   } catch (error) {
+    logServerError("api.assessments.create", error, {
+      officerId: parsed.data.officerId,
+      assessmentDate: parsed.data.assessmentDate
+    });
+
     const prismaError = mapPrismaError(error, {
       P2002: "Penilaian untuk petugas dan tanggal tersebut sudah ada."
     });
