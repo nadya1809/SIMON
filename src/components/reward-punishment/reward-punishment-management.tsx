@@ -31,6 +31,7 @@ import { Select } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { toMonthInputValue } from "@/lib/reward-punishment";
 import { formatAverageScore } from "@/lib/scoring";
 import {
   rewardPunishmentActionSchema,
@@ -92,18 +93,12 @@ function toDateLabel(value: string | Date) {
   }).format(date);
 }
 
-function toMonthInputValue(value: string | Date) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  return `${year}-${month}`;
-}
-
 function toMonthLabel(value: string | Date) {
   const date = typeof value === "string" ? new Date(value) : value;
   return new Intl.DateTimeFormat("id-ID", {
     month: "long",
-    year: "numeric"
+    year: "numeric",
+    timeZone: "UTC"
   }).format(date);
 }
 
