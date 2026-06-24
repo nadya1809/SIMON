@@ -144,17 +144,18 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return apiNotFound("Petugas tidak ditemukan.");
   }
 
-  if (
-    existingOfficer._count.assessments > 0 ||
-    existingOfficer._count.rewardPunishments > 0
-  ) {
-    return apiConflict(
-      "Petugas tidak bisa dihapus karena sudah memiliki histori penilaian atau reward dan punishment."
-    );
-  }
+  await prisma.$transaction(async (tx) => {
+    await tx.rewardPunishment.deleteMany({
+      where: { officerId: id }
+    });
 
-  await prisma.officer.delete({
-    where: { id }
+    await tx.dailyAssessment.deleteMany({
+      where: { officerId: id }
+    });
+
+    await tx.officer.delete({
+      where: { id }
+    });
   });
 
   await writeAuditLog({
@@ -165,5 +166,5 @@ export async function DELETE(_request: Request, context: RouteContext) {
     beforeData: toAuditJson(existingOfficer)
   });
 
-  return apiMessage("Petugas berhasil dihapus.");
+  return apiMessage("Petugas beserta seluruh histori terkait berhasil dihapus.");
 }

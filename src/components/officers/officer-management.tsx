@@ -476,7 +476,7 @@ export function OfficerManagement({
             ? `Hapus petugas ${confirmingOfficer.name}?`
             : "Hapus petugas?"
         }
-        description="Penghapusan hanya diizinkan jika petugas belum memiliki histori penilaian atau reward dan punishment."
+        description="Semua histori penilaian harian dan reward atau punishment milik petugas ini juga akan ikut dihapus permanen."
         isLoading={
           Boolean(confirmingOfficer) &&
           deletingOfficerId === confirmingOfficer?.id
