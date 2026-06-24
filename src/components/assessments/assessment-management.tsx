@@ -7,7 +7,7 @@ import {
   faRotateLeft,
   faTrash
 } from "@fortawesome/free-solid-svg-icons";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
@@ -24,6 +24,7 @@ import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { ModalDialog } from "@/components/ui/modal-dialog";
 import { PaginationBar } from "@/components/ui/pagination-bar";
+import { ScoreScalePicker } from "@/components/ui/score-scale-picker";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -108,6 +109,21 @@ function createDefaultScores(criteria: CriteriaOption[]) {
   }));
 }
 
+type ScoreFieldProps = {
+  control: ReturnType<typeof useForm<AssessmentFormInput, unknown, AssessmentFormValues>>["control"];
+  index: number;
+  onChange: (score: number) => void;
+};
+
+function ScoreField({ control, index, onChange }: ScoreFieldProps) {
+  const value = useWatch({
+    control,
+    name: `scores.${index}.score` as const
+  });
+
+  return <ScoreScalePicker value={Number(value ?? 1)} onChange={onChange} />;
+}
+
 export function AssessmentManagement({
   initialAssessments,
   officers,
@@ -162,7 +178,7 @@ export function AssessmentManagement({
     }
   });
 
-  const { register, handleSubmit, reset, formState, setValue } = form;
+  const { register, handleSubmit, reset, formState, setValue, control } = form;
 
   function resetForm() {
     setIsFormDialogOpen(false);
@@ -627,7 +643,7 @@ export function AssessmentManagement({
             {statusValue === "PRESENT" ? (
               <FormSection
                 title="Skor per kriteria"
-                description="Isi semua kriteria aktif dengan skala 1 sampai 10."
+                description="Klik langsung skor 1 sampai 10 untuk tiap kriteria agar input lebih cepat."
               >
                 {criteria.map((item, index) => (
                   <div key={item.id} className="space-y-2">
@@ -641,15 +657,25 @@ export function AssessmentManagement({
                       hint={`Urutan tampil: ${item.sortOrder}`}
                       error={formState.errors.scores?.[index]?.score?.message}
                     >
-                      <Input
-                        type="number"
-                        min={1}
-                        max={10}
-                        step={1}
-                        {...register(`scores.${index}.score` as const, {
-                          valueAsNumber: true
-                        })}
-                      />
+                      <>
+                        <input
+                          type="hidden"
+                          {...register(`scores.${index}.score` as const, {
+                            valueAsNumber: true
+                          })}
+                        />
+                        <ScoreField
+                          control={control}
+                          index={index}
+                          onChange={(score) => {
+                            setValue(`scores.${index}.score` as const, score, {
+                              shouldDirty: true,
+                              shouldTouch: true,
+                              shouldValidate: true
+                            });
+                          }}
+                        />
+                      </>
                     </FormField>
                   </div>
                 ))}
