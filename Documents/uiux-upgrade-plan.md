@@ -127,17 +127,17 @@ Checklist:
 - [x] Refactor `Input`
 - [x] Refactor `Select`
 - [x] Refactor `Textarea`
-- [ ] Refactor `Dialog`
-- [ ] Refactor `Table`
+- [x] Refactor `Dialog`
+- [x] Refactor `Table`
 - [x] Buat `PageHeader`
 - [x] Buat `Topbar`
 - [x] Buat `FilterToolbar`
 - [x] Buat `StatCard`
 - [x] Buat `SectionCard`
-- [ ] Buat `ActionMenu` untuk `...`
-- [ ] Buat `EmptyState` modern dengan icon ringan
-- [ ] Buat `FormSection`
-- [ ] Buat `DataTableShell`
+- [x] Buat `ActionMenu` untuk `...`
+- [x] Buat `EmptyState` modern dengan icon ringan
+- [x] Buat `FormSection`
+- [x] Buat `DataTableShell`
 
 ## Fase 4 — Dashboard Redesign
 
@@ -183,12 +183,12 @@ Fokus:
 Checklist:
 
 - [ ] Semua halaman list memakai `PageHeader`
-- [ ] Semua halaman list memakai `FilterToolbar`
-- [ ] Semua halaman list memakai `DataTableShell`
-- [ ] Semua halaman row action pindah ke `ActionMenu`
-- [ ] Semua badge status dilembutkan
-- [ ] Semua empty state diperbarui
-- [ ] Semua table spacing dibuat lebih tipis dan clean
+- [~] Semua halaman list memakai `FilterToolbar`
+- [~] Semua halaman list memakai `DataTableShell`
+- [~] Semua halaman row action pindah ke `ActionMenu`
+- [~] Semua badge status dilembutkan
+- [~] Semua empty state diperbarui
+- [~] Semua table spacing dibuat lebih tipis dan clean
 - [ ] Semua subtitle halaman dirapikan
 
 ## Fase 6 — Form UX Refactor
@@ -296,9 +296,9 @@ Checklist:
 - [x] Buat `filter-toolbar.tsx`
 - [x] Buat `section-card.tsx`
 - [x] Buat `stat-card.tsx`
-- [ ] Buat `action-menu.tsx`
-- [ ] Upgrade `table.tsx`
-- [ ] Upgrade `dialog.tsx`
+- [x] Buat `action-menu.tsx`
+- [x] Upgrade `table.tsx`
+- [x] Upgrade `dialog.tsx`
 - [x] Upgrade input family
 - [x] Upgrade badge/button
 
@@ -311,10 +311,10 @@ Checklist:
 
 ## Batch E — CRUD Pages
 
-- [ ] Refactor halaman unit
-- [ ] Refactor halaman petugas
-- [ ] Refactor halaman kriteria
-- [ ] Refactor halaman user
+- [x] Refactor halaman unit
+- [x] Refactor halaman petugas
+- [x] Refactor halaman kriteria
+- [x] Refactor halaman user
 - [ ] Refactor halaman laporan
 - [ ] Refactor halaman reward/punishment
 - [ ] Refactor halaman assessment

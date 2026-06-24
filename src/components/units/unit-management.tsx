@@ -1,15 +1,24 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import {
+  faPenToSquare,
+  faPlus,
+  faTrash
+} from "@fortawesome/free-solid-svg-icons";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FormField } from "@/components/forms/form-field";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataTableShell } from "@/components/ui/data-table-shell";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,7 +43,6 @@ type UnitManagementProps = {
 
 export function UnitManagement({
   initialUnits,
-  userName,
   role
 }: UnitManagementProps) {
   const [units, setUnits] = useState<UnitItem[]>(initialUnits);
@@ -144,63 +152,93 @@ export function UnitManagement({
     <DashboardShell
       title="Master Data Unit"
       description="Kelola unit kerja yang akan dipakai untuk pengelompokan petugas PST dan analisis dashboard per unit."
-      userName={userName}
       role={role}
     >
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Table headers={["Nama Unit", "Jumlah Petugas", "Deskripsi", "Aksi"]}>
-          {units.length ? (
-            units.map((unit) => (
-              <tr key={unit.id} className="border-t border-[var(--border)]">
-                <td className="px-5 py-4 font-semibold">{unit.name}</td>
-                <td className="px-5 py-4">
-                  <Badge variant="default">{unit._count.officers} petugas</Badge>
-                </td>
-                <td className="px-5 py-4 text-[var(--muted)]">
-                  {unit.description || "-"}
-                </td>
-                <td className="px-5 py-4">
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => startEditMode(unit)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      disabled={deletingUnitId === unit.id}
-                      onClick={() =>
-                        showConfirmToast({
-                          title: `Hapus unit ${unit.name}?`,
-                          description:
-                            "Unit hanya bisa dihapus jika belum memiliki petugas terdaftar.",
-                          confirmLabel: "Ya, hapus",
-                          cancelLabel: "Batal",
-                          onConfirm: () => deleteUnit(unit)
-                        })
-                      }
-                    >
-                      {deletingUnitId === unit.id ? "Menghapus..." : "Hapus"}
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={4} className="px-5 py-8">
-                <EmptyState
-                  title="Belum ada unit"
-                  description="Tambahkan unit pertama agar pengelompokan petugas PST bisa mulai digunakan."
-                  icon="U"
-                />
-              </td>
-            </tr>
-          )}
-        </Table>
+        <div className="space-y-5">
+          <FilterToolbar>
+            <div>
+              <p className="text-sm font-semibold text-[var(--foreground)]">
+                Direktori unit kerja
+              </p>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                Gunakan struktur unit yang rapi agar dashboard dan penilaian lebih mudah dibaca.
+              </p>
+            </div>
+            <Button icon={faPlus} onClick={startCreateMode}>
+              Tambah Unit
+            </Button>
+          </FilterToolbar>
+
+          <DataTableShell
+            title="Daftar unit"
+            description={`${units.length} unit tercatat di sistem.`}
+          >
+            <Table headers={["Nama Unit", "Jumlah Petugas", "Deskripsi", "Aksi"]}>
+              {units.length ? (
+                units.map((unit) => (
+                  <tr key={unit.id} className="border-t border-[var(--border)]">
+                    <td className="px-5 py-4">
+                      <div>
+                        <p className="font-semibold">{unit.name}</p>
+                        <p className="mt-1 text-xs text-[var(--muted)]">
+                          Unit kerja untuk pengelompokan petugas PST
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <Badge variant="default">{unit._count.officers} petugas</Badge>
+                    </td>
+                    <td className="px-5 py-4 text-[var(--muted)]">
+                      {unit.description || "-"}
+                    </td>
+                    <td className="px-5 py-4">
+                      <ActionMenu
+                        items={[
+                          {
+                            label: "Edit unit",
+                            icon: faPenToSquare,
+                            onClick: () => startEditMode(unit)
+                          },
+                          {
+                            label:
+                              deletingUnitId === unit.id
+                                ? "Menghapus..."
+                                : "Hapus unit",
+                            icon: faTrash,
+                            variant: "danger",
+                            disabled: deletingUnitId === unit.id,
+                            onClick: () =>
+                              showConfirmToast({
+                                title: `Hapus unit ${unit.name}?`,
+                                description:
+                                  "Unit hanya bisa dihapus jika belum memiliki petugas terdaftar.",
+                                confirmLabel: "Ya, hapus",
+                                cancelLabel: "Batal",
+                                onConfirm: () => deleteUnit(unit)
+                              })
+                          }
+                        ]}
+                      />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-5 py-8">
+                    <EmptyState
+                      title="Belum ada unit"
+                      description="Tambahkan unit pertama agar pengelompokan petugas PST bisa mulai digunakan."
+                      icon="U"
+                      actionLabel="Tambah Unit"
+                      onAction={startCreateMode}
+                    />
+                  </td>
+                </tr>
+              )}
+            </Table>
+          </DataTableShell>
+        </div>
 
         <Dialog
           title={editingUnit ? "Edit unit" : "Tambah unit baru"}
@@ -218,27 +256,32 @@ export function UnitManagement({
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-            <FormField
-              label="Nama unit"
-              error={formState.errors.name?.message}
-              hint="Contoh: PST Utama, Layanan Statistik, atau Front Office."
+            <FormSection
+              title="Informasi unit"
+              description="Isi data inti unit kerja yang akan digunakan di seluruh modul monitoring."
             >
-              <Input
-                placeholder="Masukkan nama unit"
-                {...register("name")}
-              />
-            </FormField>
+              <FormField
+                label="Nama unit"
+                error={formState.errors.name?.message}
+                hint="Contoh: PST Utama, Layanan Statistik, atau Front Office."
+              >
+                <Input
+                  placeholder="Masukkan nama unit"
+                  {...register("name")}
+                />
+              </FormField>
 
-            <FormField
-              label="Deskripsi"
-              error={formState.errors.description?.message}
-              hint="Opsional. Bisa dipakai untuk menjelaskan fungsi unit."
-            >
-              <Textarea
-                placeholder="Tulis deskripsi singkat unit"
-                {...register("description")}
-              />
-            </FormField>
+              <FormField
+                label="Deskripsi"
+                error={formState.errors.description?.message}
+                hint="Opsional. Bisa dipakai untuk menjelaskan fungsi unit."
+              >
+                <Textarea
+                  placeholder="Tulis deskripsi singkat unit"
+                  {...register("description")}
+                />
+              </FormField>
+            </FormSection>
 
             <Button className="w-full" type="submit" disabled={isPending}>
               {isPending

@@ -1,12 +1,27 @@
 import { ReactNode } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faBoxesStacked,
+  faClipboardList,
+  faFileCircleXmark,
+  faUsers
+} from "@fortawesome/free-solid-svg-icons";
 import { Button } from "@/components/ui/button";
+import { SectionCard } from "@/components/ui/section-card";
 
 type EmptyStateProps = {
   title: string;
   description: string;
   actionLabel?: string;
   onAction?: () => void;
-  icon?: ReactNode;
+  icon?: ReactNode | string;
+};
+
+const defaultIcons: Record<string, typeof faBoxesStacked> = {
+  U: faBoxesStacked,
+  P: faUsers,
+  K: faClipboardList,
+  PST: faFileCircleXmark
 };
 
 export function EmptyState({
@@ -16,12 +31,19 @@ export function EmptyState({
   onAction,
   icon
 }: EmptyStateProps) {
+  const mappedIcon =
+    typeof icon === "string" ? defaultIcons[icon] ?? faFileCircleXmark : null;
+
   return (
-    <div className="rounded-3xl border border-dashed border-[var(--border)] bg-white p-10 text-center">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--surface)] text-2xl">
-        {icon ?? "∅"}
+    <SectionCard className="border-dashed p-10 text-center">
+      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[linear-gradient(135deg,var(--accent-soft),#f0f8fe)] text-[var(--accent)]">
+        {mappedIcon ? (
+          <FontAwesomeIcon icon={mappedIcon} className="h-6 w-6" />
+        ) : (
+          icon ?? "∅"
+        )}
       </div>
-      <h3 className="text-xl font-bold">{title}</h3>
+      <h3 className="text-xl font-bold tracking-[-0.01em]">{title}</h3>
       <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--muted)]">
         {description}
       </p>
@@ -30,6 +52,6 @@ export function EmptyState({
           <Button onClick={onAction}>{actionLabel}</Button>
         </div>
       ) : null}
-    </div>
+    </SectionCard>
   );
 }

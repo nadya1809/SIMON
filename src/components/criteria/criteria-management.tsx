@@ -1,15 +1,24 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import {
+  faPenToSquare,
+  faPlus,
+  faTrash
+} from "@fortawesome/free-solid-svg-icons";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FormField } from "@/components/forms/form-field";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataTableShell } from "@/components/ui/data-table-shell";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,7 +53,6 @@ type CriteriaManagementProps = {
 
 export function CriteriaManagement({
   initialCriteria,
-  userName,
   role
 }: CriteriaManagementProps) {
   const [criteria, setCriteria] = useState<CriteriaItem[]>(initialCriteria);
@@ -171,86 +179,110 @@ export function CriteriaManagement({
     <DashboardShell
       title="Master Data Kriteria"
       description="Kelola kriteria penilaian yang aktif dipakai sistem. Histori skor lama akan tetap aman meskipun suatu kriteria dinonaktifkan."
-      userName={userName}
       role={role}
     >
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <Table
-          headers={[
-            "Nama Kriteria",
-            "Urutan",
-            "Status",
-            "Histori Skor",
-            "Catatan",
-            "Aksi"
-          ]}
-        >
-          {criteria.length ? (
-            criteria.map((item) => {
-              const isSeedDefault = defaultSeedIds.has(item.id);
+        <div className="space-y-5">
+          <FilterToolbar>
+            <div>
+              <p className="text-sm font-semibold text-[var(--foreground)]">
+                Struktur penilaian aktif
+              </p>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                Pastikan urutan dan status kriteria sesuai kebutuhan operasional harian.
+              </p>
+            </div>
+            <Button icon={faPlus} onClick={resetForm}>
+              Tambah Kriteria
+            </Button>
+          </FilterToolbar>
 
-              return (
-                <tr key={item.id} className="border-t border-[var(--border)]">
-                  <td className="px-5 py-4 font-semibold">{item.name}</td>
-                  <td className="px-5 py-4 text-[var(--muted)]">
-                    {item.sortOrder}
-                  </td>
-                  <td className="px-5 py-4">
-                    <Badge variant={item.isActive ? "success" : "warning"}>
-                      {item.isActive ? "Aktif" : "Nonaktif"}
-                    </Badge>
-                  </td>
-                  <td className="px-5 py-4 text-[var(--muted)]">
-                    {item._count.scores} skor
-                  </td>
-                  <td className="px-5 py-4 text-[var(--muted)]">
-                    {isSeedDefault
-                      ? "Kriteria default seed, jangan dihapus."
-                      : item.description || "-"}
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => startEditMode(item)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        disabled={isSeedDefault || deletingCriteriaId === item.id}
-                        onClick={() =>
-                          showConfirmToast({
-                            title: `Hapus kriteria ${item.name}?`,
-                            description:
-                              "Kriteria hanya bisa dihapus jika bukan data seed dan belum memiliki histori skor.",
-                            confirmLabel: "Ya, hapus",
-                            cancelLabel: "Batal",
-                            onConfirm: () => deleteCriteria(item)
-                          })
-                        }
-                      >
-                        {deletingCriteriaId === item.id ? "Menghapus..." : "Hapus"}
-                      </Button>
-                    </div>
+          <DataTableShell
+            title="Daftar kriteria"
+            description={`${criteria.length} kriteria terdaftar di sistem.`}
+          >
+            <Table
+              headers={[
+                "Nama Kriteria",
+                "Urutan",
+                "Status",
+                "Histori Skor",
+                "Catatan",
+                "Aksi"
+              ]}
+            >
+              {criteria.length ? (
+                criteria.map((item) => {
+                  const isSeedDefault = defaultSeedIds.has(item.id);
+
+                  return (
+                    <tr key={item.id} className="border-t border-[var(--border)]">
+                      <td className="px-5 py-4 font-semibold">{item.name}</td>
+                      <td className="px-5 py-4 text-[var(--muted)]">
+                        {item.sortOrder}
+                      </td>
+                      <td className="px-5 py-4">
+                        <Badge variant={item.isActive ? "success" : "warning"}>
+                          {item.isActive ? "Aktif" : "Nonaktif"}
+                        </Badge>
+                      </td>
+                      <td className="px-5 py-4 text-[var(--muted)]">
+                        {item._count.scores} skor
+                      </td>
+                      <td className="px-5 py-4 text-[var(--muted)]">
+                        {isSeedDefault
+                          ? "Kriteria default seed, jangan dihapus."
+                          : item.description || "-"}
+                      </td>
+                      <td className="px-5 py-4">
+                        <ActionMenu
+                          items={[
+                            {
+                              label: "Edit kriteria",
+                              icon: faPenToSquare,
+                              onClick: () => startEditMode(item)
+                            },
+                            {
+                              label:
+                                deletingCriteriaId === item.id
+                                  ? "Menghapus..."
+                                  : "Hapus kriteria",
+                              icon: faTrash,
+                              variant: "danger",
+                              disabled:
+                                isSeedDefault || deletingCriteriaId === item.id,
+                              onClick: () =>
+                                showConfirmToast({
+                                  title: `Hapus kriteria ${item.name}?`,
+                                  description:
+                                    "Kriteria hanya bisa dihapus jika bukan data seed dan belum memiliki histori skor.",
+                                  confirmLabel: "Ya, hapus",
+                                  cancelLabel: "Batal",
+                                  onConfirm: () => deleteCriteria(item)
+                                })
+                            }
+                          ]}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-5 py-8">
+                    <EmptyState
+                      title="Belum ada kriteria"
+                      description="Tambahkan kriteria penilaian agar form assessment bisa memakai struktur yang kamu tentukan."
+                      icon="K"
+                      actionLabel="Tambah Kriteria"
+                      onAction={resetForm}
+                    />
                   </td>
                 </tr>
-              );
-            })
-          ) : (
-            <tr>
-              <td colSpan={6} className="px-5 py-8">
-                <EmptyState
-                  title="Belum ada kriteria"
-                  description="Tambahkan kriteria penilaian agar form assessment bisa memakai struktur yang kamu tentukan."
-                  icon="K"
-                />
-              </td>
-            </tr>
-          )}
-        </Table>
+              )}
+            </Table>
+          </DataTableShell>
+        </div>
 
         <Dialog
           title={editingCriteria ? "Edit kriteria" : "Tambah kriteria baru"}
@@ -268,60 +300,70 @@ export function CriteriaManagement({
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-            <FormField
-              label="Nama kriteria"
-              error={formState.errors.name?.message}
+            <FormSection
+              title="Informasi kriteria"
+              description="Lengkapi nama, deskripsi, dan urutan tampil agar form penilaian lebih terstruktur."
             >
-              <Input
-                placeholder="Masukkan nama kriteria"
-                {...register("name")}
-              />
-            </FormField>
-
-            <FormField
-              label="Deskripsi"
-              hint="Opsional. Gunakan untuk menjelaskan cakupan penilaian."
-              error={formState.errors.description?.message}
-            >
-              <Textarea
-                placeholder="Tulis deskripsi singkat"
-                {...register("description")}
-              />
-            </FormField>
-
-            <FormField
-              label="Urutan tampil"
-              hint="Semakin kecil angkanya, semakin atas posisinya di form."
-              error={formState.errors.sortOrder?.message}
-            >
-              <Input
-                type="number"
-                min={0}
-                placeholder="0"
-                {...register("sortOrder")}
-              />
-            </FormField>
-
-            <FormField label="Status kriteria">
-              <button
-                type="button"
-                onClick={() => {
-                  const nextValue = !isActiveValue;
-                  setIsActiveValue(nextValue);
-                  setValue("isActive", nextValue);
-                }}
-                className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-white px-4 py-3 text-sm"
+              <FormField
+                label="Nama kriteria"
+                error={formState.errors.name?.message}
               >
-                <span>
-                  {isActiveValue
-                    ? "Kriteria aktif dan dipakai di form assessment"
-                    : "Kriteria nonaktif, histori lama tetap tersimpan"}
-                </span>
-                <Badge variant={isActiveValue ? "success" : "warning"}>
-                  {isActiveValue ? "Aktif" : "Nonaktif"}
-                </Badge>
-              </button>
-            </FormField>
+                <Input
+                  placeholder="Masukkan nama kriteria"
+                  {...register("name")}
+                />
+              </FormField>
+
+              <FormField
+                label="Deskripsi"
+                hint="Opsional. Gunakan untuk menjelaskan cakupan penilaian."
+                error={formState.errors.description?.message}
+              >
+                <Textarea
+                  placeholder="Tulis deskripsi singkat"
+                  {...register("description")}
+                />
+              </FormField>
+
+              <FormField
+                label="Urutan tampil"
+                hint="Semakin kecil angkanya, semakin atas posisinya di form."
+                error={formState.errors.sortOrder?.message}
+              >
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  {...register("sortOrder")}
+                />
+              </FormField>
+            </FormSection>
+
+            <FormSection
+              title="Status kriteria"
+              description="Kriteria nonaktif tidak dipakai lagi di form baru, tetapi histori lama tetap aman."
+            >
+              <FormField label="Status kriteria">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextValue = !isActiveValue;
+                    setIsActiveValue(nextValue);
+                    setValue("isActive", nextValue);
+                  }}
+                  className="flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 py-3 text-sm shadow-[var(--shadow-sm)]"
+                >
+                  <span>
+                    {isActiveValue
+                      ? "Kriteria aktif dan dipakai di form assessment"
+                      : "Kriteria nonaktif, histori lama tetap tersimpan"}
+                  </span>
+                  <Badge variant={isActiveValue ? "success" : "warning"}>
+                    {isActiveValue ? "Aktif" : "Nonaktif"}
+                  </Badge>
+                </button>
+              </FormField>
+            </FormSection>
 
             <Button className="w-full" type="submit" disabled={isPending}>
               {isPending

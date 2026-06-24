@@ -1,15 +1,24 @@
 "use client";
 
 import { useDeferredValue, useState, useTransition } from "react";
+import {
+  faPenToSquare,
+  faPlus,
+  faTrash
+} from "@fortawesome/free-solid-svg-icons";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FormField } from "@/components/forms/form-field";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataTableShell } from "@/components/ui/data-table-shell";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
@@ -44,7 +53,6 @@ type StatusFilter = "all" | "active" | "inactive";
 export function OfficerManagement({
   initialOfficers,
   units,
-  userName,
   role
 }: OfficerManagementProps) {
   const [officers, setOfficers] = useState<OfficerItem[]>(initialOfficers);
@@ -211,12 +219,12 @@ export function OfficerManagement({
     <DashboardShell
       title="Master Data Petugas PST"
       description="Kelola daftar petugas PST yang akan dinilai. Modul ini mendukung pencarian, filter unit, status aktif, dan pengeditan cepat untuk skala data yang lebih besar."
-      userName={userName}
       role={role}
     >
       <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
         <div className="space-y-5">
-          <div className="grid gap-4 rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-4">
+          <FilterToolbar>
+            <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <FormField label="Cari petugas">
               <Input
                 value={search}
@@ -269,78 +277,88 @@ export function OfficerManagement({
                 <option value="unit">Unit</option>
               </Select>
             </FormField>
-          </div>
+            </div>
+            <Button icon={faPlus} onClick={resetForm}>
+              Tambah Petugas
+            </Button>
+          </FilterToolbar>
 
-          <Table
-            headers={["NIP", "Nama", "Unit", "Posisi", "Status", "Aksi"]}
+          <DataTableShell
+            title="Daftar petugas PST"
+            description={`${filteredOfficers.length} data sesuai filter aktif.`}
           >
-            {displayedOfficers.length ? (
-              displayedOfficers.map((officer) => (
-                <tr key={officer.id} className="border-t border-[var(--border)]">
-                  <td className="px-5 py-4 font-medium">{officer.nip}</td>
-                  <td className="px-5 py-4">
-                    <div>
-                      <p className="font-semibold">{officer.name}</p>
-                      <p className="text-xs text-[var(--muted)]">
-                        Detail singkat petugas PST
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-[var(--muted)]">
-                    {officer.unit?.name ?? "-"}
-                  </td>
-                  <td className="px-5 py-4 text-[var(--muted)]">
-                    {officer.position || "-"}
-                  </td>
-                  <td className="px-5 py-4">
-                    <Badge variant={officer.isActive ? "success" : "warning"}>
-                      {officer.isActive ? "Aktif" : "Nonaktif"}
-                    </Badge>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => startEditMode(officer)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        disabled={deletingOfficerId === officer.id}
-                        onClick={() =>
-                          showConfirmToast({
-                            title: `Hapus petugas ${officer.name}?`,
-                            description:
-                              "Penghapusan hanya diizinkan jika petugas belum memiliki histori penilaian atau reward dan punishment.",
-                            confirmLabel: "Ya, hapus",
-                            cancelLabel: "Batal",
-                            onConfirm: () => deleteOfficer(officer)
-                          })
-                        }
-                      >
-                        {deletingOfficerId === officer.id
-                          ? "Menghapus..."
-                          : "Hapus"}
-                      </Button>
-                    </div>
+            <Table
+              headers={["NIP", "Nama", "Unit", "Posisi", "Status", "Aksi"]}
+            >
+              {displayedOfficers.length ? (
+                displayedOfficers.map((officer) => (
+                  <tr key={officer.id} className="border-t border-[var(--border)]">
+                    <td className="px-5 py-4 font-medium">{officer.nip}</td>
+                    <td className="px-5 py-4">
+                      <div>
+                        <p className="font-semibold">{officer.name}</p>
+                        <p className="text-xs text-[var(--muted)]">
+                          Detail singkat petugas PST
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-[var(--muted)]">
+                      {officer.unit?.name ?? "-"}
+                    </td>
+                    <td className="px-5 py-4 text-[var(--muted)]">
+                      {officer.position || "-"}
+                    </td>
+                    <td className="px-5 py-4">
+                      <Badge variant={officer.isActive ? "success" : "warning"}>
+                        {officer.isActive ? "Aktif" : "Nonaktif"}
+                      </Badge>
+                    </td>
+                    <td className="px-5 py-4">
+                      <ActionMenu
+                        items={[
+                          {
+                            label: "Edit petugas",
+                            icon: faPenToSquare,
+                            onClick: () => startEditMode(officer)
+                          },
+                          {
+                            label:
+                              deletingOfficerId === officer.id
+                                ? "Menghapus..."
+                                : "Hapus petugas",
+                            icon: faTrash,
+                            variant: "danger",
+                            disabled: deletingOfficerId === officer.id,
+                            onClick: () =>
+                              showConfirmToast({
+                                title: `Hapus petugas ${officer.name}?`,
+                                description:
+                                  "Penghapusan hanya diizinkan jika petugas belum memiliki histori penilaian atau reward dan punishment.",
+                                confirmLabel: "Ya, hapus",
+                                cancelLabel: "Batal",
+                                onConfirm: () => deleteOfficer(officer)
+                              })
+                          }
+                        ]}
+                      />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-5 py-8">
+                    <EmptyState
+                      title="Belum ada petugas yang cocok"
+                      description="Tambahkan petugas baru atau ubah filter pencarian untuk melihat data lain."
+                      icon="P"
+                      actionLabel="Tambah Petugas"
+                      onAction={resetForm}
+                    />
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={6} className="px-5 py-8">
-                  <EmptyState
-                    title="Belum ada petugas yang cocok"
-                    description="Tambahkan petugas baru atau ubah filter pencarian untuk melihat data lain."
-                    icon="P"
-                  />
-                </td>
-              </tr>
-            )}
-          </Table>
+              )}
+            </Table>
+          </DataTableShell>
 
           {filteredOfficers.length > displayedOfficers.length ? (
             <div className="flex justify-center">
@@ -370,70 +388,80 @@ export function OfficerManagement({
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-            <FormField
-              label="NIP"
-              hint="Harus unik untuk setiap petugas."
-              error={formState.errors.nip?.message}
+            <FormSection
+              title="Identitas petugas"
+              description="Lengkapi identitas dasar petugas dan hubungkan ke unit jika sudah tersedia."
             >
-              <Input placeholder="Masukkan NIP petugas" {...register("nip")} />
-            </FormField>
-
-            <FormField
-              label="Nama petugas"
-              error={formState.errors.name?.message}
-            >
-              <Input
-                placeholder="Masukkan nama lengkap petugas"
-                {...register("name")}
-              />
-            </FormField>
-
-            <FormField
-              label="Posisi"
-              hint="Opsional, misalnya Front Office atau Petugas Layanan."
-              error={formState.errors.position?.message}
-            >
-              <Input
-                placeholder="Masukkan posisi petugas"
-                {...register("position")}
-              />
-            </FormField>
-
-            <FormField
-              label="Unit"
-              hint="Boleh dikosongkan jika belum ditentukan."
-            >
-              <Select {...register("unitId")}>
-                <option value="">Belum ditentukan</option>
-                {units.map((unit) => (
-                  <option key={unit.id} value={unit.id}>
-                    {unit.name}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-
-            <FormField label="Status petugas">
-              <button
-                type="button"
-                onClick={() => {
-                  const nextValue = !isActiveValue;
-                  setIsActiveValue(nextValue);
-                  setValue("isActive", nextValue);
-                }}
-                className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-white px-4 py-3 text-sm"
+              <FormField
+                label="NIP"
+                hint="Harus unik untuk setiap petugas."
+                error={formState.errors.nip?.message}
               >
-                <span>
-                  {isActiveValue
-                    ? "Petugas aktif dan bisa dipakai untuk penilaian"
-                    : "Petugas nonaktif, histori tetap dipertahankan"}
-                </span>
-                <Badge variant={isActiveValue ? "success" : "warning"}>
-                  {isActiveValue ? "Aktif" : "Nonaktif"}
-                </Badge>
-              </button>
-              <input type="hidden" value={isActiveValue ? "true" : "false"} />
-            </FormField>
+                <Input placeholder="Masukkan NIP petugas" {...register("nip")} />
+              </FormField>
+
+              <FormField
+                label="Nama petugas"
+                error={formState.errors.name?.message}
+              >
+                <Input
+                  placeholder="Masukkan nama lengkap petugas"
+                  {...register("name")}
+                />
+              </FormField>
+
+              <FormField
+                label="Posisi"
+                hint="Opsional, misalnya Front Office atau Petugas Layanan."
+                error={formState.errors.position?.message}
+              >
+                <Input
+                  placeholder="Masukkan posisi petugas"
+                  {...register("position")}
+                />
+              </FormField>
+
+              <FormField
+                label="Unit"
+                hint="Boleh dikosongkan jika belum ditentukan."
+              >
+                <Select {...register("unitId")}>
+                  <option value="">Belum ditentukan</option>
+                  {units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            </FormSection>
+
+            <FormSection
+              title="Status petugas"
+              description="Status nonaktif akan mempertahankan histori lama tetapi menyembunyikan petugas dari alur aktif."
+            >
+              <FormField label="Status petugas">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextValue = !isActiveValue;
+                    setIsActiveValue(nextValue);
+                    setValue("isActive", nextValue);
+                  }}
+                  className="flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 py-3 text-sm shadow-[var(--shadow-sm)]"
+                >
+                  <span>
+                    {isActiveValue
+                      ? "Petugas aktif dan bisa dipakai untuk penilaian"
+                      : "Petugas nonaktif, histori tetap dipertahankan"}
+                  </span>
+                  <Badge variant={isActiveValue ? "success" : "warning"}>
+                    {isActiveValue ? "Aktif" : "Nonaktif"}
+                  </Badge>
+                </button>
+                <input type="hidden" value={isActiveValue ? "true" : "false"} />
+              </FormField>
+            </FormSection>
 
             <Button className="w-full" type="submit" disabled={isPending}>
               {isPending

@@ -1,15 +1,24 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import {
+  faPenToSquare,
+  faPlus,
+  faTrash
+} from "@fortawesome/free-solid-svg-icons";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FormField } from "@/components/forms/form-field";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataTableShell } from "@/components/ui/data-table-shell";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
@@ -43,7 +52,6 @@ type UserManagementProps = {
 export function UserManagement({
   initialUsers,
   currentUserId,
-  userName,
   role
 }: UserManagementProps) {
   const [users, setUsers] = useState<UserItem[]>(initialUsers);
@@ -199,66 +207,91 @@ export function UserManagement({
     <DashboardShell
       title="Manajemen User"
       description="Kelola akun Admin, Supervisor, dan Pimpinan. Semua akun dibuat manual oleh Admin sesuai keputusan PRD."
-      userName={userName}
       role={role}
     >
       <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Table headers={["Nama", "Email", "Role", "Status", "Aksi"]}>
-          {users.length ? (
-            users.map((user) => (
-              <tr key={user.id} className="border-t border-[var(--border)]">
-                <td className="px-5 py-4 font-semibold">{user.name}</td>
-                <td className="px-5 py-4 text-[var(--muted)]">{user.email}</td>
-                <td className="px-5 py-4">
-                  <Badge variant="default">{user.role}</Badge>
-                </td>
-                <td className="px-5 py-4">
-                  <Badge variant={user.isActive ? "success" : "warning"}>
-                    {user.isActive ? "Aktif" : "Nonaktif"}
-                  </Badge>
-                </td>
-                <td className="px-5 py-4">
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => startEditMode(user)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      disabled={user.id === currentUserId || deletingUserId === user.id}
-                      onClick={() =>
-                        showConfirmToast({
-                          title: `Hapus user ${user.name}?`,
-                          description:
-                            "User hanya bisa dihapus jika bukan akun aktif yang sedang dipakai dan belum memiliki histori aktivitas sistem.",
-                          confirmLabel: "Ya, hapus",
-                          cancelLabel: "Batal",
-                          onConfirm: () => deleteUser(user)
-                        })
-                      }
-                    >
-                      {deletingUserId === user.id ? "Menghapus..." : "Hapus"}
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={5} className="px-5 py-8">
-                <EmptyState
-                  title="Belum ada user tambahan"
-                  description="Tambahkan akun Supervisor atau Pimpinan agar tim bisa mulai menggunakan sistem."
-                  icon="U"
-                />
-              </td>
-            </tr>
-          )}
-        </Table>
+        <div className="space-y-5">
+          <FilterToolbar>
+            <div>
+              <p className="text-sm font-semibold text-[var(--foreground)]">
+                Akses pengguna sistem
+              </p>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                Kelola hak akses pengguna internal dengan struktur role yang jelas dan aman.
+              </p>
+            </div>
+            <Button icon={faPlus} onClick={resetCreateMode}>
+              Tambah User
+            </Button>
+          </FilterToolbar>
+
+          <DataTableShell
+            title="Daftar akun"
+            description={`${users.length} user aktif dan nonaktif terdaftar.`}
+          >
+            <Table headers={["Nama", "Email", "Role", "Status", "Aksi"]}>
+              {users.length ? (
+                users.map((user) => (
+                  <tr key={user.id} className="border-t border-[var(--border)]">
+                    <td className="px-5 py-4 font-semibold">{user.name}</td>
+                    <td className="px-5 py-4 text-[var(--muted)]">{user.email}</td>
+                    <td className="px-5 py-4">
+                      <Badge variant="default">{user.role}</Badge>
+                    </td>
+                    <td className="px-5 py-4">
+                      <Badge variant={user.isActive ? "success" : "warning"}>
+                        {user.isActive ? "Aktif" : "Nonaktif"}
+                      </Badge>
+                    </td>
+                    <td className="px-5 py-4">
+                      <ActionMenu
+                        items={[
+                          {
+                            label: "Edit user",
+                            icon: faPenToSquare,
+                            onClick: () => startEditMode(user)
+                          },
+                          {
+                            label:
+                              deletingUserId === user.id
+                                ? "Menghapus..."
+                                : "Hapus user",
+                            icon: faTrash,
+                            variant: "danger",
+                            disabled:
+                              user.id === currentUserId ||
+                              deletingUserId === user.id,
+                            onClick: () =>
+                              showConfirmToast({
+                                title: `Hapus user ${user.name}?`,
+                                description:
+                                  "User hanya bisa dihapus jika bukan akun aktif yang sedang dipakai dan belum memiliki histori aktivitas sistem.",
+                                confirmLabel: "Ya, hapus",
+                                cancelLabel: "Batal",
+                                onConfirm: () => deleteUser(user)
+                              })
+                          }
+                        ]}
+                      />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-5 py-8">
+                    <EmptyState
+                      title="Belum ada user tambahan"
+                      description="Tambahkan akun Supervisor atau Pimpinan agar tim bisa mulai menggunakan sistem."
+                      icon="U"
+                      actionLabel="Tambah User"
+                      onAction={resetCreateMode}
+                    />
+                  </td>
+                </tr>
+              )}
+            </Table>
+          </DataTableShell>
+        </div>
 
         <Dialog
           title={editingUser ? "Edit user" : "Tambah user baru"}
@@ -286,61 +319,71 @@ export function UserManagement({
               await submitCreate(values as UserFormValues);
             })}
           >
-            <FormField label="Nama" error={formState.errors.name?.message}>
-              <Input placeholder="Masukkan nama user" {...register("name")} />
-            </FormField>
-
-            <FormField label="Email" error={formState.errors.email?.message}>
-              <Input placeholder="Masukkan email user" {...register("email")} />
-            </FormField>
-
-            <FormField label="Role" error={formState.errors.role?.message}>
-              <Select {...register("role")}>
-                <option value="ADMIN">Admin</option>
-                <option value="SUPERVISOR">Supervisor</option>
-                <option value="PIMPINAN">Pimpinan</option>
-              </Select>
-            </FormField>
-
-            <FormField
-              label={editingUser ? "Reset password" : "Password"}
-              hint={
-                editingUser
-                  ? "Kosongkan jika tidak ingin mengubah password."
-                  : "Minimal 8 karakter."
-              }
-              error={formState.errors.password?.message}
+            <FormSection
+              title="Informasi akun"
+              description="Isi data identitas dasar dan tentukan role yang sesuai untuk penggunaan internal."
             >
-              <Input
-                type="password"
-                placeholder={
-                  editingUser ? "Opsional saat edit" : "Masukkan password"
-                }
-                {...register("password")}
-              />
-            </FormField>
+              <FormField label="Nama" error={formState.errors.name?.message}>
+                <Input placeholder="Masukkan nama user" {...register("name")} />
+              </FormField>
 
-            <FormField label="Status akun">
-              <button
-                type="button"
-                onClick={() => {
-                  const nextValue = !isActiveValue;
-                  setIsActiveValue(nextValue);
-                  setValue("isActive", nextValue);
-                }}
-                disabled={editingUser?.id === currentUserId}
-                className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-white px-4 py-3 text-sm disabled:opacity-60"
+              <FormField label="Email" error={formState.errors.email?.message}>
+                <Input placeholder="Masukkan email user" {...register("email")} />
+              </FormField>
+
+              <FormField label="Role" error={formState.errors.role?.message}>
+                <Select {...register("role")}>
+                  <option value="ADMIN">Admin</option>
+                  <option value="SUPERVISOR">Supervisor</option>
+                  <option value="PIMPINAN">Pimpinan</option>
+                </Select>
+              </FormField>
+            </FormSection>
+
+            <FormSection
+              title="Keamanan akun"
+              description="Password dapat direset saat edit jika diperlukan tanpa mengubah field lain."
+            >
+              <FormField
+                label={editingUser ? "Reset password" : "Password"}
+                hint={
+                  editingUser
+                    ? "Kosongkan jika tidak ingin mengubah password."
+                    : "Minimal 8 karakter."
+                }
+                error={formState.errors.password?.message}
               >
-                <span>
-                  {isActiveValue
-                    ? "Akun aktif dan bisa login"
-                    : "Akun nonaktif dan tidak bisa login"}
-                </span>
-                <Badge variant={isActiveValue ? "success" : "warning"}>
-                  {isActiveValue ? "Aktif" : "Nonaktif"}
-                </Badge>
-              </button>
-            </FormField>
+                <Input
+                  type="password"
+                  placeholder={
+                    editingUser ? "Opsional saat edit" : "Masukkan password"
+                  }
+                  {...register("password")}
+                />
+              </FormField>
+
+              <FormField label="Status akun">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextValue = !isActiveValue;
+                    setIsActiveValue(nextValue);
+                    setValue("isActive", nextValue);
+                  }}
+                  disabled={editingUser?.id === currentUserId}
+                  className="flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 py-3 text-sm shadow-[var(--shadow-sm)] disabled:opacity-60"
+                >
+                  <span>
+                    {isActiveValue
+                      ? "Akun aktif dan bisa login"
+                      : "Akun nonaktif dan tidak bisa login"}
+                  </span>
+                  <Badge variant={isActiveValue ? "success" : "warning"}>
+                    {isActiveValue ? "Aktif" : "Nonaktif"}
+                  </Badge>
+                </button>
+              </FormField>
+            </FormSection>
 
             <Button className="w-full" type="submit" disabled={isPending}>
               {isPending
