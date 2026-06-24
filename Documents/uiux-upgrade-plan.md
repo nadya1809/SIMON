@@ -106,7 +106,7 @@ Checklist:
 - [x] Tambahkan topbar reusable
 - [x] Pindahkan identitas user ke topbar kanan
 - [x] Rapikan container width, gap, padding, dan content rhythm
-- [ ] Siapkan perilaku collapse untuk mobile tanpa fokus implementasi penuh dulu
+- [x] Siapkan perilaku collapse untuk mobile tanpa fokus implementasi penuh dulu
 
 ## Fase 3 — Shared Component System Upgrade
 
@@ -251,7 +251,7 @@ Checklist:
 
 - [ ] Desktop layout final
 - [ ] Tablet layout aman
-- [ ] Sidebar siap menjadi drawer di mobile
+- [x] Sidebar siap menjadi drawer di mobile
 - [ ] Toolbar filter tetap usable pada layar sempit
 - [ ] Tabel panjang tetap terbaca
 

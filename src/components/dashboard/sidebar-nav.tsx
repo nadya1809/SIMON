@@ -67,7 +67,11 @@ const menuItems = [
   }
 ];
 
-export function SidebarNav() {
+type SidebarNavProps = {
+  onNavigate?: () => void;
+};
+
+export function SidebarNav({ onNavigate }: SidebarNavProps) {
   const pathname = usePathname();
 
   return (
@@ -87,6 +91,7 @@ export function SidebarNav() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "block rounded-[var(--radius-panel)] border px-4 py-3 transition",
                 isActive
