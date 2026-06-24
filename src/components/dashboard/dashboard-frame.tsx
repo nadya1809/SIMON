@@ -1,9 +1,10 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useState } from "react";
 import { SidebarBrand } from "@/components/dashboard/sidebar-brand";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Topbar } from "@/components/dashboard/topbar";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 
 type DashboardFrameProps = {
   children: ReactNode;
@@ -17,19 +18,7 @@ export function DashboardFrame({
   userName
 }: DashboardFrameProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    if (!isSidebarOpen) {
-      return;
-    }
-
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isSidebarOpen]);
+  useBodyScrollLock(isSidebarOpen);
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -43,7 +32,7 @@ export function DashboardFrame({
           />
         ) : null}
 
-        <aside className="hidden w-72 rounded-[var(--radius-card)] border border-[var(--border)] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbfe_100%)] p-5 shadow-[var(--shadow-md)] lg:block">
+        <aside className="sticky top-5 hidden max-h-[calc(100vh-2.5rem)] w-72 self-start overflow-y-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbfe_100%)] p-5 shadow-[var(--shadow-md)] lg:block">
           <SidebarBrand />
           <div className="my-6 h-px bg-[var(--border)]" />
           <SidebarNav onNavigate={() => setIsSidebarOpen(false)} />

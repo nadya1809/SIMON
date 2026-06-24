@@ -11,6 +11,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -70,14 +71,12 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const tone = dialogToneMap[variant];
   const dialogIcon = icon ?? tone.defaultIcon;
+  useBodyScrollLock(open);
 
   useEffect(() => {
     if (!open) {
       return;
     }
-
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !isLoading) {
@@ -88,7 +87,6 @@ export function ConfirmDialog({
     window.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.body.style.overflow = originalOverflow;
       window.removeEventListener("keydown", handleEscape);
     };
   }, [isLoading, onClose, open]);

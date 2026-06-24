@@ -16,7 +16,7 @@ type TopbarProps = {
 
 export function Topbar({ userName, role, onMenuToggle }: TopbarProps) {
   return (
-    <header className="sticky top-0 z-20 mb-6 rounded-[var(--radius-card)] border border-[var(--border)] bg-white/90 px-5 py-4 shadow-[var(--shadow-sm)] backdrop-blur">
+    <header className="sticky top-5 z-20 mb-6 rounded-[var(--radius-card)] border border-[var(--border)] bg-white/92 px-5 py-4 shadow-[var(--shadow-sm)] backdrop-blur">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <button
