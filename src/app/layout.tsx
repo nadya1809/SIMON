@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import { IBM_Plex_Sans } from "next/font/google";
+import { AppToaster } from "@/components/ui/app-toaster";
 import "./globals.css";
 
-const manrope = Manrope({
+const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
-  variable: "--font-sans"
+  variable: "--font-sans",
+  weight: ["400", "500", "600", "700"]
 });
 
 export const metadata: Metadata = {
-  title: "SIMON PST",
-  description: "Sistem Monitoring Kinerja Petugas PST"
+  title: "SIMON PST | BPS Provinsi Sumatera Barat",
+  description:
+    "Sistem Monitoring Kinerja Petugas PST Badan Pusat Statistik Provinsi Sumatera Barat"
 };
 
 export default function RootLayout({
@@ -19,7 +22,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id">
-      <body className={manrope.variable}>{children}</body>
+      <body className={ibmPlexSans.variable}>
+        {children}
+        <AppToaster />
+      </body>
     </html>
   );
 }

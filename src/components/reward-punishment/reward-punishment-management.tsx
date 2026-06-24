@@ -3,6 +3,7 @@
 import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FormField } from "@/components/forms/form-field";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,6 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { SuccessFeedback } from "@/components/ui/success-feedback";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { formatAverageScore } from "@/lib/scoring";
@@ -160,11 +160,6 @@ export function RewardPunishmentManagement({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [periodFilter, setPeriodFilter] = useState(defaultPeriod);
-  const [generateFeedback, setGenerateFeedback] = useState("");
-  const [generateDescription, setGenerateDescription] = useState("");
-  const [generateError, setGenerateError] = useState("");
-  const [decisionFeedback, setDecisionFeedback] = useState("");
-  const [decisionError, setDecisionError] = useState("");
   const [isGenerating, startGenerating] = useTransition();
   const [isDeciding, startDeciding] = useTransition();
   const deferredSearch = useDeferredValue(search);
@@ -266,10 +261,6 @@ export function RewardPunishmentManagement({
   }, [filteredRecommendations]);
 
   async function onGenerate(values: RewardPunishmentGenerationValues) {
-    setGenerateError("");
-    setGenerateFeedback("");
-    setGenerateDescription("");
-
     startGenerating(async () => {
       const response = await fetch("/api/reward-punishment", {
         method: "POST",
@@ -291,7 +282,7 @@ export function RewardPunishmentManagement({
       };
 
       if (!response.ok) {
-        setGenerateError(result.message || "Gagal membuat rekomendasi.");
+        toast.error(result.message || "Gagal membuat rekomendasi.");
         return;
       }
 
@@ -304,13 +295,11 @@ export function RewardPunishmentManagement({
         setSelectedRecommendationId(nextRecommendations[0].id);
       }
 
-      setGenerateFeedback(result.message || "Generate rekomendasi berhasil.");
-
-      if (result.meta) {
-        setGenerateDescription(
-          `Kandidat: ${result.meta.totalCandidates}, dibuat: ${result.meta.createdCount}, dilewati: ${result.meta.skippedCount}.`
-        );
-      }
+      toast.success(
+        result.meta
+          ? `${result.message || "Generate rekomendasi berhasil."} Kandidat: ${result.meta.totalCandidates}, dibuat: ${result.meta.createdCount}, dilewati: ${result.meta.skippedCount}.`
+          : result.message || "Generate rekomendasi berhasil."
+      );
     });
   }
 
@@ -318,9 +307,6 @@ export function RewardPunishmentManagement({
     if (!selectedRecommendation) {
       return;
     }
-
-    setDecisionError("");
-    setDecisionFeedback("");
 
     startDeciding(async () => {
       const response = await fetch(
@@ -340,14 +326,14 @@ export function RewardPunishmentManagement({
       };
 
       if (!response.ok || !result.data) {
-        setDecisionError(result.message || "Gagal menyimpan keputusan.");
+        toast.error(result.message || "Gagal menyimpan keputusan.");
         return;
       }
 
       setRecommendations((current) =>
         current.map((item) => (item.id === result.data?.id ? result.data : item))
       );
-      setDecisionFeedback(result.message || "Keputusan berhasil disimpan.");
+      toast.success(result.message || "Keputusan berhasil disimpan.");
     });
   }
 
@@ -483,8 +469,6 @@ export function RewardPunishmentManagement({
                       }
                       onClick={() => {
                         setSelectedRecommendationId(item.id);
-                        setDecisionError("");
-                        setDecisionFeedback("");
                       }}
                     >
                       {item.id === selectedRecommendationId ? "Dipilih" : "Lihat"}
@@ -511,21 +495,6 @@ export function RewardPunishmentManagement({
             title="Generate rekomendasi"
             description="Sistem akan menghitung rata-rata skor bulanan dari assessment PRESENT saja. Petugas tanpa data hadir tidak akan dibuatkan rekomendasi."
           >
-            {generateFeedback ? (
-              <div className="mb-4">
-                <SuccessFeedback
-                  title={generateFeedback}
-                  description={generateDescription}
-                />
-              </div>
-            ) : null}
-
-            {generateError ? (
-              <div className="mb-4 rounded-2xl border border-[#f4c7c3] bg-[#fff5f4] px-4 py-3 text-sm text-[#8f261c]">
-                {generateError}
-              </div>
-            ) : null}
-
             <form
               className="space-y-4"
               onSubmit={generateForm.handleSubmit(onGenerate)}
@@ -643,18 +612,6 @@ export function RewardPunishmentManagement({
                     </div>
                   ) : null}
                 </div>
-
-                {decisionFeedback ? (
-                  <div className="mb-4">
-                    <SuccessFeedback title={decisionFeedback} />
-                  </div>
-                ) : null}
-
-                {decisionError ? (
-                  <div className="mb-4 rounded-2xl border border-[#f4c7c3] bg-[#fff5f4] px-4 py-3 text-sm text-[#8f261c]">
-                    {decisionError}
-                  </div>
-                ) : null}
 
                 <form
                   className="space-y-4"

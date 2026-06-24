@@ -6,8 +6,9 @@ const variants = {
     "bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] shadow-sm",
   secondary:
     "bg-white text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--surface)]",
-  ghost: "bg-transparent text-[var(--foreground)] hover:bg-[var(--surface)]",
-  danger: "bg-[#c0392b] text-white hover:bg-[#a53125]"
+  ghost:
+    "bg-transparent text-[var(--foreground)] hover:bg-[var(--surface)] hover:text-[var(--accent-strong)]",
+  danger: "bg-[#b63a2b] text-white hover:bg-[#962f23]"
 };
 
 const sizes = {

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FormField } from "@/components/forms/form-field";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import { SuccessFeedback } from "@/components/ui/success-feedback";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { showConfirmToast } from "@/lib/confirm-toast";
 import {
   type CriteriaFormInput,
   criteriaSchema,
@@ -50,8 +51,9 @@ export function CriteriaManagement({
   const [editingCriteria, setEditingCriteria] = useState<CriteriaItem | null>(
     null
   );
-  const [feedback, setFeedback] = useState("");
-  const [requestError, setRequestError] = useState("");
+  const [deletingCriteriaId, setDeletingCriteriaId] = useState<string | null>(
+    null
+  );
   const [isActiveValue, setIsActiveValue] = useState(true);
   const [isPending, startTransition] = useTransition();
 
@@ -69,8 +71,6 @@ export function CriteriaManagement({
 
   function resetForm() {
     setEditingCriteria(null);
-    setRequestError("");
-    setFeedback("");
     setIsActiveValue(true);
     reset({
       name: "",
@@ -82,8 +82,6 @@ export function CriteriaManagement({
 
   function startEditMode(item: CriteriaItem) {
     setEditingCriteria(item);
-    setRequestError("");
-    setFeedback("");
     setIsActiveValue(item.isActive);
     reset({
       name: item.name,
@@ -94,9 +92,6 @@ export function CriteriaManagement({
   }
 
   async function onSubmit(values: CriteriaFormValues) {
-    setRequestError("");
-    setFeedback("");
-
     const endpoint = editingCriteria
       ? `/api/criteria/${editingCriteria.id}`
       : "/api/criteria";
@@ -117,7 +112,7 @@ export function CriteriaManagement({
       };
 
       if (!response.ok || !result.data) {
-        setRequestError(result.message || "Gagal menyimpan kriteria.");
+        toast.error(result.message || "Gagal menyimpan kriteria.");
         return;
       }
 
@@ -129,18 +124,47 @@ export function CriteriaManagement({
             .map((item) => (item.id === nextCriteria.id ? nextCriteria : item))
             .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
         );
-        setFeedback("Kriteria berhasil diperbarui.");
+        toast.success("Kriteria berhasil diperbarui.");
       } else {
         setCriteria((current) =>
           [...current, nextCriteria].sort(
             (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)
           )
         );
-        setFeedback("Kriteria baru berhasil ditambahkan.");
+        toast.success("Kriteria baru berhasil ditambahkan.");
       }
 
       resetForm();
     });
+  }
+
+  async function deleteCriteria(item: CriteriaItem) {
+    setDeletingCriteriaId(item.id);
+
+    try {
+      const response = await fetch(`/api/criteria/${item.id}`, {
+        method: "DELETE"
+      });
+
+      const result = (await response.json()) as {
+        message: string;
+      };
+
+      if (!response.ok) {
+        toast.error(result.message || "Gagal menghapus kriteria.");
+        return;
+      }
+
+      setCriteria((current) => current.filter((entry) => entry.id !== item.id));
+
+      if (editingCriteria?.id === item.id) {
+        resetForm();
+      }
+
+      toast.success(result.message || "Kriteria berhasil dihapus.");
+    } finally {
+      setDeletingCriteriaId(null);
+    }
   }
 
   return (
@@ -185,13 +209,32 @@ export function CriteriaManagement({
                       : item.description || "-"}
                   </td>
                   <td className="px-5 py-4">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => startEditMode(item)}
-                    >
-                      Edit
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => startEditMode(item)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        disabled={isSeedDefault || deletingCriteriaId === item.id}
+                        onClick={() =>
+                          showConfirmToast({
+                            title: `Hapus kriteria ${item.name}?`,
+                            description:
+                              "Kriteria hanya bisa dihapus jika bukan data seed dan belum memiliki histori skor.",
+                            confirmLabel: "Ya, hapus",
+                            cancelLabel: "Batal",
+                            onConfirm: () => deleteCriteria(item)
+                          })
+                        }
+                      >
+                        {deletingCriteriaId === item.id ? "Menghapus..." : "Hapus"}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -223,18 +266,6 @@ export function CriteriaManagement({
               </Button>
             ) : null}
           </div>
-
-          {feedback ? (
-            <div className="mb-4">
-              <SuccessFeedback title={feedback} />
-            </div>
-          ) : null}
-
-          {requestError ? (
-            <div className="mb-4 rounded-2xl border border-[#f4c7c3] bg-[#fff5f4] px-4 py-3 text-sm text-[#8f261c]">
-              {requestError}
-            </div>
-          ) : null}
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <FormField

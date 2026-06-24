@@ -3,6 +3,7 @@
 import { useDeferredValue, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FormField } from "@/components/forms/form-field";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +12,8 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { SuccessFeedback } from "@/components/ui/success-feedback";
 import { Table } from "@/components/ui/table";
+import { showConfirmToast } from "@/lib/confirm-toast";
 import { officerSchema, type OfficerFormValues } from "@/lib/validations/officer";
 
 type UnitOption = {
@@ -48,8 +49,7 @@ export function OfficerManagement({
 }: OfficerManagementProps) {
   const [officers, setOfficers] = useState<OfficerItem[]>(initialOfficers);
   const [editingOfficer, setEditingOfficer] = useState<OfficerItem | null>(null);
-  const [feedback, setFeedback] = useState("");
-  const [requestError, setRequestError] = useState("");
+  const [deletingOfficerId, setDeletingOfficerId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [unitFilter, setUnitFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -74,8 +74,6 @@ export function OfficerManagement({
 
   function resetForm() {
     setEditingOfficer(null);
-    setRequestError("");
-    setFeedback("");
     setIsActiveValue(true);
     reset({
       nip: "",
@@ -88,8 +86,6 @@ export function OfficerManagement({
 
   function startEditMode(officer: OfficerItem) {
     setEditingOfficer(officer);
-    setRequestError("");
-    setFeedback("");
     setIsActiveValue(officer.isActive);
     reset({
       nip: officer.nip,
@@ -140,9 +136,6 @@ export function OfficerManagement({
   const displayedOfficers = filteredOfficers.slice(0, visibleRows);
 
   async function onSubmit(values: OfficerFormValues) {
-    setRequestError("");
-    setFeedback("");
-
     const endpoint = editingOfficer
       ? `/api/officers/${editingOfficer.id}`
       : "/api/officers";
@@ -163,7 +156,7 @@ export function OfficerManagement({
       };
 
       if (!response.ok || !result.data) {
-        setRequestError(result.message || "Gagal menyimpan data petugas.");
+        toast.error(result.message || "Gagal menyimpan data petugas.");
         return;
       }
 
@@ -175,14 +168,43 @@ export function OfficerManagement({
             item.id === nextOfficer.id ? nextOfficer : item
           )
         );
-        setFeedback("Data petugas berhasil diperbarui.");
+        toast.success("Data petugas berhasil diperbarui.");
       } else {
         setOfficers((current) => [...current, nextOfficer]);
-        setFeedback("Petugas baru berhasil ditambahkan.");
+        toast.success("Petugas baru berhasil ditambahkan.");
       }
 
       resetForm();
     });
+  }
+
+  async function deleteOfficer(officer: OfficerItem) {
+    setDeletingOfficerId(officer.id);
+
+    try {
+      const response = await fetch(`/api/officers/${officer.id}`, {
+        method: "DELETE"
+      });
+
+      const result = (await response.json()) as {
+        message: string;
+      };
+
+      if (!response.ok) {
+        toast.error(result.message || "Gagal menghapus petugas.");
+        return;
+      }
+
+      setOfficers((current) => current.filter((item) => item.id !== officer.id));
+
+      if (editingOfficer?.id === officer.id) {
+        resetForm();
+      }
+
+      toast.success(result.message || "Petugas berhasil dihapus.");
+    } finally {
+      setDeletingOfficerId(null);
+    }
   }
 
   return (
@@ -276,13 +298,34 @@ export function OfficerManagement({
                     </Badge>
                   </td>
                   <td className="px-5 py-4">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => startEditMode(officer)}
-                    >
-                      Edit
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => startEditMode(officer)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        disabled={deletingOfficerId === officer.id}
+                        onClick={() =>
+                          showConfirmToast({
+                            title: `Hapus petugas ${officer.name}?`,
+                            description:
+                              "Penghapusan hanya diizinkan jika petugas belum memiliki histori penilaian atau reward dan punishment.",
+                            confirmLabel: "Ya, hapus",
+                            cancelLabel: "Batal",
+                            onConfirm: () => deleteOfficer(officer)
+                          })
+                        }
+                      >
+                        {deletingOfficerId === officer.id
+                          ? "Menghapus..."
+                          : "Hapus"}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -325,18 +368,6 @@ export function OfficerManagement({
               </Button>
             ) : null}
           </div>
-
-          {feedback ? (
-            <div className="mb-4">
-              <SuccessFeedback title={feedback} />
-            </div>
-          ) : null}
-
-          {requestError ? (
-            <div className="mb-4 rounded-2xl border border-[#f4c7c3] bg-[#fff5f4] px-4 py-3 text-sm text-[#8f261c]">
-              {requestError}
-            </div>
-          ) : null}
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <FormField

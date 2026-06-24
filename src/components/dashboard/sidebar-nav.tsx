@@ -45,7 +45,7 @@ export function SidebarNav() {
         <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
           Navigasi
         </h2>
-        <Badge>Beta</Badge>
+        <Badge>Internal</Badge>
       </div>
       <nav className="space-y-2">
         {menuItems.map((item) => {
@@ -59,7 +59,7 @@ export function SidebarNav() {
               className={cn(
                 "block rounded-2xl border px-4 py-3 transition",
                 isActive
-                  ? "border-[var(--accent)] bg-[#eef7ef]"
+                  ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-sm"
                   : "border-transparent bg-transparent hover:border-[var(--border)] hover:bg-[var(--surface)]"
               )}
             >

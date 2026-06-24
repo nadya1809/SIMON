@@ -41,35 +41,38 @@ export default async function DashboardPage({
       <DashboardFilters units={data.units} filters={data.filters} />
 
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-[2rem] border border-[var(--border)] bg-white p-6 shadow-sm">
+        <div className="rounded-[2rem] border border-[var(--border)] bg-[linear-gradient(180deg,#ffffff_0%,#f6fafe_100%)] p-6 shadow-sm">
           <p className="text-sm text-[var(--muted)]">Total Penilaian</p>
           <p className="mt-2 text-2xl font-bold">
             {data.summaryCards.totalAssessments}
           </p>
         </div>
-        <div className="rounded-[2rem] border border-[var(--border)] bg-white p-6 shadow-sm">
+        <div className="rounded-[2rem] border border-[var(--border)] bg-[linear-gradient(180deg,#ffffff_0%,#f6fafe_100%)] p-6 shadow-sm">
           <p className="text-sm text-[var(--muted)]">Rata-rata Keseluruhan</p>
           <p className="mt-2 text-2xl font-bold">
             {data.summaryCards.overallAverage.toFixed(2)}
           </p>
         </div>
-        <div className="rounded-[2rem] border border-[var(--border)] bg-white p-6 shadow-sm">
+        <div className="rounded-[2rem] border border-[var(--border)] bg-[linear-gradient(180deg,#ffffff_0%,#f6fafe_100%)] p-6 shadow-sm">
           <p className="text-sm text-[var(--muted)]">Tidak Hadir Tercatat</p>
           <p className="mt-2 text-2xl font-bold">{data.summaryCards.totalAbsent}</p>
         </div>
-        <div className="rounded-[2rem] border border-[var(--border)] bg-white p-6 shadow-sm">
+        <div className="rounded-[2rem] border border-[var(--border)] bg-[linear-gradient(180deg,#ffffff_0%,#f6fafe_100%)] p-6 shadow-sm">
           <p className="text-sm text-[var(--muted)]">Hadir Tercatat</p>
           <p className="mt-2 text-2xl font-bold">{data.summaryCards.totalPresent}</p>
         </div>
-        <div className="rounded-[2rem] border border-[var(--border)] bg-white p-6 shadow-sm md:col-span-2">
-          <p className="text-sm text-[var(--muted)]">Petugas Teratas</p>
+        <div className="rounded-[2rem] border border-[var(--border)] bg-[linear-gradient(135deg,rgba(8,79,125,0.98),rgba(11,106,168,0.92))] p-6 text-white shadow-sm md:col-span-2">
+          <p className="text-sm text-white/72">Petugas Teratas</p>
           <p className="mt-2 text-2xl font-bold">
             {data.summaryCards.topOfficer?.officerName ?? "-"}
           </p>
-          <p className="mt-1 text-sm text-[var(--muted)]">
+          <p className="mt-1 text-sm text-white/80">
             {data.summaryCards.topOfficer
               ? `${data.summaryCards.topOfficer.unitName} · ${data.summaryCards.topOfficer.averageScore.toFixed(2)}`
               : "Belum ada data performa yang cukup untuk dihitung."}
+          </p>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
+            Ringkasan eksekutif pelayanan statistik terpadu
           </p>
         </div>
       </section>
@@ -89,7 +92,7 @@ export default async function DashboardPage({
             <UnitComparisonChart data={data.unitComparison} />
           </section>
 
-          <section className="rounded-[2rem] border border-[var(--border)] bg-white p-6 shadow-sm">
+          <section className="rounded-[2rem] border border-[var(--border)] bg-[linear-gradient(180deg,#ffffff_0%,#f7fbfe_100%)] p-6 shadow-sm">
             <div className="mb-4">
               <h3 className="text-lg font-bold">Ranking Petugas</h3>
               <p className="mt-1 text-sm text-[var(--muted)]">

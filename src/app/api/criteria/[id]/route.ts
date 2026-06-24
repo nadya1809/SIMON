@@ -1,8 +1,20 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRoles } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
+import {
+  apiConflict,
+  apiMessage,
+  apiNotFound,
+  apiSuccess,
+  apiUnauthorized,
+  apiValidationError
+} from "@/lib/api-response";
 import { criteriaUpdateSchema } from "@/lib/validations/criteria";
+
+const protectedCriteriaIds = new Set([
+  "seed-discipline-criteria",
+  "seed-performance-criteria"
+]);
 
 type RouteContext = {
   params: Promise<{
@@ -18,10 +30,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   if (!session?.user) {
-    return NextResponse.json(
-      { message: "Unauthorized. Silakan login terlebih dahulu." },
-      { status: 401 }
-    );
+    return apiUnauthorized();
   }
 
   const { id } = await context.params;
@@ -29,12 +38,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   const parsed = criteriaUpdateSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: "Data kriteria tidak valid.",
-        errors: parsed.error.flatten().fieldErrors
-      },
-      { status: 400 }
+    return apiValidationError(
+      "Data kriteria tidak valid.",
+      parsed.error.flatten().fieldErrors
     );
   }
 
@@ -50,10 +56,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (!existingCriteria) {
-    return NextResponse.json(
-      { message: "Kriteria tidak ditemukan." },
-      { status: 404 }
-    );
+    return apiNotFound("Kriteria tidak ditemukan.");
   }
 
   const name = parsed.data.name.trim();
@@ -70,10 +73,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (duplicateName) {
-    return NextResponse.json(
-      { message: "Nama kriteria sudah digunakan." },
-      { status: 409 }
-    );
+    return apiConflict("Nama kriteria sudah digunakan.");
   }
 
   const criteria = await prisma.criteria.update({
@@ -102,8 +102,60 @@ export async function PATCH(request: Request, context: RouteContext) {
     afterData: toAuditJson(criteria)
   });
 
-  return NextResponse.json({
-    message: "Kriteria berhasil diperbarui.",
-    data: criteria
+  return apiSuccess(criteria, {
+    message: "Kriteria berhasil diperbarui."
   });
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { session, response } = await requireApiRoles(["ADMIN"]);
+
+  if (response) {
+    return response;
+  }
+
+  if (!session?.user) {
+    return apiUnauthorized();
+  }
+
+  const { id } = await context.params;
+
+  if (protectedCriteriaIds.has(id)) {
+    return apiConflict("Kriteria default sistem tidak boleh dihapus.");
+  }
+
+  const existingCriteria = await prisma.criteria.findUnique({
+    where: { id },
+    include: {
+      _count: {
+        select: {
+          scores: true
+        }
+      }
+    }
+  });
+
+  if (!existingCriteria) {
+    return apiNotFound("Kriteria tidak ditemukan.");
+  }
+
+  if (existingCriteria._count.scores > 0) {
+    return apiConflict(
+      "Kriteria tidak bisa dihapus karena sudah memiliki histori skor."
+    );
+  }
+
+  await prisma.criteria.delete({
+    where: { id }
+  });
+
+  await writeAuditLog({
+    userId: session.user.id,
+    action: "DELETE",
+    entity: "Criteria",
+    entityId: existingCriteria.id,
+    beforeData: toAuditJson(existingCriteria)
+  });
+
+  return apiMessage("Kriteria berhasil dihapus.");
 }

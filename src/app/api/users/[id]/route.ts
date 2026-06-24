@@ -1,8 +1,15 @@
 import bcrypt from "bcryptjs";
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRoles } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
+import {
+  apiConflict,
+  apiMessage,
+  apiNotFound,
+  apiSuccess,
+  apiUnauthorized,
+  apiValidationError
+} from "@/lib/api-response";
 import { userUpdateSchema } from "@/lib/validations/user";
 
 type RouteContext = {
@@ -19,10 +26,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   if (!session?.user) {
-    return NextResponse.json(
-      { message: "Unauthorized. Silakan login terlebih dahulu." },
-      { status: 401 }
-    );
+    return apiUnauthorized();
   }
 
   const { id } = await context.params;
@@ -30,24 +34,27 @@ export async function PATCH(request: Request, context: RouteContext) {
   const parsed = userUpdateSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: "Data user tidak valid.",
-        errors: parsed.error.flatten().fieldErrors
-      },
-      { status: 400 }
+    return apiValidationError(
+      "Data user tidak valid.",
+      parsed.error.flatten().fieldErrors
     );
   }
 
   const existingUser = await prisma.user.findUnique({
-    where: { id }
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true
+    }
   });
 
   if (!existingUser) {
-    return NextResponse.json(
-      { message: "User tidak ditemukan." },
-      { status: 404 }
-    );
+    return apiNotFound("User tidak ditemukan.");
   }
 
   const email = parsed.data.email.trim().toLowerCase();
@@ -60,16 +67,12 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (duplicateEmail) {
-    return NextResponse.json(
-      { message: "Email sudah digunakan oleh user lain." },
-      { status: 409 }
-    );
+    return apiConflict("Email sudah digunakan oleh user lain.");
   }
 
   if (session.user.id === id && !parsed.data.isActive) {
-    return NextResponse.json(
-      { message: "Anda tidak bisa menonaktifkan akun yang sedang dipakai." },
-      { status: 400 }
+    return apiValidationError(
+      "Anda tidak bisa menonaktifkan akun yang sedang dipakai."
     );
   }
 
@@ -102,20 +105,77 @@ export async function PATCH(request: Request, context: RouteContext) {
     action: "UPDATE",
     entity: "User",
     entityId: user.id,
-    beforeData: toAuditJson({
-      id: existingUser.id,
-      name: existingUser.name,
-      email: existingUser.email,
-      role: existingUser.role,
-      isActive: existingUser.isActive,
-      createdAt: existingUser.createdAt,
-      updatedAt: existingUser.updatedAt
-    }),
+    beforeData: toAuditJson(existingUser),
     afterData: toAuditJson(user)
   });
 
-  return NextResponse.json({
-    message: "Data user berhasil diperbarui.",
-    data: user
+  return apiSuccess(user, {
+    message: "Data user berhasil diperbarui."
   });
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { session, response } = await requireApiRoles(["ADMIN"]);
+
+  if (response) {
+    return response;
+  }
+
+  if (!session?.user) {
+    return apiUnauthorized();
+  }
+
+  const { id } = await context.params;
+
+  if (session.user.id === id) {
+    return apiValidationError("Akun yang sedang dipakai tidak bisa dihapus.");
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
+      _count: {
+        select: {
+          assessments: true,
+          decisions: true,
+          auditLogs: true
+        }
+      }
+    }
+  });
+
+  if (!existingUser) {
+    return apiNotFound("User tidak ditemukan.");
+  }
+
+  if (
+    existingUser._count.assessments > 0 ||
+    existingUser._count.decisions > 0 ||
+    existingUser._count.auditLogs > 0
+  ) {
+    return apiConflict(
+      "User tidak bisa dihapus karena sudah memiliki histori aktivitas sistem."
+    );
+  }
+
+  await prisma.user.delete({
+    where: { id }
+  });
+
+  await writeAuditLog({
+    userId: session.user.id,
+    action: "DELETE",
+    entity: "User",
+    entityId: existingUser.id,
+    beforeData: toAuditJson(existingUser)
+  });
+
+  return apiMessage("User berhasil dihapus.");
 }

@@ -3,6 +3,7 @@
 import { useDeferredValue, useMemo, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FormField } from "@/components/forms/form-field";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,6 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { SuccessFeedback } from "@/components/ui/success-feedback";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { formatAverageScore } from "@/lib/scoring";
@@ -106,8 +106,6 @@ export function AssessmentManagement({
   const [assessments, setAssessments] = useState(initialAssessments);
   const [editingAssessment, setEditingAssessment] =
     useState<AssessmentItem | null>(null);
-  const [feedback, setFeedback] = useState("");
-  const [requestError, setRequestError] = useState("");
   const [statusValue, setStatusValue] = useState<"PRESENT" | "ABSENT">(
     "PRESENT"
   );
@@ -148,8 +146,6 @@ export function AssessmentManagement({
 
   function resetForm() {
     setEditingAssessment(null);
-    setFeedback("");
-    setRequestError("");
     setStatusValue("PRESENT");
     setSelectedOfficerId("");
     reset({
@@ -163,8 +159,6 @@ export function AssessmentManagement({
 
   function startEditMode(assessment: AssessmentItem) {
     setEditingAssessment(assessment);
-    setFeedback("");
-    setRequestError("");
     setStatusValue(assessment.status);
     setSelectedOfficerId(assessment.officerId);
     reset({
@@ -228,9 +222,6 @@ export function AssessmentManagement({
   const displayedAssessments = filteredAssessments.slice(0, visibleRows);
 
   async function onSubmit(values: AssessmentFormValues) {
-    setFeedback("");
-    setRequestError("");
-
     const payload = {
       ...values,
       notes: values.notes?.trim() || "",
@@ -263,7 +254,7 @@ export function AssessmentManagement({
       };
 
       if (!response.ok || !result.data) {
-        setRequestError(result.message || "Gagal menyimpan penilaian.");
+        toast.error(result.message || "Gagal menyimpan penilaian.");
         return;
       }
 
@@ -275,10 +266,10 @@ export function AssessmentManagement({
             item.id === nextAssessment.id ? nextAssessment : item
           )
         );
-        setFeedback("Penilaian berhasil diperbarui.");
+        toast.success("Penilaian berhasil diperbarui.");
       } else {
         setAssessments((current) => [nextAssessment, ...current]);
-        setFeedback("Penilaian harian berhasil ditambahkan.");
+        toast.success("Penilaian harian berhasil ditambahkan.");
       }
 
       resetForm();
@@ -453,18 +444,6 @@ export function AssessmentManagement({
               </Button>
             ) : null}
           </div>
-
-          {feedback ? (
-            <div className="mb-4">
-              <SuccessFeedback title={feedback} />
-            </div>
-          ) : null}
-
-          {requestError ? (
-            <div className="mb-4 rounded-2xl border border-[#f4c7c3] bg-[#fff5f4] px-4 py-3 text-sm text-[#8f261c]">
-              {requestError}
-            </div>
-          ) : null}
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <FormField

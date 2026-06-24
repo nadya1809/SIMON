@@ -8,10 +8,10 @@ type BadgeProps = {
 };
 
 const badgeVariants = {
-  default: "bg-[var(--surface)] text-[var(--foreground)]",
-  success: "bg-[#e7f6ea] text-[#1f6b2b]",
-  warning: "bg-[#fff3dc] text-[#8a5a00]",
-  danger: "bg-[#fde8e6] text-[#a53125]"
+  default: "bg-[var(--accent-soft)] text-[var(--accent-strong)]",
+  success: "bg-[#e5f3eb] text-[#18603f]",
+  warning: "bg-[#fff4dc] text-[#8c5d00]",
+  danger: "bg-[#fbe7e4] text-[#a33a2b]"
 };
 
 export function Badge({

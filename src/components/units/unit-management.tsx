@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FormField } from "@/components/forms/form-field";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import { SuccessFeedback } from "@/components/ui/success-feedback";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { showConfirmToast } from "@/lib/confirm-toast";
 import type { UnitFormValues } from "@/lib/validations/unit";
 import { unitSchema } from "@/lib/validations/unit";
 
@@ -38,8 +39,7 @@ export function UnitManagement({
 }: UnitManagementProps) {
   const [units, setUnits] = useState<UnitItem[]>(initialUnits);
   const [editingUnit, setEditingUnit] = useState<UnitItem | null>(null);
-  const [feedback, setFeedback] = useState<string>("");
-  const [requestError, setRequestError] = useState<string>("");
+  const [deletingUnitId, setDeletingUnitId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<UnitFormValues>({
@@ -54,15 +54,11 @@ export function UnitManagement({
 
   function startCreateMode() {
     setEditingUnit(null);
-    setRequestError("");
-    setFeedback("");
     reset({ name: "", description: "" });
   }
 
   function startEditMode(unit: UnitItem) {
     setEditingUnit(unit);
-    setRequestError("");
-    setFeedback("");
     reset({
       name: unit.name,
       description: unit.description ?? ""
@@ -70,9 +66,6 @@ export function UnitManagement({
   }
 
   async function onSubmit(values: UnitFormValues) {
-    setRequestError("");
-    setFeedback("");
-
     const endpoint = editingUnit
       ? `/api/units/${editingUnit.id}`
       : "/api/units";
@@ -93,7 +86,7 @@ export function UnitManagement({
       };
 
       if (!response.ok || !result.data) {
-        setRequestError(result.message || "Gagal menyimpan unit.");
+        toast.error(result.message || "Gagal menyimpan unit.");
         return;
       }
 
@@ -105,17 +98,46 @@ export function UnitManagement({
             .map((item) => (item.id === nextUnit.id ? nextUnit : item))
             .sort((a, b) => a.name.localeCompare(b.name))
         );
-        setFeedback("Data unit berhasil diperbarui.");
+        toast.success("Data unit berhasil diperbarui.");
       } else {
         setUnits((current) =>
           [...current, nextUnit].sort((a, b) => a.name.localeCompare(b.name))
         );
-        setFeedback("Unit baru berhasil ditambahkan.");
+        toast.success("Unit baru berhasil ditambahkan.");
       }
 
       setEditingUnit(null);
       reset({ name: "", description: "" });
     });
+  }
+
+  async function deleteUnit(unit: UnitItem) {
+    setDeletingUnitId(unit.id);
+
+    try {
+      const response = await fetch(`/api/units/${unit.id}`, {
+        method: "DELETE"
+      });
+
+      const result = (await response.json()) as {
+        message: string;
+      };
+
+      if (!response.ok) {
+        toast.error(result.message || "Gagal menghapus unit.");
+        return;
+      }
+
+      setUnits((current) => current.filter((item) => item.id !== unit.id));
+
+      if (editingUnit?.id === unit.id) {
+        startCreateMode();
+      }
+
+      toast.success(result.message || "Unit berhasil dihapus.");
+    } finally {
+      setDeletingUnitId(null);
+    }
   }
 
   return (
@@ -138,13 +160,32 @@ export function UnitManagement({
                   {unit.description || "-"}
                 </td>
                 <td className="px-5 py-4">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => startEditMode(unit)}
-                  >
-                    Edit
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => startEditMode(unit)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      disabled={deletingUnitId === unit.id}
+                      onClick={() =>
+                        showConfirmToast({
+                          title: `Hapus unit ${unit.name}?`,
+                          description:
+                            "Unit hanya bisa dihapus jika belum memiliki petugas terdaftar.",
+                          confirmLabel: "Ya, hapus",
+                          cancelLabel: "Batal",
+                          onConfirm: () => deleteUnit(unit)
+                        })
+                      }
+                    >
+                      {deletingUnitId === unit.id ? "Menghapus..." : "Hapus"}
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))
@@ -175,18 +216,6 @@ export function UnitManagement({
               </Button>
             ) : null}
           </div>
-
-          {feedback ? (
-            <div className="mb-4">
-              <SuccessFeedback title={feedback} />
-            </div>
-          ) : null}
-
-          {requestError ? (
-            <div className="mb-4 rounded-2xl border border-[#f4c7c3] bg-[#fff5f4] px-4 py-3 text-sm text-[#8f261c]">
-              {requestError}
-            </div>
-          ) : null}
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <FormField

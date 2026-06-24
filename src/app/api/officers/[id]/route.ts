@@ -1,7 +1,14 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRoles } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
+import {
+  apiConflict,
+  apiMessage,
+  apiNotFound,
+  apiSuccess,
+  apiUnauthorized,
+  apiValidationError
+} from "@/lib/api-response";
 import { officerUpdateSchema } from "@/lib/validations/officer";
 
 type RouteContext = {
@@ -27,13 +34,10 @@ export async function GET(_request: Request, context: RouteContext) {
   });
 
   if (!officer) {
-    return NextResponse.json(
-      { message: "Petugas tidak ditemukan." },
-      { status: 404 }
-    );
+    return apiNotFound("Petugas tidak ditemukan.");
   }
 
-  return NextResponse.json({ data: officer });
+  return apiSuccess(officer);
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -44,10 +48,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   if (!session?.user) {
-    return NextResponse.json(
-      { message: "Unauthorized. Silakan login terlebih dahulu." },
-      { status: 401 }
-    );
+    return apiUnauthorized();
   }
 
   const { id } = await context.params;
@@ -55,12 +56,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   const parsed = officerUpdateSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: "Data petugas tidak valid.",
-        errors: parsed.error.flatten().fieldErrors
-      },
-      { status: 400 }
+    return apiValidationError(
+      "Data petugas tidak valid.",
+      parsed.error.flatten().fieldErrors
     );
   }
 
@@ -69,10 +67,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (!existingOfficer) {
-    return NextResponse.json(
-      { message: "Petugas tidak ditemukan." },
-      { status: 404 }
-    );
+    return apiNotFound("Petugas tidak ditemukan.");
   }
 
   const nip = parsed.data.nip.trim();
@@ -89,10 +84,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (duplicateNip) {
-    return NextResponse.json(
-      { message: "NIP sudah digunakan oleh petugas lain." },
-      { status: 409 }
-    );
+    return apiConflict("NIP sudah digunakan oleh petugas lain.");
   }
 
   const officer = await prisma.officer.update({
@@ -118,8 +110,60 @@ export async function PATCH(request: Request, context: RouteContext) {
     afterData: toAuditJson(officer)
   });
 
-  return NextResponse.json({
-    message: "Data petugas berhasil diperbarui.",
-    data: officer
+  return apiSuccess(officer, {
+    message: "Data petugas berhasil diperbarui."
   });
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { session, response } = await requireApiRoles(["ADMIN"]);
+
+  if (response) {
+    return response;
+  }
+
+  if (!session?.user) {
+    return apiUnauthorized();
+  }
+
+  const { id } = await context.params;
+  const existingOfficer = await prisma.officer.findUnique({
+    where: { id },
+    include: {
+      unit: true,
+      _count: {
+        select: {
+          assessments: true,
+          rewardPunishments: true
+        }
+      }
+    }
+  });
+
+  if (!existingOfficer) {
+    return apiNotFound("Petugas tidak ditemukan.");
+  }
+
+  if (
+    existingOfficer._count.assessments > 0 ||
+    existingOfficer._count.rewardPunishments > 0
+  ) {
+    return apiConflict(
+      "Petugas tidak bisa dihapus karena sudah memiliki histori penilaian atau reward dan punishment."
+    );
+  }
+
+  await prisma.officer.delete({
+    where: { id }
+  });
+
+  await writeAuditLog({
+    userId: session.user.id,
+    action: "DELETE",
+    entity: "Officer",
+    entityId: existingOfficer.id,
+    beforeData: toAuditJson(existingOfficer)
+  });
+
+  return apiMessage("Petugas berhasil dihapus.");
 }

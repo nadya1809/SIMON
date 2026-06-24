@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { FormField } from "@/components/forms/form-field";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
-import { SuccessFeedback } from "@/components/ui/success-feedback";
 
 type ReportExportPanelProps = {
   from: string;
@@ -18,14 +18,9 @@ export function ReportExportPanel({
   unitId
 }: ReportExportPanelProps) {
   const [format, setFormat] = useState<"pdf" | "xlsx">("xlsx");
-  const [feedback, setFeedback] = useState("");
-  const [requestError, setRequestError] = useState("");
   const [isPending, startTransition] = useTransition();
 
   async function handleExport() {
-    setFeedback("");
-    setRequestError("");
-
     startTransition(async () => {
       const searchParams = new URLSearchParams({
         format,
@@ -41,7 +36,7 @@ export function ReportExportPanel({
 
       if (!response.ok) {
         const result = (await response.json()) as { message?: string };
-        setRequestError(result.message || "Gagal menyiapkan file export.");
+        toast.error(result.message || "Gagal menyiapkan file export.");
         return;
       }
 
@@ -61,7 +56,7 @@ export function ReportExportPanel({
       anchor.remove();
       URL.revokeObjectURL(downloadUrl);
 
-      setFeedback(
+      toast.success(
         format === "xlsx"
           ? "File Excel berhasil disiapkan dan diunduh."
           : "File PDF berhasil disiapkan dan diunduh."
@@ -77,14 +72,6 @@ export function ReportExportPanel({
           Pilih format file lalu generate laporan sesuai filter aktif.
         </p>
       </div>
-
-      {feedback ? <SuccessFeedback title={feedback} /> : null}
-
-      {requestError ? (
-        <div className="rounded-2xl border border-[#f4c7c3] bg-[#fff5f4] px-4 py-3 text-sm text-[#8f261c]">
-          {requestError}
-        </div>
-      ) : null}
 
       <FormField label="Format export">
         <Select

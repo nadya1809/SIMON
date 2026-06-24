@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FormField } from "@/components/forms/form-field";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +12,8 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { SuccessFeedback } from "@/components/ui/success-feedback";
 import { Table } from "@/components/ui/table";
+import { showConfirmToast } from "@/lib/confirm-toast";
 import {
   userSchema,
   userUpdateSchema,
@@ -47,8 +48,7 @@ export function UserManagement({
 }: UserManagementProps) {
   const [users, setUsers] = useState<UserItem[]>(initialUsers);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
-  const [feedback, setFeedback] = useState("");
-  const [requestError, setRequestError] = useState("");
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [isActiveValue, setIsActiveValue] = useState(true);
   const [isPending, startTransition] = useTransition();
 
@@ -79,8 +79,6 @@ export function UserManagement({
 
   function resetCreateMode() {
     setEditingUser(null);
-    setRequestError("");
-    setFeedback("");
     setIsActiveValue(true);
     createForm.reset({
       name: "",
@@ -100,8 +98,6 @@ export function UserManagement({
 
   function startEditMode(user: UserItem) {
     setEditingUser(user);
-    setRequestError("");
-    setFeedback("");
     setIsActiveValue(user.isActive);
     updateForm.reset({
       name: user.name,
@@ -113,9 +109,6 @@ export function UserManagement({
   }
 
   async function submitCreate(values: UserFormValues) {
-    setRequestError("");
-    setFeedback("");
-
     startTransition(async () => {
       const response = await fetch("/api/users", {
         method: "POST",
@@ -131,12 +124,12 @@ export function UserManagement({
       };
 
       if (!response.ok || !result.data) {
-        setRequestError(result.message || "Gagal menambahkan user.");
+        toast.error(result.message || "Gagal menambahkan user.");
         return;
       }
 
       setUsers((current) => [result.data!, ...current]);
-      setFeedback("User baru berhasil ditambahkan.");
+      toast.success("User baru berhasil ditambahkan.");
       resetCreateMode();
     });
   }
@@ -145,9 +138,6 @@ export function UserManagement({
     if (!editingUser) {
       return;
     }
-
-    setRequestError("");
-    setFeedback("");
 
     startTransition(async () => {
       const response = await fetch(`/api/users/${editingUser.id}`, {
@@ -164,16 +154,45 @@ export function UserManagement({
       };
 
       if (!response.ok || !result.data) {
-        setRequestError(result.message || "Gagal memperbarui user.");
+        toast.error(result.message || "Gagal memperbarui user.");
         return;
       }
 
       setUsers((current) =>
         current.map((item) => (item.id === result.data!.id ? result.data! : item))
       );
-      setFeedback("Data user berhasil diperbarui.");
+      toast.success("Data user berhasil diperbarui.");
       resetCreateMode();
     });
+  }
+
+  async function deleteUser(user: UserItem) {
+    setDeletingUserId(user.id);
+
+    try {
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: "DELETE"
+      });
+
+      const result = (await response.json()) as {
+        message: string;
+      };
+
+      if (!response.ok) {
+        toast.error(result.message || "Gagal menghapus user.");
+        return;
+      }
+
+      setUsers((current) => current.filter((item) => item.id !== user.id));
+
+      if (editingUser?.id === user.id) {
+        resetCreateMode();
+      }
+
+      toast.success(result.message || "User berhasil dihapus.");
+    } finally {
+      setDeletingUserId(null);
+    }
   }
 
   return (
@@ -199,13 +218,32 @@ export function UserManagement({
                   </Badge>
                 </td>
                 <td className="px-5 py-4">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => startEditMode(user)}
-                  >
-                    Edit
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => startEditMode(user)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      disabled={user.id === currentUserId || deletingUserId === user.id}
+                      onClick={() =>
+                        showConfirmToast({
+                          title: `Hapus user ${user.name}?`,
+                          description:
+                            "User hanya bisa dihapus jika bukan akun aktif yang sedang dipakai dan belum memiliki histori aktivitas sistem.",
+                          confirmLabel: "Ya, hapus",
+                          cancelLabel: "Batal",
+                          onConfirm: () => deleteUser(user)
+                        })
+                      }
+                    >
+                      {deletingUserId === user.id ? "Menghapus..." : "Hapus"}
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))
@@ -236,18 +274,6 @@ export function UserManagement({
               </Button>
             ) : null}
           </div>
-
-          {feedback ? (
-            <div className="mb-4">
-              <SuccessFeedback title={feedback} />
-            </div>
-          ) : null}
-
-          {requestError ? (
-            <div className="mb-4 rounded-2xl border border-[#f4c7c3] bg-[#fff5f4] px-4 py-3 text-sm text-[#8f261c]">
-              {requestError}
-            </div>
-          ) : null}
 
           <form
             className="space-y-4"

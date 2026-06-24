@@ -9,7 +9,12 @@ type TableProps = {
 
 export function Table({ headers, children, className }: TableProps) {
   return (
-    <div className={cn("overflow-hidden rounded-3xl border border-[var(--border)] bg-white", className)}>
+    <div
+      className={cn(
+        "overflow-hidden rounded-3xl border border-[var(--border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,250,253,0.98))] shadow-sm",
+        className
+      )}
+    >
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-[var(--surface)] text-[var(--muted)]">
