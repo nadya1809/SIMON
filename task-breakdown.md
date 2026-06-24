@@ -41,7 +41,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 - [ ] Buat file util dasar `src/lib/utils.ts` jika diperlukan
 - [x] Siapkan alias import bila diperlukan
-- [ ] Tambahkan README setup lokal singkat
+- [x] Tambahkan README setup lokal singkat
 
 ## Fase 1 — Database, Prisma, dan Auth Foundation `[x]`
 
@@ -506,11 +506,11 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Deployment readiness
 
-- [ ] Finalisasi `.env.example`
-- [ ] Dokumentasikan langkah setup PostgreSQL
-- [ ] Dokumentasikan `prisma migrate deploy`
-- [ ] Dokumentasikan seed production awal
-- [ ] Dokumentasikan build dan start dengan PM2
+- [x] Finalisasi `.env.example`
+- [x] Dokumentasikan langkah setup PostgreSQL
+- [x] Dokumentasikan `prisma migrate deploy`
+- [x] Dokumentasikan seed production awal
+- [x] Dokumentasikan build dan start dengan PM2
 
 ## Cross-Cutting Tasks
 
@@ -546,7 +546,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Milestone 2
 
-- [ ] Master data petugas, unit, kriteria, user siap
+- [x] Master data petugas, unit, kriteria, user siap
 
 ### Milestone 3
 
