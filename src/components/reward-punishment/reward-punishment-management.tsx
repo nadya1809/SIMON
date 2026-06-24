@@ -3,7 +3,6 @@
 import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import {
   faCheck,
-  faFilter,
   faGavel,
   faRotateLeft,
   faTrash,
@@ -21,11 +20,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTableShell } from "@/components/ui/data-table-shell";
-import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
+import { ModalDialog } from "@/components/ui/modal-dialog";
 import { SectionCard } from "@/components/ui/section-card";
 import { Select } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
@@ -171,6 +170,8 @@ export function RewardPunishmentManagement({
   const [selectedRecommendationId, setSelectedRecommendationId] = useState(
     initialRecommendations[0]?.id ?? ""
   );
+  const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [confirmingRecommendation, setConfirmingRecommendation] =
     useState<RecommendationItem | null>(null);
   const [search, setSearch] = useState("");
@@ -314,6 +315,7 @@ export function RewardPunishmentManagement({
           mergeRecommendations(current, nextRecommendations)
         );
         setSelectedRecommendationId(nextRecommendations[0].id);
+        setIsDetailDialogOpen(true);
       }
 
       toast.success(
@@ -321,6 +323,8 @@ export function RewardPunishmentManagement({
           ? `${result.message || "Generate rekomendasi berhasil."} Kandidat: ${result.meta.totalCandidates}, dibuat: ${result.meta.createdCount}, dilewati: ${result.meta.skippedCount}.`
           : result.message || "Generate rekomendasi berhasil."
       );
+
+      setIsGenerateDialogOpen(false);
     });
   }
 
@@ -354,6 +358,7 @@ export function RewardPunishmentManagement({
       setRecommendations((current) =>
         current.map((item) => (item.id === result.data?.id ? result.data : item))
       );
+      setSelectedRecommendationId(result.data.id);
       toast.success(result.message || "Keputusan berhasil disimpan.");
     });
   }
@@ -411,66 +416,69 @@ export function RewardPunishmentManagement({
         <StatCard label="Rejected" value={`${summary.REJECTED}`} icon={faTriangleExclamation} iconTone="soft" />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <div className="space-y-5">
-          <FilterToolbar>
-            <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-              <FormField label="Cari petugas">
-                <Input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Cari nama atau NIP"
-                />
-              </FormField>
+      <section className="space-y-5">
+        <FilterToolbar>
+          <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <FormField label="Cari petugas">
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari nama atau NIP"
+              />
+            </FormField>
 
-              <FormField label="Periode">
-                <Input
-                  type="month"
-                  value={periodFilter}
-                  onChange={(event) => setPeriodFilter(event.target.value)}
-                />
-              </FormField>
+            <FormField label="Periode">
+              <Input
+                type="month"
+                value={periodFilter}
+                onChange={(event) => setPeriodFilter(event.target.value)}
+              />
+            </FormField>
 
-              <FormField label="Unit">
-                <Select
-                  value={unitFilter}
-                  onChange={(event) => setUnitFilter(event.target.value)}
-                >
-                  <option value="all">Semua unit</option>
-                  {units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.name}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
+            <FormField label="Unit">
+              <Select
+                value={unitFilter}
+                onChange={(event) => setUnitFilter(event.target.value)}
+              >
+                <option value="all">Semua unit</option>
+                {units.map((unit) => (
+                  <option key={unit.id} value={unit.id}>
+                    {unit.name}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
 
-              <FormField label="Tipe">
-                <Select
-                  value={typeFilter}
-                  onChange={(event) => setTypeFilter(event.target.value as TypeFilter)}
-                >
-                  <option value="all">Semua tipe</option>
-                  <option value="REWARD">Reward</option>
-                  <option value="PUNISHMENT">Punishment</option>
-                </Select>
-              </FormField>
+            <FormField label="Tipe">
+              <Select
+                value={typeFilter}
+                onChange={(event) => setTypeFilter(event.target.value as TypeFilter)}
+              >
+                <option value="all">Semua tipe</option>
+                <option value="REWARD">Reward</option>
+                <option value="PUNISHMENT">Punishment</option>
+              </Select>
+            </FormField>
 
-              <FormField label="Status">
-                <Select
-                  value={statusFilter}
-                  onChange={(event) =>
-                    setStatusFilter(event.target.value as StatusFilter)
-                  }
-                >
-                  <option value="all">Semua status</option>
-                  <option value="RECOMMENDED">Recommended</option>
-                  <option value="APPROVED">Approved</option>
-                  <option value="REJECTED">Rejected</option>
-                </Select>
-              </FormField>
-            </div>
+            <FormField label="Status">
+              <Select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as StatusFilter)
+                }
+              >
+                <option value="all">Semua status</option>
+                <option value="RECOMMENDED">Recommended</option>
+                <option value="APPROVED">Approved</option>
+                <option value="REJECTED">Rejected</option>
+              </Select>
+            </FormField>
+          </div>
 
+          <div className="flex items-end gap-3">
+            <Button icon={faWandSparkles} onClick={() => setIsGenerateDialogOpen(true)}>
+              Generate Rekomendasi
+            </Button>
             <Button
               icon={faRotateLeft}
               variant="secondary"
@@ -484,160 +492,177 @@ export function RewardPunishmentManagement({
             >
               Reset Filter
             </Button>
-          </FilterToolbar>
+          </div>
+        </FilterToolbar>
 
-          <DataTableShell
-            title="Daftar rekomendasi"
-            description={`${filteredRecommendations.length} rekomendasi sesuai filter.`}
+        <DataTableShell
+          title="Daftar rekomendasi yang sudah ada"
+          description={`${filteredRecommendations.length} rekomendasi sesuai filter aktif.`}
+        >
+          <Table
+            headers={[
+              "Periode",
+              "Petugas",
+              "Tipe",
+              "Skor",
+              "Kategori",
+              "Status",
+              "Aksi"
+            ]}
           >
-            <Table
-              headers={[
-                "Periode",
-                "Petugas",
-                "Tipe",
-                "Skor",
-                "Kategori",
-                "Status",
-                "Aksi"
-              ]}
-            >
-              {filteredRecommendations.length ? (
-                filteredRecommendations.map((item) => (
-                  <tr key={item.id} className="border-t border-[var(--border)]">
-                    <td className="px-5 py-4 font-medium">
-                      {toMonthLabel(item.periodStart)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div>
-                        <p className="font-semibold">{item.officer.name}</p>
-                        <p className="text-xs text-[var(--muted)]">
-                          {item.officer.nip} · {item.officer.unit?.name ?? "Tanpa unit"}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <Badge variant={getTypeVariant(item.type)}>
-                        {getTypeLabel(item.type)}
-                      </Badge>
-                    </td>
-                    <td className="px-5 py-4 font-semibold">
-                      {formatAverageScore(item.triggerScore)}
-                    </td>
-                    <td className="px-5 py-4 text-[var(--muted)]">{item.category}</td>
-                    <td className="px-5 py-4">
-                      <Badge variant={getStatusVariant(item.status)}>
-                        {getStatusLabel(item.status)}
-                      </Badge>
-                    </td>
-                    <td className="px-5 py-4">
-                      <ActionMenu
-                        items={[
-                          {
-                            label:
-                              item.id === selectedRecommendationId
-                                ? "Detail dipilih"
-                                : "Lihat detail",
-                            icon: faGavel,
-                            onClick: () => {
-                              setSelectedRecommendationId(item.id);
-                            }
-                          },
-                          {
-                            label:
-                              deletingRecommendationId === item.id
-                                ? "Menghapus..."
-                                : "Hapus rekomendasi",
-                            icon: faTrash,
-                            variant: "danger",
-                            disabled: deletingRecommendationId === item.id,
-                            onClick: () => setConfirmingRecommendation(item)
+            {filteredRecommendations.length ? (
+              filteredRecommendations.map((item) => (
+                <tr key={item.id} className="border-t border-[var(--border)]">
+                  <td className="px-5 py-4 font-medium">
+                    {toMonthLabel(item.periodStart)}
+                  </td>
+                  <td className="px-5 py-4">
+                    <div>
+                      <p className="font-semibold">{item.officer.name}</p>
+                      <p className="text-xs text-[var(--muted)]">
+                        {item.officer.nip} · {item.officer.unit?.name ?? "Tanpa unit"}
+                      </p>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <Badge variant={getTypeVariant(item.type)}>
+                      {getTypeLabel(item.type)}
+                    </Badge>
+                  </td>
+                  <td className="px-5 py-4 font-semibold">
+                    {formatAverageScore(item.triggerScore)}
+                  </td>
+                  <td className="px-5 py-4 text-[var(--muted)]">{item.category}</td>
+                  <td className="px-5 py-4">
+                    <Badge variant={getStatusVariant(item.status)}>
+                      {getStatusLabel(item.status)}
+                    </Badge>
+                  </td>
+                  <td className="px-5 py-4">
+                    <ActionMenu
+                      items={[
+                        {
+                          label:
+                            item.status === "RECOMMENDED"
+                              ? "Detail dan keputusan"
+                              : "Lihat detail",
+                          icon: faGavel,
+                          onClick: () => {
+                            setSelectedRecommendationId(item.id);
+                            setIsDetailDialogOpen(true);
                           }
-                        ]}
-                      />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="px-5 py-8">
-                    <EmptyState
-                      title="Belum ada rekomendasi pada filter ini"
-                      description="Generate rekomendasi untuk periode yang dipilih atau ubah filter pencarian agar data lain muncul."
-                      icon="RP"
+                        },
+                        {
+                          label:
+                            deletingRecommendationId === item.id
+                              ? "Menghapus..."
+                              : "Hapus rekomendasi",
+                          icon: faTrash,
+                          variant: "danger",
+                          disabled: deletingRecommendationId === item.id,
+                          onClick: () => setConfirmingRecommendation(item)
+                        }
+                      ]}
                     />
                   </td>
                 </tr>
-              )}
-            </Table>
-          </DataTableShell>
-        </div>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={7} className="px-5 py-8">
+                  <EmptyState
+                    title="Belum ada rekomendasi pada filter ini"
+                    description="Generate rekomendasi baru untuk periode aktif atau ubah filter agar data lain muncul."
+                    icon="RP"
+                    actionLabel="Generate Rekomendasi"
+                    onAction={() => setIsGenerateDialogOpen(true)}
+                  />
+                </td>
+              </tr>
+            )}
+          </Table>
+        </DataTableShell>
+      </section>
 
-        <div className="space-y-5">
-          <Dialog
-            title="Generate rekomendasi"
-            description="Sistem akan menghitung rata-rata skor bulanan dari assessment PRESENT saja. Petugas tanpa data hadir tidak akan dibuatkan rekomendasi."
+      <ModalDialog
+        open={isGenerateDialogOpen}
+        onClose={() => setIsGenerateDialogOpen(false)}
+        title="Generate rekomendasi"
+        description="Sistem akan menghitung rata-rata skor bulanan dari assessment PRESENT saja. Petugas tanpa data hadir tidak akan dibuatkan rekomendasi."
+      >
+        <form
+          className="space-y-4"
+          onSubmit={generateForm.handleSubmit(onGenerate)}
+        >
+          <FormSection
+            title="Parameter generate"
+            description="Tentukan periode agregasi dan label kategori yang akan dipakai pada rekomendasi baru."
           >
-            <form
-              className="space-y-4"
-              onSubmit={generateForm.handleSubmit(onGenerate)}
+            <FormField
+              label="Periode bulanan"
+              hint="Format bulan dipakai untuk agregasi penuh satu bulan."
+              error={generateForm.formState.errors.period?.message}
             >
-              <FormSection
-                title="Parameter generate"
-                description="Tentukan periode agregasi dan label kategori yang akan dipakai pada rekomendasi baru."
-              >
-                <FormField
-                  label="Periode bulanan"
-                  hint="Format bulan dipakai untuk agregasi penuh satu bulan."
-                  error={generateForm.formState.errors.period?.message}
-                >
-                  <Input type="month" {...generateForm.register("period")} />
-                </FormField>
+              <Input type="month" {...generateForm.register("period")} />
+            </FormField>
 
-                <FormField
-                  label="Kategori reward"
-                  error={generateForm.formState.errors.rewardCategory?.message}
-                >
-                  <Input
-                    placeholder="Contoh: Reward Bulanan"
-                    {...generateForm.register("rewardCategory")}
-                  />
-                </FormField>
+            <FormField
+              label="Kategori reward"
+              error={generateForm.formState.errors.rewardCategory?.message}
+            >
+              <Input
+                placeholder="Contoh: Reward Bulanan"
+                {...generateForm.register("rewardCategory")}
+              />
+            </FormField>
 
-                <FormField
-                  label="Kategori punishment"
-                  error={generateForm.formState.errors.punishmentCategory?.message}
-                >
-                  <Input
-                    placeholder="Contoh: Teguran Bulanan"
-                    {...generateForm.register("punishmentCategory")}
-                  />
-                </FormField>
+            <FormField
+              label="Kategori punishment"
+              error={generateForm.formState.errors.punishmentCategory?.message}
+            >
+              <Input
+                placeholder="Contoh: Teguran Bulanan"
+                {...generateForm.register("punishmentCategory")}
+              />
+            </FormField>
 
-                <FormField
-                  label="Catatan awal"
-                  hint="Opsional. Catatan ini akan disalin ke rekomendasi yang baru dibuat."
-                  error={generateForm.formState.errors.notes?.message}
-                >
-                  <Textarea
-                    placeholder="Tulis catatan awal jika diperlukan"
-                    {...generateForm.register("notes")}
-                  />
-                </FormField>
-              </FormSection>
+            <FormField
+              label="Catatan awal"
+              hint="Opsional. Catatan ini akan disalin ke rekomendasi yang baru dibuat."
+              error={generateForm.formState.errors.notes?.message}
+            >
+              <Textarea
+                placeholder="Tulis catatan awal jika diperlukan"
+                {...generateForm.register("notes")}
+              />
+            </FormField>
+          </FormSection>
 
-              <Button className="w-full" type="submit" disabled={isGenerating}>
-                {isGenerating ? "Memproses..." : "Generate rekomendasi"}
-              </Button>
-            </form>
-          </Dialog>
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsGenerateDialogOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button type="submit" disabled={isGenerating} icon={faWandSparkles}>
+              {isGenerating ? "Memproses..." : "Generate rekomendasi"}
+            </Button>
+          </div>
+        </form>
+      </ModalDialog>
 
-          <Dialog
-            title="Detail dan keputusan"
-            description="Pilih satu rekomendasi dari tabel untuk melihat detail skor pemicu dan memberikan keputusan akhir."
-          >
-            {selectedRecommendation ? (
-              <>
-                <SectionCard className="mb-4 space-y-4 border-none bg-[var(--surface)] p-4 shadow-none">
+      <ModalDialog
+        open={isDetailDialogOpen}
+        onClose={() => setIsDetailDialogOpen(false)}
+        title="Detail dan keputusan rekomendasi"
+        description="Tinjau data rekomendasi yang sudah ada, lalu lakukan approve atau reject bila statusnya masih RECOMMENDED."
+        className="max-w-4xl"
+      >
+        {selectedRecommendation ? (
+          <>
+            <SectionCard className="mb-4 space-y-4 border-none bg-[var(--surface)] p-4 shadow-none">
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={getTypeVariant(selectedRecommendation.type)}>
                       {getTypeLabel(selectedRecommendation.type)}
@@ -698,74 +723,90 @@ export function RewardPunishmentManagement({
                       </p>
                     </div>
                   ) : null}
-                </SectionCard>
+            </SectionCard>
 
-                <form
-                  className="space-y-4"
-                  onSubmit={actionForm.handleSubmit(onDecision)}
+            <form
+              className="space-y-4"
+              onSubmit={actionForm.handleSubmit(onDecision)}
+            >
+              <FormSection
+                title="Keputusan akhir"
+                description="Perbarui kategori atau catatan sebelum rekomendasi di-approve atau di-reject."
+              >
+                <FormField
+                  label="Kategori final"
+                  error={actionForm.formState.errors.category?.message}
                 >
-                  <FormSection
-                    title="Keputusan akhir"
-                    description="Perbarui kategori atau catatan sebelum rekomendasi di-approve atau di-reject."
+                  <Input
+                    placeholder="Perbarui kategori jika diperlukan"
+                    {...actionForm.register("category")}
+                  />
+                </FormField>
+
+                <FormField
+                  label="Catatan keputusan"
+                  hint="Opsional, tetapi disarankan untuk approval atau reject."
+                  error={actionForm.formState.errors.notes?.message}
+                >
+                  <Textarea
+                    placeholder="Tulis alasan atau detail keputusan"
+                    {...actionForm.register("notes")}
+                  />
+                </FormField>
+              </FormSection>
+
+              {selectedRecommendation.status === "RECOMMENDED" ? (
+                <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                  <Button
+                    type="submit"
+                    disabled={isDeciding}
+                    onClick={() => actionForm.setValue("action", "APPROVE")}
                   >
-                    <FormField
-                      label="Kategori final"
-                      error={actionForm.formState.errors.category?.message}
+                    {isDeciding ? "Menyimpan..." : "Approve rekomendasi"}
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="danger"
+                    disabled={isDeciding}
+                    onClick={() => actionForm.setValue("action", "REJECT")}
+                  >
+                    {isDeciding ? "Menyimpan..." : "Reject rekomendasi"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setIsDetailDialogOpen(false)}
+                  >
+                    Tutup
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="rounded-[var(--radius-control)] border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
+                    Rekomendasi ini sudah diputuskan. Buat rekomendasi baru pada
+                    periode lain jika diperlukan tindak lanjut tambahan.
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setIsDetailDialogOpen(false)}
                     >
-                      <Input
-                        placeholder="Perbarui kategori jika diperlukan"
-                        {...actionForm.register("category")}
-                      />
-                    </FormField>
-
-                    <FormField
-                      label="Catatan keputusan"
-                      hint="Opsional, tetapi disarankan untuk approval atau reject."
-                      error={actionForm.formState.errors.notes?.message}
-                    >
-                      <Textarea
-                        placeholder="Tulis alasan atau detail keputusan"
-                        {...actionForm.register("notes")}
-                      />
-                    </FormField>
-                  </FormSection>
-
-                  {selectedRecommendation.status === "RECOMMENDED" ? (
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <Button
-                        type="submit"
-                        disabled={isDeciding}
-                        onClick={() => actionForm.setValue("action", "APPROVE")}
-                      >
-                        {isDeciding ? "Menyimpan..." : "Approve rekomendasi"}
-                      </Button>
-                      <Button
-                        type="submit"
-                        variant="danger"
-                        disabled={isDeciding}
-                        onClick={() => actionForm.setValue("action", "REJECT")}
-                      >
-                        {isDeciding ? "Menyimpan..." : "Reject rekomendasi"}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="rounded-[var(--radius-control)] border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
-                      Rekomendasi ini sudah diputuskan. Buat rekomendasi baru pada
-                      periode lain jika diperlukan tindak lanjut tambahan.
-                    </div>
-                  )}
-                </form>
-              </>
-            ) : (
-              <EmptyState
-                title="Belum ada rekomendasi yang dipilih"
-                description="Pilih salah satu baris di tabel untuk melihat detail dan melakukan approve atau reject."
-                icon="RP"
-              />
-            )}
-          </Dialog>
-        </div>
-      </section>
+                      Tutup
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </form>
+          </>
+        ) : (
+          <EmptyState
+            title="Belum ada rekomendasi yang dipilih"
+            description="Pilih salah satu baris di tabel untuk melihat detail dan melakukan approve atau reject."
+            icon="RP"
+          />
+        )}
+      </ModalDialog>
 
       <ConfirmDialog
         open={Boolean(confirmingRecommendation)}
