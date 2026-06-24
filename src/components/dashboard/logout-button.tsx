@@ -1,12 +1,19 @@
 "use client";
 
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 
-export function LogoutButton() {
+type LogoutButtonProps = {
+  icon?: IconDefinition;
+};
+
+export function LogoutButton({ icon }: LogoutButtonProps) {
   return (
     <Button
-      variant="secondary"
+      variant="ghost"
+      size="sm"
+      icon={icon}
       onClick={() => signOut({ callbackUrl: "/login" })}
     >
       Keluar

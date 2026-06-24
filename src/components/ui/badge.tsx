@@ -9,9 +9,9 @@ type BadgeProps = {
 
 const badgeVariants = {
   default: "bg-[var(--accent-soft)] text-[var(--accent-strong)]",
-  success: "bg-[#e5f3eb] text-[#18603f]",
-  warning: "bg-[#fff4dc] text-[#8c5d00]",
-  danger: "bg-[#fbe7e4] text-[#a33a2b]"
+  success: "bg-[var(--success-bg)] text-[var(--success-fg)]",
+  warning: "bg-[var(--warning-bg)] text-[var(--warning-fg)]",
+  danger: "bg-[var(--danger-bg)] text-[var(--danger-fg)]"
 };
 
 export function Badge({
@@ -22,7 +22,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold",
+        "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-[0.01em]",
         badgeVariants[variant],
         className
       )}

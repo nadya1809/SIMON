@@ -1,12 +1,20 @@
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { DashboardFilters } from "@/components/dashboard/dashboard-filters";
 import {
+  faArrowTrendUp,
+  faCalendarCheck,
+  faClock,
+  faUsers
+} from "@fortawesome/free-solid-svg-icons";
+import {
   CriteriaDistributionChart,
   DailyTrendChart,
   PeriodTrendChart,
   UnitComparisonChart
 } from "@/components/charts/dashboard-charts";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SectionCard } from "@/components/ui/section-card";
+import { StatCard } from "@/components/ui/stat-card";
 import { Table } from "@/components/ui/table";
 import { requireAuth } from "@/lib/auth-guard";
 import { getDashboardSummary } from "@/lib/dashboard";
@@ -35,33 +43,36 @@ export default async function DashboardPage({
     <DashboardShell
       title="Dashboard Monitoring Kinerja"
       description="Lihat tren performa, ranking petugas, distribusi skor kriteria, dan perbandingan antar unit berdasarkan data penilaian harian."
-      userName={session.user.name ?? "Pengguna"}
       role={session.user.role}
     >
       <DashboardFilters units={data.units} filters={data.filters} />
 
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-[2rem] border border-[var(--border)] bg-[linear-gradient(180deg,#ffffff_0%,#f6fafe_100%)] p-6 shadow-sm">
-          <p className="text-sm text-[var(--muted)]">Total Penilaian</p>
-          <p className="mt-2 text-2xl font-bold">
-            {data.summaryCards.totalAssessments}
-          </p>
-        </div>
-        <div className="rounded-[2rem] border border-[var(--border)] bg-[linear-gradient(180deg,#ffffff_0%,#f6fafe_100%)] p-6 shadow-sm">
-          <p className="text-sm text-[var(--muted)]">Rata-rata Keseluruhan</p>
-          <p className="mt-2 text-2xl font-bold">
-            {data.summaryCards.overallAverage.toFixed(2)}
-          </p>
-        </div>
-        <div className="rounded-[2rem] border border-[var(--border)] bg-[linear-gradient(180deg,#ffffff_0%,#f6fafe_100%)] p-6 shadow-sm">
-          <p className="text-sm text-[var(--muted)]">Tidak Hadir Tercatat</p>
-          <p className="mt-2 text-2xl font-bold">{data.summaryCards.totalAbsent}</p>
-        </div>
-        <div className="rounded-[2rem] border border-[var(--border)] bg-[linear-gradient(180deg,#ffffff_0%,#f6fafe_100%)] p-6 shadow-sm">
-          <p className="text-sm text-[var(--muted)]">Hadir Tercatat</p>
-          <p className="mt-2 text-2xl font-bold">{data.summaryCards.totalPresent}</p>
-        </div>
-        <div className="rounded-[2rem] border border-[var(--border)] bg-[linear-gradient(135deg,rgba(8,79,125,0.98),rgba(11,106,168,0.92))] p-6 text-white shadow-sm md:col-span-2">
+        <StatCard
+          label="Total Penilaian"
+          value={`${data.summaryCards.totalAssessments}`}
+          icon={faUsers}
+          iconTone="sky"
+        />
+        <StatCard
+          label="Rata-rata Keseluruhan"
+          value={data.summaryCards.overallAverage.toFixed(2)}
+          icon={faArrowTrendUp}
+          iconTone="teal"
+        />
+        <StatCard
+          label="Tidak Hadir Tercatat"
+          value={`${data.summaryCards.totalAbsent}`}
+          icon={faClock}
+          iconTone="soft"
+        />
+        <StatCard
+          label="Hadir Tercatat"
+          value={`${data.summaryCards.totalPresent}`}
+          icon={faCalendarCheck}
+          iconTone="blue"
+        />
+        <SectionCard className="bg-[linear-gradient(135deg,rgba(0,91,154,0.98),rgba(10,111,182,0.93))] p-6 text-white md:col-span-2">
           <p className="text-sm text-white/72">Petugas Teratas</p>
           <p className="mt-2 text-2xl font-bold">
             {data.summaryCards.topOfficer?.officerName ?? "-"}
@@ -74,7 +85,7 @@ export default async function DashboardPage({
           <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
             Ringkasan eksekutif pelayanan statistik terpadu
           </p>
-        </div>
+        </SectionCard>
       </section>
 
       {hasDashboardData ? (
@@ -92,7 +103,7 @@ export default async function DashboardPage({
             <UnitComparisonChart data={data.unitComparison} />
           </section>
 
-          <section className="rounded-[2rem] border border-[var(--border)] bg-[linear-gradient(180deg,#ffffff_0%,#f7fbfe_100%)] p-6 shadow-sm">
+          <SectionCard className="p-6">
             <div className="mb-4">
               <h3 className="text-lg font-bold">Ranking Petugas</h3>
               <p className="mt-1 text-sm text-[var(--muted)]">
@@ -123,7 +134,7 @@ export default async function DashboardPage({
                 </tr>
               ))}
             </Table>
-          </section>
+          </SectionCard>
         </>
       ) : (
         <EmptyState

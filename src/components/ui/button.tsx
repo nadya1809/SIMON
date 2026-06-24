@@ -1,14 +1,17 @@
 import { ButtonHTMLAttributes, forwardRef } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { cn } from "@/lib/utils";
 
 const variants = {
   primary:
-    "bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] shadow-sm",
+    "bg-[linear-gradient(135deg,var(--accent-strong),var(--accent))] text-white shadow-[var(--shadow-sm)] hover:brightness-[1.02]",
   secondary:
-    "bg-white text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--surface)]",
+    "bg-white text-[var(--foreground)] border border-[var(--border)] shadow-[var(--shadow-sm)] hover:bg-[var(--surface)]",
   ghost:
     "bg-transparent text-[var(--foreground)] hover:bg-[var(--surface)] hover:text-[var(--accent-strong)]",
-  danger: "bg-[#b63a2b] text-white hover:bg-[#962f23]"
+  danger:
+    "bg-[linear-gradient(135deg,#c45145,#b64034)] text-white shadow-[var(--shadow-sm)] hover:brightness-[1.02]"
 };
 
 const sizes = {
@@ -20,21 +23,42 @@ const sizes = {
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: keyof typeof variants;
   size?: keyof typeof sizes;
+  icon?: IconDefinition;
+  iconPosition?: "left" | "right";
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", ...props }, ref) => {
-    return (
-      <button
+  (
+    {
+      className,
+      variant = "primary",
+      size = "md",
+      icon,
+      iconPosition = "left",
+      children,
+      ...props
+    },
+    ref
+    ) => {
+      return (
+        <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center rounded-2xl font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+          "inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
           variants[variant],
           sizes[size],
           className
         )}
         {...props}
-      />
+      >
+        {icon && iconPosition === "left" ? (
+          <FontAwesomeIcon icon={icon} className="h-4 w-4" />
+        ) : null}
+        {children}
+        {icon && iconPosition === "right" ? (
+          <FontAwesomeIcon icon={icon} className="h-4 w-4" />
+        ) : null}
+      </button>
     );
   }
 );
