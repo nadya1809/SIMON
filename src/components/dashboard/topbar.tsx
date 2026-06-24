@@ -1,9 +1,8 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowRightFromBracket,
-  faBell,
-  faBuildingColumns,
   faBars,
+  faBell,
   faUserShield
 } from "@fortawesome/free-solid-svg-icons";
 import { LogoutButton } from "@/components/dashboard/logout-button";
@@ -28,18 +27,6 @@ export function Topbar({ userName, role, onMenuToggle }: TopbarProps) {
           >
             <FontAwesomeIcon icon={faBars} className="h-4 w-4" />
           </button>
-
-          <div className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] bg-[linear-gradient(135deg,var(--accent-strong),var(--accent))] text-white shadow-[var(--shadow-sm)]">
-            <FontAwesomeIcon icon={faBuildingColumns} className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-              SIMON PST
-            </p>
-            <p className="truncate text-sm font-semibold text-[var(--foreground)]">
-              BPS Provinsi Sumatera Barat
-            </p>
-          </div>
         </div>
 
         <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">

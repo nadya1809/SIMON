@@ -60,6 +60,9 @@ export function CriteriaManagement({
   const [editingCriteria, setEditingCriteria] = useState<CriteriaItem | null>(
     null
   );
+  const [pendingSubmitValues, setPendingSubmitValues] = useState<
+    CriteriaFormValues | null
+  >(null);
   const [confirmingCriteria, setConfirmingCriteria] =
     useState<CriteriaItem | null>(null);
   const [deletingCriteriaId, setDeletingCriteriaId] = useState<string | null>(
@@ -306,7 +309,12 @@ export function CriteriaManagement({
             ) : null}
           </div>
 
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          <form
+            className="space-y-4"
+            onSubmit={handleSubmit((values) => {
+              setPendingSubmitValues(values);
+            })}
+          >
             <FormSection
               title="Informasi kriteria"
               description="Lengkapi nama, deskripsi, dan urutan tampil agar form penilaian lebih terstruktur."
@@ -386,6 +394,31 @@ export function CriteriaManagement({
             </div>
           </form>
       </ModalDialog>
+
+      <ConfirmDialog
+        open={Boolean(pendingSubmitValues)}
+        title={
+          editingCriteria ? "Simpan perubahan kriteria?" : "Tambah kriteria baru?"
+        }
+        description={
+          editingCriteria
+            ? "Perubahan kriteria akan memengaruhi form penilaian berikutnya."
+            : "Kriteria baru akan langsung tersedia di assessment baru."
+        }
+        confirmLabel={editingCriteria ? "Ya, simpan" : "Ya, tambah"}
+        isLoading={isPending}
+        onClose={() => {
+          if (!isPending) {
+            setPendingSubmitValues(null);
+          }
+        }}
+        onConfirm={() => {
+          if (pendingSubmitValues) {
+            void onSubmit(pendingSubmitValues);
+            setPendingSubmitValues(null);
+          }
+        }}
+      />
 
       <ConfirmDialog
         open={Boolean(confirmingCriteria)}

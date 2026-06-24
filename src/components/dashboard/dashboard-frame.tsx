@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
+import { SidebarBrand } from "@/components/dashboard/sidebar-brand";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Topbar } from "@/components/dashboard/topbar";
 
@@ -43,17 +44,7 @@ export function DashboardFrame({
         ) : null}
 
         <aside className="hidden w-72 rounded-[var(--radius-card)] border border-[var(--border)] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbfe_100%)] p-5 shadow-[var(--shadow-md)] lg:block">
-          <div className="rounded-[var(--radius-panel)] bg-[linear-gradient(135deg,var(--accent-strong),var(--accent))] p-4 text-white">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80">
-              SIMON PST
-            </p>
-            <h2 className="mt-2 text-lg font-bold">
-              BPS Provinsi Sumatera Barat
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-white/78">
-              Sistem monitoring kinerja petugas pelayanan statistik terpadu.
-            </p>
-          </div>
+          <SidebarBrand />
           <div className="my-6 h-px bg-[var(--border)]" />
           <SidebarNav onNavigate={() => setIsSidebarOpen(false)} />
         </aside>
@@ -65,17 +56,7 @@ export function DashboardFrame({
               : "-translate-x-[110%] opacity-0"
           }`}
         >
-          <div className="rounded-[var(--radius-panel)] bg-[linear-gradient(135deg,var(--accent-strong),var(--accent))] p-4 text-white">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80">
-              SIMON PST
-            </p>
-            <h2 className="mt-2 text-lg font-bold">
-              BPS Provinsi Sumatera Barat
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-white/78">
-              Sistem monitoring kinerja petugas pelayanan statistik terpadu.
-            </p>
-          </div>
+          <SidebarBrand compact />
           <div className="my-6 h-px bg-[var(--border)]" />
           <SidebarNav onNavigate={() => setIsSidebarOpen(false)} />
         </aside>

@@ -57,6 +57,10 @@ export function UserManagement({
   const [users, setUsers] = useState<UserItem[]>(initialUsers);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
+  const [pendingSubmit, setPendingSubmit] = useState<{
+    mode: "create" | "update";
+    values: UserFormValues | UserUpdateFormValues;
+  } | null>(null);
   const [confirmingUser, setConfirmingUser] = useState<UserItem | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [isActiveValue, setIsActiveValue] = useState(true);
@@ -319,11 +323,17 @@ export function UserManagement({
             className="space-y-4"
             onSubmit={handleSubmit(async (values) => {
               if (editingUser) {
-                await submitUpdate(values as UserUpdateFormValues);
+                setPendingSubmit({
+                  mode: "update",
+                  values: values as UserUpdateFormValues
+                });
                 return;
               }
 
-              await submitCreate(values as UserFormValues);
+              setPendingSubmit({
+                mode: "create",
+                values: values as UserFormValues
+              });
             })}
           >
             <FormSection
@@ -406,6 +416,42 @@ export function UserManagement({
             </div>
           </form>
       </ModalDialog>
+
+      <ConfirmDialog
+        open={Boolean(pendingSubmit)}
+        title={
+          pendingSubmit?.mode === "update"
+            ? "Simpan perubahan user?"
+            : "Tambah user baru?"
+        }
+        description={
+          pendingSubmit?.mode === "update"
+            ? "Perubahan akun akan langsung diterapkan."
+            : "Akun baru akan langsung tersedia sesuai role yang dipilih."
+        }
+        confirmLabel={
+          pendingSubmit?.mode === "update" ? "Ya, simpan" : "Ya, tambah"
+        }
+        isLoading={isPending}
+        onClose={() => {
+          if (!isPending) {
+            setPendingSubmit(null);
+          }
+        }}
+        onConfirm={() => {
+          if (!pendingSubmit) {
+            return;
+          }
+
+          if (pendingSubmit.mode === "update") {
+            void submitUpdate(pendingSubmit.values as UserUpdateFormValues);
+          } else {
+            void submitCreate(pendingSubmit.values as UserFormValues);
+          }
+
+          setPendingSubmit(null);
+        }}
+      />
 
       <ConfirmDialog
         open={Boolean(confirmingUser)}

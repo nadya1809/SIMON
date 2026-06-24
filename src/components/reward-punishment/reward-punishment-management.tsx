@@ -175,6 +175,10 @@ export function RewardPunishmentManagement({
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [confirmingRecommendation, setConfirmingRecommendation] =
     useState<RecommendationItem | null>(null);
+  const [pendingGenerateValues, setPendingGenerateValues] =
+    useState<RewardPunishmentGenerationValues | null>(null);
+  const [pendingDecisionValues, setPendingDecisionValues] =
+    useState<RewardPunishmentActionValues | null>(null);
   const [search, setSearch] = useState("");
   const [unitFilter, setUnitFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -641,7 +645,9 @@ export function RewardPunishmentManagement({
       >
         <form
           className="space-y-4"
-          onSubmit={generateForm.handleSubmit(onGenerate)}
+          onSubmit={generateForm.handleSubmit((values) => {
+            setPendingGenerateValues(values);
+          })}
         >
           <FormSection
             title="Parameter generate"
@@ -776,7 +782,9 @@ export function RewardPunishmentManagement({
 
             <form
               className="space-y-4"
-              onSubmit={actionForm.handleSubmit(onDecision)}
+              onSubmit={actionForm.handleSubmit((values) => {
+                setPendingDecisionValues(values);
+              })}
             >
               <FormSection
                 title="Keputusan akhir"
@@ -856,6 +864,52 @@ export function RewardPunishmentManagement({
           />
         )}
       </ModalDialog>
+
+      <ConfirmDialog
+        open={Boolean(pendingGenerateValues)}
+        title="Generate rekomendasi baru?"
+        description="Sistem akan membuat rekomendasi reward dan punishment untuk periode yang dipilih."
+        confirmLabel="Ya, generate"
+        isLoading={isGenerating}
+        onClose={() => {
+          if (!isGenerating) {
+            setPendingGenerateValues(null);
+          }
+        }}
+        onConfirm={() => {
+          if (pendingGenerateValues) {
+            void onGenerate(pendingGenerateValues);
+            setPendingGenerateValues(null);
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(pendingDecisionValues)}
+        title={
+          pendingDecisionValues?.action === "REJECT"
+            ? "Reject rekomendasi ini?"
+            : "Approve rekomendasi ini?"
+        }
+        description="Keputusan akan langsung tercatat sebagai status akhir rekomendasi."
+        confirmLabel={
+          pendingDecisionValues?.action === "REJECT"
+            ? "Ya, reject"
+            : "Ya, approve"
+        }
+        isLoading={isDeciding}
+        onClose={() => {
+          if (!isDeciding) {
+            setPendingDecisionValues(null);
+          }
+        }}
+        onConfirm={() => {
+          if (pendingDecisionValues) {
+            void onDecision(pendingDecisionValues);
+            setPendingDecisionValues(null);
+          }
+        }}
+      />
 
       <ConfirmDialog
         open={Boolean(confirmingRecommendation)}

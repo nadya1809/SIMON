@@ -118,6 +118,8 @@ export function AssessmentManagement({
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingAssessment, setEditingAssessment] =
     useState<AssessmentItem | null>(null);
+  const [pendingSubmitValues, setPendingSubmitValues] =
+    useState<AssessmentFormValues | null>(null);
   const [confirmingAssessment, setConfirmingAssessment] =
     useState<AssessmentItem | null>(null);
   const [statusValue, setStatusValue] = useState<"PRESENT" | "ABSENT">(
@@ -561,7 +563,12 @@ export function AssessmentManagement({
             ) : null}
           </div>
 
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          <form
+            className="space-y-4"
+            onSubmit={handleSubmit((values) => {
+              setPendingSubmitValues(values);
+            })}
+          >
             <FormSection
               title="Informasi penilaian"
               description="Pilih petugas, tanggal, dan status kehadiran sebelum mengisi skor penilaian."
@@ -686,6 +693,33 @@ export function AssessmentManagement({
             </div>
           </form>
       </ModalDialog>
+
+      <ConfirmDialog
+        open={Boolean(pendingSubmitValues)}
+        title={
+          editingAssessment
+            ? "Simpan perubahan penilaian?"
+            : "Simpan penilaian harian?"
+        }
+        description={
+          editingAssessment
+            ? "Perubahan penilaian akan langsung memperbarui rekap dan laporan."
+            : "Penilaian baru akan langsung masuk ke dashboard dan laporan."
+        }
+        confirmLabel="Ya, simpan"
+        isLoading={isPending}
+        onClose={() => {
+          if (!isPending) {
+            setPendingSubmitValues(null);
+          }
+        }}
+        onConfirm={() => {
+          if (pendingSubmitValues) {
+            void onSubmit(pendingSubmitValues);
+            setPendingSubmitValues(null);
+          }
+        }}
+      />
 
       <ConfirmDialog
         open={Boolean(confirmingAssessment)}

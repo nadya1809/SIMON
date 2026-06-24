@@ -59,6 +59,8 @@ export function OfficerManagement({
   const [officers, setOfficers] = useState<OfficerItem[]>(initialOfficers);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingOfficer, setEditingOfficer] = useState<OfficerItem | null>(null);
+  const [pendingSubmitValues, setPendingSubmitValues] =
+    useState<OfficerFormValues | null>(null);
   const [confirmingOfficer, setConfirmingOfficer] = useState<OfficerItem | null>(
     null
   );
@@ -414,7 +416,12 @@ export function OfficerManagement({
             ) : null}
           </div>
 
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          <form
+            className="space-y-4"
+            onSubmit={handleSubmit((values) => {
+              setPendingSubmitValues(values);
+            })}
+          >
             <FormSection
               title="Identitas petugas"
               description="Lengkapi identitas dasar petugas dan hubungkan ke unit jika sudah tersedia."
@@ -504,6 +511,31 @@ export function OfficerManagement({
             </div>
           </form>
       </ModalDialog>
+
+      <ConfirmDialog
+        open={Boolean(pendingSubmitValues)}
+        title={
+          editingOfficer ? "Simpan perubahan petugas?" : "Tambah petugas baru?"
+        }
+        description={
+          editingOfficer
+            ? "Perubahan data petugas akan langsung diperbarui di sistem."
+            : "Petugas baru akan langsung tersedia di modul penilaian."
+        }
+        confirmLabel={editingOfficer ? "Ya, simpan" : "Ya, tambah"}
+        isLoading={isPending}
+        onClose={() => {
+          if (!isPending) {
+            setPendingSubmitValues(null);
+          }
+        }}
+        onConfirm={() => {
+          if (pendingSubmitValues) {
+            void onSubmit(pendingSubmitValues);
+            setPendingSubmitValues(null);
+          }
+        }}
+      />
 
       <ConfirmDialog
         open={Boolean(confirmingOfficer)}

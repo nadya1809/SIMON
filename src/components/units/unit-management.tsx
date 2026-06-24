@@ -48,6 +48,9 @@ export function UnitManagement({
   const [units, setUnits] = useState<UnitItem[]>(initialUnits);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<UnitItem | null>(null);
+  const [pendingSubmitValues, setPendingSubmitValues] = useState<UnitFormValues | null>(
+    null
+  );
   const [confirmingUnit, setConfirmingUnit] = useState<UnitItem | null>(null);
   const [deletingUnitId, setDeletingUnitId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -257,7 +260,12 @@ export function UnitManagement({
             ) : null}
           </div>
 
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          <form
+            className="space-y-4"
+            onSubmit={handleSubmit((values) => {
+              setPendingSubmitValues(values);
+            })}
+          >
             <FormSection
               title="Informasi unit"
               description="Isi data inti unit kerja yang akan digunakan di seluruh modul monitoring."
@@ -307,6 +315,29 @@ export function UnitManagement({
             </div>
           </form>
       </ModalDialog>
+
+      <ConfirmDialog
+        open={Boolean(pendingSubmitValues)}
+        title={editingUnit ? "Simpan perubahan unit?" : "Tambah unit baru?"}
+        description={
+          editingUnit
+            ? "Perubahan unit akan langsung dipakai di seluruh modul terkait."
+            : "Unit baru akan langsung tersedia untuk pemetaan petugas PST."
+        }
+        confirmLabel={editingUnit ? "Ya, simpan" : "Ya, tambah"}
+        isLoading={isPending}
+        onClose={() => {
+          if (!isPending) {
+            setPendingSubmitValues(null);
+          }
+        }}
+        onConfirm={() => {
+          if (pendingSubmitValues) {
+            void onSubmit(pendingSubmitValues);
+            setPendingSubmitValues(null);
+          }
+        }}
+      />
 
       <ConfirmDialog
         open={Boolean(confirmingUnit)}
