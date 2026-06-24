@@ -250,10 +250,10 @@ Fokus:
 Checklist:
 
 - [ ] Desktop layout final
-- [ ] Tablet layout aman
+- [x] Tablet layout aman
 - [x] Sidebar siap menjadi drawer di mobile
-- [ ] Toolbar filter tetap usable pada layar sempit
-- [ ] Tabel panjang tetap terbaca
+- [x] Toolbar filter tetap usable pada layar sempit
+- [x] Tabel panjang tetap terbaca
 
 ## Fase 10 — QA UI Consistency Sweep
 

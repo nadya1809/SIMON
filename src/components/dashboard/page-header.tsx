@@ -14,10 +14,10 @@ export function PageHeader({ title, description, role }: PageHeaderProps) {
         <span className="text-sm text-[var(--muted)]">{role}</span>
       </div>
       <div>
-        <h1 className="text-3xl font-bold tracking-[-0.02em] text-[var(--foreground)]">
+        <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--foreground)] md:text-3xl">
           {title}
         </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-7 text-[var(--muted)]">
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)] md:leading-7">
           {description}
         </p>
       </div>

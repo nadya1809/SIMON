@@ -10,7 +10,7 @@ type FilterToolbarProps = {
 export function FilterToolbar({ children, className }: FilterToolbarProps) {
   return (
     <SectionCard className={cn("p-4 md:p-5", className)}>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         {children}
       </div>
     </SectionCard>
