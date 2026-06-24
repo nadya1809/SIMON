@@ -7,8 +7,20 @@ export function AppToaster() {
     <Toaster
       position="top-right"
       richColors
+      closeButton
       toastOptions={{
-        className: "border border-[var(--border)]",
+        duration: 5000,
+        className:
+          "rounded-[var(--radius-panel)] border border-[var(--border)] shadow-[var(--shadow-md)]",
+        classNames: {
+          toast: "bg-white text-[var(--foreground)]",
+          title: "text-sm font-semibold",
+          description: "text-[13px] leading-5 text-[var(--muted)]",
+          actionButton:
+            "!rounded-[var(--radius-control)] !bg-[var(--accent)] !text-white",
+          cancelButton:
+            "!rounded-[var(--radius-control)] !border !border-[var(--border)] !bg-[var(--surface)] !text-[var(--foreground)]"
+        },
         style: {
           background: "var(--card)",
           color: "var(--foreground)"

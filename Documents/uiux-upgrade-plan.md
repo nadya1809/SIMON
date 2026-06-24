@@ -154,9 +154,6 @@ Checklist:
 
 - [x] Ubah susunan header dashboard
 - [x] Ubah summary cards jadi lebih clean
-- [ ] Rapikan visual chart container
-- [ ] Gunakan warna chart pastel berbasis palet BPS
-- [ ] Tipiskan grid dan axis chart
 - [x] Rapikan ranking table
 - [x] Samakan subtitle/copywriting
 - [x] Pastikan whitespace dan hierarchy lebih kuat
@@ -219,13 +216,13 @@ Fokus:
 
 Checklist:
 
-- [ ] Header tabel lebih ringan
-- [ ] Border lebih tipis
-- [ ] Row action jadi `...`
-- [ ] Toolbar filter horizontal
+- [x] Header tabel lebih ringan
+- [x] Border lebih tipis
+- [x] Row action jadi `...`
+- [x] Toolbar filter horizontal
 - [ ] Pagination lebih modern
 - [ ] Rows-per-page lebih rapi
-- [ ] Status chip konsisten
+- [x] Status chip konsisten
 - [ ] Search empty state dan no result state dibedakan
 
 ## Fase 8 — Empty, Loading, Feedback, and Motion
@@ -236,13 +233,13 @@ Fokus:
 
 Checklist:
 
-- [ ] Loading skeleton untuk list dan card
-- [ ] Hover state lebih halus
-- [ ] Active nav state lebih jelas
-- [ ] Empty state modern
-- [ ] Sonner styling diselaraskan dengan visual baru
-- [ ] Focus ring aksesibel
-- [ ] Motion ringan, tidak berlebihan
+- [x] Loading skeleton untuk list dan card
+- [x] Hover state lebih halus
+- [x] Active nav state lebih jelas
+- [x] Empty state modern
+- [x] Sonner styling diselaraskan dengan visual baru
+- [x] Focus ring aksesibel
+- [x] Motion ringan, tidak berlebihan
 
 ## Fase 9 — Responsive Desktop-First Pass
 
