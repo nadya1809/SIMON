@@ -424,18 +424,18 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 - [x] Approval flow berjalan
 - [x] Audit log keputusan tercatat
 
-## Fase 10 — Reporting dan Export
+## Fase 10 — Reporting dan Export `[x]`
 
 ### Reporting backend
 
-- [ ] Buat endpoint `GET /api/reports/export`
-- [ ] Dukung query:
+- [x] Buat endpoint `GET /api/reports/export`
+- [x] Dukung query:
   - `format=pdf`
   - `format=xlsx`
   - `from`
   - `to`
-- [ ] Buat service query laporan
-- [ ] Pastikan data laporan memuat:
+- [x] Buat service query laporan
+- [x] Pastikan data laporan memuat:
   - nama petugas
   - unit
   - skor per kriteria
@@ -444,28 +444,28 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Excel export
 
-- [ ] Implementasi export dengan `exceljs`
-- [ ] Rapikan header, kolom, dan formatting dasar
-- [ ] Pastikan nama file jelas
+- [x] Implementasi export dengan `exceljs`
+- [x] Rapikan header, kolom, dan formatting dasar
+- [x] Pastikan nama file jelas
 
 ### PDF export
 
-- [ ] Implementasi export dengan `@react-pdf/renderer`
-- [ ] Buat layout laporan yang rapi dan mudah dibaca
-- [ ] Pastikan cocok untuk kebutuhan formal internal
+- [x] Implementasi export dengan `@react-pdf/renderer`
+- [x] Buat layout laporan yang rapi dan mudah dibaca
+- [x] Pastikan cocok untuk kebutuhan formal internal
 
 ### Frontend
 
-- [ ] Buat halaman laporan
-- [ ] Buat filter periode
-- [ ] Buat pemilih format export
-- [ ] Tambahkan feedback saat file sedang digenerate
+- [x] Buat halaman laporan
+- [x] Buat filter periode
+- [x] Buat pemilih format export
+- [x] Tambahkan feedback saat file sedang digenerate
 
 ### Verifikasi
 
-- [ ] File Excel bisa dibuka dengan benar
-- [ ] File PDF dapat diunduh dan dibaca
-- [ ] Waktu generate masih wajar untuk data 1 bulan
+- [x] File Excel bisa dibuka dengan benar
+- [x] File PDF dapat diunduh dan dibaca
+- [x] Waktu generate masih wajar untuk data 1 bulan
 
 ## Fase 11 — Hardening, QA, dan Deployment Readiness
 
@@ -558,7 +558,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Milestone 5
 
-- [ ] Reward/punishment dan export siap
+- [x] Reward/punishment dan export siap
 
 ### Milestone 6
 
