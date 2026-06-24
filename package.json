@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "qa:smoke": "tsx --tsconfig tsconfig.json scripts/qa-smoke.ts",
+    "import:officers": "tsx scripts/import-pst-officers.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",

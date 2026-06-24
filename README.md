@@ -86,11 +86,28 @@ Kredensial admin mengikuti nilai di `.env`.
 pnpm dev
 pnpm lint
 pnpm build
+pnpm import:officers
 pnpm prisma generate
 pnpm prisma:migrate
 pnpm prisma:deploy
 pnpm prisma:seed
 ```
+
+## Import Petugas PST
+
+Untuk mengimpor daftar petugas dari file jadwal piket Excel:
+
+```powershell
+pnpm import:officers "C:\Users\Asus\Downloads\JADWAL PIKET PST BPS PROVINSI SUMATERA BARAT 2026 (1).xlsx"
+```
+
+Catatan:
+
+- Script membaca sheet `Pegawai`
+- Data dicocokkan berdasarkan `NIP`
+- Jika `NIP` sudah ada, data petugas akan di-update
+- Jika `NIP` belum ada, data petugas akan dibuat baru
+- Pastikan nama unit di Excel sesuai dengan master unit di aplikasi
 
 ## Deployment Internal
 
