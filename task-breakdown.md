@@ -384,27 +384,27 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 - [x] Data dashboard sesuai hasil agregasi database
 - [x] Semua komponen breakdown tampil benar
 
-## Fase 9 — Reward dan Punishment
+## Fase 9 — Reward dan Punishment `[x]`
 
 ### Business logic
 
-- [ ] Buat helper kalkulasi skor agregat bulanan per petugas
+- [x] Buat helper kalkulasi skor agregat bulanan per petugas
 - [ ] Terapkan threshold:
   - reward jika `>= 8.0`
   - punishment jika `<= 4.0`
-- [ ] Pastikan hanya assessment `PRESENT` yang ikut skor rata-rata
-- [ ] Tentukan perilaku jika data bulan tersebut minim atau tidak lengkap
+- [x] Pastikan hanya assessment `PRESENT` yang ikut skor rata-rata
+- [x] Tentukan perilaku jika data bulan tersebut minim atau tidak lengkap
 
 ### Backend API
 
-- [ ] Buat endpoint `GET /api/reward-punishment`
-- [ ] Buat endpoint `POST /api/reward-punishment` untuk generate rekomendasi
-- [ ] Cegah duplikasi rekomendasi untuk periode yang sama jika diperlukan
-- [ ] Buat endpoint `PATCH /api/reward-punishment/[id]`
-- [ ] Dukung aksi:
+- [x] Buat endpoint `GET /api/reward-punishment`
+- [x] Buat endpoint `POST /api/reward-punishment` untuk generate rekomendasi
+- [x] Cegah duplikasi rekomendasi untuk periode yang sama jika diperlukan
+- [x] Buat endpoint `PATCH /api/reward-punishment/[id]`
+- [x] Dukung aksi:
   - approve
   - reject
-- [ ] Simpan:
+- [x] Simpan:
   - `category`
   - `notes`
   - `decidedById`
@@ -412,17 +412,17 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Frontend
 
-- [ ] Buat halaman daftar rekomendasi
-- [ ] Tampilkan status `RECOMMENDED`, `APPROVED`, `REJECTED`
-- [ ] Buat form atau dialog approve/reject
-- [ ] Tampilkan detail skor pemicu rekomendasi
-- [ ] Tampilkan kategori tindakan
+- [x] Buat halaman daftar rekomendasi
+- [x] Tampilkan status `RECOMMENDED`, `APPROVED`, `REJECTED`
+- [x] Buat form atau dialog approve/reject
+- [x] Tampilkan detail skor pemicu rekomendasi
+- [x] Tampilkan kategori tindakan
 
 ### Verifikasi
 
-- [ ] Sistem menghasilkan rekomendasi sesuai threshold
-- [ ] Approval flow berjalan
-- [ ] Audit log keputusan tercatat
+- [x] Sistem menghasilkan rekomendasi sesuai threshold
+- [x] Approval flow berjalan
+- [x] Audit log keputusan tercatat
 
 ## Fase 10 — Reporting dan Export
 
