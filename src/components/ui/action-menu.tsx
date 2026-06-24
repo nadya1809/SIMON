@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 type ActionMenuItem = {
@@ -24,11 +25,25 @@ export function ActionMenu({
   align = "right"
 }: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<{
+    top: number;
+    left: number;
+    minWidth: number;
+  } | null>(null);
+  const menuId = useId();
   const menuRef = useRef<HTMLDivElement>(null);
+  const portalMenuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const canPortal = typeof document !== "undefined";
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (!menuRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+
+      if (
+        !menuRef.current?.contains(target) &&
+        !portalMenuRef.current?.contains(target)
+      ) {
         setIsOpen(false);
       }
     }
@@ -42,48 +57,116 @@ export function ActionMenu({
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isOpen]);
+
+  useLayoutEffect(() => {
+    if (!isOpen || !triggerRef.current) {
+      return;
+    }
+
+    function updatePosition() {
+      if (!triggerRef.current) {
+        return;
+      }
+
+      const rect = triggerRef.current.getBoundingClientRect();
+      const minWidth = 176;
+      const viewportPadding = 16;
+      const top = rect.bottom + window.scrollY + 8;
+      const preferredLeft =
+        align === "right"
+          ? rect.right + window.scrollX - minWidth
+          : rect.left + window.scrollX;
+      const maxLeft =
+        window.scrollX + window.innerWidth - minWidth - viewportPadding;
+      const left = Math.min(
+        Math.max(window.scrollX + viewportPadding, preferredLeft),
+        maxLeft
+      );
+
+      setMenuStyle({
+        top,
+        left,
+        minWidth: Math.max(rect.width + 84, minWidth)
+      });
+    }
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [align, isOpen]);
+
   return (
     <div className="relative inline-flex" ref={menuRef}>
       <button
+        ref={triggerRef}
         type="button"
         aria-label="Aksi data"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? menuId : undefined}
         onClick={() => setIsOpen((current) => !current)}
         className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-white text-[var(--muted)] shadow-[var(--shadow-sm)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
       >
         <FontAwesomeIcon icon={faEllipsisVertical} className="h-4 w-4" />
       </button>
 
-      {isOpen ? (
-        <div
-          className={cn(
-            "absolute top-11 z-30 min-w-44 rounded-[var(--radius-panel)] border border-[var(--border)] bg-white p-2 shadow-[var(--shadow-md)]",
-            align === "right" ? "right-0" : "left-0"
-          )}
-        >
-          {items.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              disabled={item.disabled}
-              onClick={() => {
-                item.onClick();
-                setIsOpen(false);
+      {isOpen && canPortal && menuStyle
+        ? createPortal(
+            <div
+              id={menuId}
+              ref={portalMenuRef}
+              className="fixed z-[120] rounded-[var(--radius-panel)] border border-[var(--border)] bg-white p-2 shadow-[0_22px_44px_rgba(24,50,71,0.18)]"
+              style={{
+                top: menuStyle.top,
+                left: menuStyle.left,
+                minWidth: menuStyle.minWidth
               }}
-              className={cn(
-                "flex w-full items-center gap-2 rounded-[0.75rem] px-3 py-2 text-left text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50",
-                item.variant === "danger"
-                  ? "text-[var(--danger-fg)] hover:bg-[var(--danger-bg)]"
-                  : "text-[var(--foreground)] hover:bg-[var(--surface)]"
-              )}
             >
-              {item.icon ? (
-                <FontAwesomeIcon icon={item.icon} className="h-4 w-4" />
-              ) : null}
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
+              {items.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  disabled={item.disabled}
+                  onClick={() => {
+                    item.onClick();
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-[0.75rem] px-3 py-2 text-left text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50",
+                    item.variant === "danger"
+                      ? "text-[var(--danger-fg)] hover:bg-[var(--danger-bg)]"
+                      : "text-[var(--foreground)] hover:bg-[var(--surface)]"
+                  )}
+                >
+                  {item.icon ? (
+                    <FontAwesomeIcon icon={item.icon} className="h-4 w-4" />
+                  ) : null}
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

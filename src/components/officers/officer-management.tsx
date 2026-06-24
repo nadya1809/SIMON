@@ -522,6 +522,8 @@ export function OfficerManagement({
             ? "Perubahan data petugas akan langsung diperbarui di sistem."
             : "Petugas baru akan langsung tersedia di modul penilaian."
         }
+        variant="primary"
+        icon={editingOfficer ? faPenToSquare : faPlus}
         confirmLabel={editingOfficer ? "Ya, simpan" : "Ya, tambah"}
         isLoading={isPending}
         onClose={() => {

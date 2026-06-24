@@ -324,6 +324,8 @@ export function UnitManagement({
             ? "Perubahan unit akan langsung dipakai di seluruh modul terkait."
             : "Unit baru akan langsung tersedia untuk pemetaan petugas PST."
         }
+        variant="primary"
+        icon={editingUnit ? faPenToSquare : faPlus}
         confirmLabel={editingUnit ? "Ya, simpan" : "Ya, tambah"}
         isLoading={isPending}
         onClose={() => {

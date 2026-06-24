@@ -405,6 +405,8 @@ export function CriteriaManagement({
             ? "Perubahan kriteria akan memengaruhi form penilaian berikutnya."
             : "Kriteria baru akan langsung tersedia di assessment baru."
         }
+        variant="primary"
+        icon={editingCriteria ? faPenToSquare : faPlus}
         confirmLabel={editingCriteria ? "Ya, simpan" : "Ya, tambah"}
         isLoading={isPending}
         onClose={() => {

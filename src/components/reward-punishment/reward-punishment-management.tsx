@@ -869,6 +869,8 @@ export function RewardPunishmentManagement({
         open={Boolean(pendingGenerateValues)}
         title="Generate rekomendasi baru?"
         description="Sistem akan membuat rekomendasi reward dan punishment untuk periode yang dipilih."
+        variant="warning"
+        icon={faWandSparkles}
         confirmLabel="Ya, generate"
         isLoading={isGenerating}
         onClose={() => {
@@ -892,6 +894,14 @@ export function RewardPunishmentManagement({
             : "Approve rekomendasi ini?"
         }
         description="Keputusan akan langsung tercatat sebagai status akhir rekomendasi."
+        variant={
+          pendingDecisionValues?.action === "REJECT" ? "danger" : "success"
+        }
+        icon={
+          pendingDecisionValues?.action === "REJECT"
+            ? faTriangleExclamation
+            : faCheck
+        }
         confirmLabel={
           pendingDecisionValues?.action === "REJECT"
             ? "Ya, reject"

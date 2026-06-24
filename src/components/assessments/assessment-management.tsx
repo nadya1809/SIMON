@@ -706,6 +706,8 @@ export function AssessmentManagement({
             ? "Perubahan penilaian akan langsung memperbarui rekap dan laporan."
             : "Penilaian baru akan langsung masuk ke dashboard dan laporan."
         }
+        variant="primary"
+        icon={editingAssessment ? faPenToSquare : faPlus}
         confirmLabel="Ya, simpan"
         isLoading={isPending}
         onClose={() => {

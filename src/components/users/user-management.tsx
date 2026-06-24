@@ -429,6 +429,8 @@ export function UserManagement({
             ? "Perubahan akun akan langsung diterapkan."
             : "Akun baru akan langsung tersedia sesuai role yang dipilih."
         }
+        variant="primary"
+        icon={pendingSubmit?.mode === "update" ? faPenToSquare : faPlus}
         confirmLabel={
           pendingSubmit?.mode === "update" ? "Ya, simpan" : "Ya, tambah"
         }
