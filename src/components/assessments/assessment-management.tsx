@@ -18,11 +18,11 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTableShell } from "@/components/ui/data-table-shell";
 import { DateInput } from "@/components/ui/date-input";
-import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
+import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -114,6 +114,7 @@ export function AssessmentManagement({
   role
 }: AssessmentManagementProps) {
   const [assessments, setAssessments] = useState(initialAssessments);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingAssessment, setEditingAssessment] =
     useState<AssessmentItem | null>(null);
   const [confirmingAssessment, setConfirmingAssessment] =
@@ -160,6 +161,7 @@ export function AssessmentManagement({
   const { register, handleSubmit, reset, formState, setValue } = form;
 
   function resetForm() {
+    setIsFormDialogOpen(false);
     setEditingAssessment(null);
     setStatusValue("PRESENT");
     setSelectedOfficerId("");
@@ -173,6 +175,7 @@ export function AssessmentManagement({
   }
 
   function startEditMode(assessment: AssessmentItem) {
+    setIsFormDialogOpen(true);
     setEditingAssessment(assessment);
     setStatusValue(assessment.status);
     setSelectedOfficerId(assessment.officerId);
@@ -328,196 +331,207 @@ export function AssessmentManagement({
       description="Input dan pantau penilaian harian petugas PST. Status tidak hadir tetap harus dicatat agar kepatuhan pengisian harian tetap akurat."
       role={role}
     >
-      <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <div className="space-y-5">
-          <FilterToolbar>
-            <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-              <FormField label="Cari petugas">
-                <Input
-                  value={searchOfficer}
-                  onChange={(event) => {
-                    setSearchOfficer(event.target.value);
-                    setVisibleRows(10);
-                  }}
-                  placeholder="Cari nama atau NIP"
-                />
-              </FormField>
+      <section className="space-y-5">
+        <FilterToolbar>
+          <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <FormField label="Cari petugas">
+              <Input
+                value={searchOfficer}
+                onChange={(event) => {
+                  setSearchOfficer(event.target.value);
+                  setVisibleRows(10);
+                }}
+                placeholder="Cari nama atau NIP"
+              />
+            </FormField>
 
-              <FormField label="Filter unit">
-                <Select
-                  value={unitFilter}
-                  onChange={(event) => {
-                    setUnitFilter(event.target.value);
-                    setVisibleRows(10);
-                  }}
-                >
-                  <option value="all">Semua unit</option>
-                  {units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.name}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
-
-              <FormField label="Status hadir">
-                <Select
-                  value={statusFilter}
-                  onChange={(event) => {
-                    setStatusFilter(event.target.value as StatusFilter);
-                    setVisibleRows(10);
-                  }}
-                >
-                  <option value="all">Semua status</option>
-                  <option value="PRESENT">Hadir</option>
-                  <option value="ABSENT">Tidak Hadir</option>
-                </Select>
-              </FormField>
-
-              <FormField label="Dari tanggal">
-                <DateInput
-                  value={fromDate}
-                  onChange={(event) => {
-                    setFromDate(event.target.value);
-                    setVisibleRows(10);
-                  }}
-                />
-              </FormField>
-
-              <FormField label="Sampai tanggal">
-                <DateInput
-                  value={toDate}
-                  onChange={(event) => {
-                    setToDate(event.target.value);
-                    setVisibleRows(10);
-                  }}
-                />
-              </FormField>
-            </div>
-
-            <div className="flex items-end gap-3">
-              <Button icon={faPlus} onClick={resetForm}>
-                Input Penilaian
-              </Button>
-              <Button
-                variant="secondary"
-                icon={faRotateLeft}
-                onClick={() => {
-                  setSearchOfficer("");
-                  setUnitFilter("all");
-                  setStatusFilter("all");
-                  setFromDate("");
-                  setToDate("");
+            <FormField label="Filter unit">
+              <Select
+                value={unitFilter}
+                onChange={(event) => {
+                  setUnitFilter(event.target.value);
                   setVisibleRows(10);
                 }}
               >
-                Reset Filter
-              </Button>
-            </div>
-          </FilterToolbar>
+                <option value="all">Semua unit</option>
+                {units.map((unit) => (
+                  <option key={unit.id} value={unit.id}>
+                    {unit.name}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
 
-          <DataTableShell
-            title="Riwayat penilaian"
-            description={`${filteredAssessments.length} data sesuai filter aktif.`}
-          >
-            <Table
-              headers={[
-                "Tanggal",
-                "Petugas",
-                "Unit",
-                "Status",
-                "Skor",
-                "Rata-rata",
-                "Aksi"
-              ]}
+            <FormField label="Status hadir">
+              <Select
+                value={statusFilter}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value as StatusFilter);
+                  setVisibleRows(10);
+                }}
+              >
+                <option value="all">Semua status</option>
+                <option value="PRESENT">Hadir</option>
+                <option value="ABSENT">Tidak Hadir</option>
+              </Select>
+            </FormField>
+
+            <FormField label="Dari tanggal">
+              <DateInput
+                value={fromDate}
+                onChange={(event) => {
+                  setFromDate(event.target.value);
+                  setVisibleRows(10);
+                }}
+              />
+            </FormField>
+
+            <FormField label="Sampai tanggal">
+              <DateInput
+                value={toDate}
+                onChange={(event) => {
+                  setToDate(event.target.value);
+                  setVisibleRows(10);
+                }}
+              />
+            </FormField>
+          </div>
+
+          <div className="flex items-end gap-3">
+            <Button
+              icon={faPlus}
+              onClick={() => {
+                resetForm();
+                setIsFormDialogOpen(true);
+              }}
             >
-              {displayedAssessments.length ? (
-                displayedAssessments.map((item) => (
-                  <tr key={item.id} className="border-t border-[var(--border)]">
-                    <td className="px-5 py-4 font-medium">
-                      {toDateInputValue(item.assessmentDate)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div>
-                        <p className="font-semibold">{item.officer.name}</p>
-                        <p className="text-xs text-[var(--muted)]">
-                          NIP: {item.officer.nip}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-[var(--muted)]">
-                      {item.officer.unit?.name ?? "-"}
-                    </td>
-                    <td className="px-5 py-4">
-                      <Badge variant={item.status === "PRESENT" ? "success" : "warning"}>
-                        {item.status === "PRESENT" ? "Hadir" : "Tidak Hadir"}
-                      </Badge>
-                    </td>
-                    <td className="px-5 py-4 text-[var(--muted)]">
-                      {item.status === "ABSENT"
-                        ? "-"
-                        : item.scores
-                            .map((score) => `${score.criteria.name}: ${score.score}`)
-                            .join(", ")}
-                    </td>
-                    <td className="px-5 py-4 font-semibold">
-                      {formatAverageScore(item.averageScore)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <ActionMenu
-                        items={[
-                          {
-                            label: "Edit penilaian",
-                            icon: faPenToSquare,
-                            onClick: () => startEditMode(item)
-                          },
-                          {
-                            label:
-                              deletingAssessmentId === item.id
-                                ? "Menghapus..."
-                                : "Hapus penilaian",
-                            icon: faTrash,
-                            variant: "danger",
-                            disabled: deletingAssessmentId === item.id,
-                            onClick: () => setConfirmingAssessment(item)
-                          }
-                        ]}
-                      />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="px-5 py-8">
-                    <EmptyState
-                      title="Belum ada data penilaian yang cocok"
-                      description="Tambahkan penilaian baru atau ubah filter untuk melihat data pada tanggal dan petugas lain."
-                      icon="A"
-                      actionLabel="Input Penilaian"
-                      onAction={resetForm}
+              Input Penilaian
+            </Button>
+            <Button
+              variant="secondary"
+              icon={faRotateLeft}
+              onClick={() => {
+                setSearchOfficer("");
+                setUnitFilter("all");
+                setStatusFilter("all");
+                setFromDate("");
+                setToDate("");
+                setVisibleRows(10);
+              }}
+            >
+              Reset Filter
+            </Button>
+          </div>
+        </FilterToolbar>
+
+        <DataTableShell
+          title="Riwayat penilaian"
+          description={`${filteredAssessments.length} data sesuai filter aktif.`}
+        >
+          <Table
+            headers={[
+              "Tanggal",
+              "Petugas",
+              "Unit",
+              "Status",
+              "Skor",
+              "Rata-rata",
+              "Aksi"
+            ]}
+          >
+            {displayedAssessments.length ? (
+              displayedAssessments.map((item) => (
+                <tr key={item.id} className="border-t border-[var(--border)]">
+                  <td className="px-5 py-4 font-medium">
+                    {toDateInputValue(item.assessmentDate)}
+                  </td>
+                  <td className="px-5 py-4">
+                    <div>
+                      <p className="font-semibold">{item.officer.name}</p>
+                      <p className="text-xs text-[var(--muted)]">
+                        NIP: {item.officer.nip}
+                      </p>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-[var(--muted)]">
+                    {item.officer.unit?.name ?? "-"}
+                  </td>
+                  <td className="px-5 py-4">
+                    <Badge variant={item.status === "PRESENT" ? "success" : "warning"}>
+                      {item.status === "PRESENT" ? "Hadir" : "Tidak Hadir"}
+                    </Badge>
+                  </td>
+                  <td className="px-5 py-4 text-[var(--muted)]">
+                    {item.status === "ABSENT"
+                      ? "-"
+                      : item.scores
+                          .map((score) => `${score.criteria.name}: ${score.score}`)
+                          .join(", ")}
+                  </td>
+                  <td className="px-5 py-4 font-semibold">
+                    {formatAverageScore(item.averageScore)}
+                  </td>
+                  <td className="px-5 py-4">
+                    <ActionMenu
+                      items={[
+                        {
+                          label: "Edit penilaian",
+                          icon: faPenToSquare,
+                          onClick: () => startEditMode(item)
+                        },
+                        {
+                          label:
+                            deletingAssessmentId === item.id
+                              ? "Menghapus..."
+                              : "Hapus penilaian",
+                          icon: faTrash,
+                          variant: "danger",
+                          disabled: deletingAssessmentId === item.id,
+                          onClick: () => setConfirmingAssessment(item)
+                        }
+                      ]}
                     />
                   </td>
                 </tr>
-              )}
-            </Table>
-          </DataTableShell>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={7} className="px-5 py-8">
+                  <EmptyState
+                    title="Belum ada data penilaian yang cocok"
+                    description="Tambahkan penilaian baru atau ubah filter untuk melihat data pada tanggal dan petugas lain."
+                    icon="A"
+                    actionLabel="Input Penilaian"
+                    onAction={() => {
+                      resetForm();
+                      setIsFormDialogOpen(true);
+                    }}
+                  />
+                </td>
+              </tr>
+            )}
+          </Table>
+        </DataTableShell>
 
-          {filteredAssessments.length > displayedAssessments.length ? (
-            <div className="flex justify-center">
-              <Button
-                variant="secondary"
-                onClick={() => setVisibleRows((current) => current + 10)}
-              >
-                Tampilkan lebih banyak
-              </Button>
-            </div>
-          ) : null}
-        </div>
+        {filteredAssessments.length > displayedAssessments.length ? (
+          <div className="flex justify-center">
+            <Button
+              variant="secondary"
+              onClick={() => setVisibleRows((current) => current + 10)}
+            >
+              Tampilkan lebih banyak
+            </Button>
+          </div>
+        ) : null}
+      </section>
 
-        <Dialog
-          title={editingAssessment ? "Edit penilaian" : "Input penilaian baru"}
-          description="Satu petugas hanya boleh memiliki satu penilaian per tanggal. Jika petugas tidak hadir, pilih status Tidak Hadir dan skor tidak perlu diisi."
-        >
+      <ModalDialog
+        open={isFormDialogOpen}
+        onClose={resetForm}
+        title={editingAssessment ? "Edit penilaian" : "Input penilaian baru"}
+        description="Satu petugas hanya boleh memiliki satu penilaian per tanggal. Jika petugas tidak hadir, pilih status Tidak Hadir dan skor tidak perlu diisi."
+        className="max-w-4xl"
+      >
           <div className="mb-4 flex items-center justify-between">
             <Badge variant={editingAssessment ? "warning" : "success"}>
               {editingAssessment ? "Mode edit" : "Mode input"}
@@ -640,16 +654,20 @@ export function AssessmentManagement({
               </FormField>
             </FormSection>
 
-            <Button className="w-full" type="submit" disabled={isPending}>
-              {isPending
-                ? "Menyimpan..."
-                : editingAssessment
-                  ? "Simpan perubahan"
-                  : "Simpan penilaian"}
-            </Button>
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="secondary" onClick={resetForm}>
+                Batal
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending
+                  ? "Menyimpan..."
+                  : editingAssessment
+                    ? "Simpan perubahan"
+                    : "Simpan penilaian"}
+              </Button>
+            </div>
           </form>
-        </Dialog>
-      </section>
+      </ModalDialog>
 
       <ConfirmDialog
         open={Boolean(confirmingAssessment)}
