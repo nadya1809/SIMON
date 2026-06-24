@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "eslint .",
     "qa:smoke": "tsx --tsconfig tsconfig.json scripts/qa-smoke.ts",
+    "seed:dummy-rp": "tsx --tsconfig tsconfig.json scripts/seed-reward-punishment-dummy.ts",
+    "clean:dummy-rp": "tsx --tsconfig tsconfig.json scripts/clean-reward-punishment-dummy.ts",
     "import:officers": "tsx scripts/import-pst-officers.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
