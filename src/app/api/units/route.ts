@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRoles } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
+import {
+  apiConflict,
+  apiCreated,
+  apiSuccess,
+  apiUnauthorized,
+  apiValidationError
+} from "@/lib/api-response";
 import { unitSchema } from "@/lib/validations/unit";
 
 export async function GET() {
@@ -20,7 +27,7 @@ export async function GET() {
     }
   });
 
-  return NextResponse.json({ data: units });
+  return apiSuccess(units);
 }
 
 export async function POST(request: Request) {
@@ -31,22 +38,16 @@ export async function POST(request: Request) {
   }
 
   if (!session?.user) {
-    return NextResponse.json(
-      { message: "Unauthorized. Silakan login terlebih dahulu." },
-      { status: 401 }
-    );
+    return apiUnauthorized();
   }
 
   const body = await request.json();
   const parsed = unitSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: "Data unit tidak valid.",
-        errors: parsed.error.flatten().fieldErrors
-      },
-      { status: 400 }
+    return apiValidationError(
+      "Data unit tidak valid.",
+      parsed.error.flatten().fieldErrors
     );
   }
 
@@ -63,10 +64,7 @@ export async function POST(request: Request) {
   });
 
   if (existingUnit) {
-    return NextResponse.json(
-      { message: "Nama unit sudah digunakan." },
-      { status: 409 }
-    );
+    return apiConflict("Nama unit sudah digunakan.");
   }
 
   const unit = await prisma.unit.create({
@@ -89,8 +87,5 @@ export async function POST(request: Request) {
     afterData: toAuditJson(unit)
   });
 
-  return NextResponse.json(
-    { message: "Unit berhasil ditambahkan.", data: unit },
-    { status: 201 }
-  );
+  return apiCreated(unit, "Unit berhasil ditambahkan.");
 }

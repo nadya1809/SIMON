@@ -3,6 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
 import {
+  apiConflict,
+  apiNotFound,
+  apiUnauthorized,
+  apiValidationError,
+  apiSuccess
+} from "@/lib/api-response";
+import {
   assessmentSchema,
   validateAssessmentBusinessRules
 } from "@/lib/validations/assessment";
@@ -57,13 +64,10 @@ export async function GET(_request: Request, context: RouteContext) {
   });
 
   if (!assessment) {
-    return NextResponse.json(
-      { message: "Data penilaian tidak ditemukan." },
-      { status: 404 }
-    );
+    return apiNotFound("Data penilaian tidak ditemukan.");
   }
 
-  return NextResponse.json({ data: assessment });
+  return apiSuccess(assessment);
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -74,10 +78,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   if (!session?.user) {
-    return NextResponse.json(
-      { message: "Unauthorized. Silakan login terlebih dahulu." },
-      { status: 401 }
-    );
+    return apiUnauthorized();
   }
 
   const { id } = await context.params;
@@ -85,12 +86,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   const parsed = assessmentSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: "Data penilaian tidak valid.",
-        errors: parsed.error.flatten().fieldErrors
-      },
-      { status: 400 }
+    return apiValidationError(
+      "Data penilaian tidak valid.",
+      parsed.error.flatten().fieldErrors
     );
   }
 
@@ -124,10 +122,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (!existingAssessment) {
-    return NextResponse.json(
-      { message: "Data penilaian tidak ditemukan." },
-      { status: 404 }
-    );
+    return apiNotFound("Data penilaian tidak ditemukan.");
   }
 
   const activeCriteria = await prisma.criteria.findMany({
@@ -150,7 +145,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (businessRuleError) {
-    return NextResponse.json({ message: businessRuleError }, { status: 400 });
+    return apiValidationError(businessRuleError);
   }
 
   const assessmentDate = toDateOnly(parsed.data.assessmentDate);
@@ -164,10 +159,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (duplicateAssessment) {
-    return NextResponse.json(
-      { message: "Penilaian untuk petugas dan tanggal tersebut sudah ada." },
-      { status: 409 }
-    );
+    return apiConflict("Penilaian untuk petugas dan tanggal tersebut sudah ada.");
   }
 
   const assessment = await prisma.$transaction(async (tx) => {
@@ -236,8 +228,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     afterData: toAuditJson(assessment)
   });
 
-  return NextResponse.json({
-    message: "Penilaian berhasil diperbarui.",
-    data: assessment
+  return apiSuccess(assessment, {
+    message: "Penilaian berhasil diperbarui."
   });
 }

@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRoles } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
+import {
+  apiConflict,
+  apiNotFound,
+  apiSuccess,
+  apiUnauthorized,
+  apiValidationError
+} from "@/lib/api-response";
 import { unitUpdateSchema } from "@/lib/validations/unit";
 
 type RouteContext = {
@@ -18,10 +25,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   if (!session?.user) {
-    return NextResponse.json(
-      { message: "Unauthorized. Silakan login terlebih dahulu." },
-      { status: 401 }
-    );
+    return apiUnauthorized();
   }
 
   const { id } = await context.params;
@@ -29,12 +33,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   const parsed = unitUpdateSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: "Data unit tidak valid.",
-        errors: parsed.error.flatten().fieldErrors
-      },
-      { status: 400 }
+    return apiValidationError(
+      "Data unit tidak valid.",
+      parsed.error.flatten().fieldErrors
     );
   }
 
@@ -43,10 +44,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (!existingUnit) {
-    return NextResponse.json(
-      { message: "Unit tidak ditemukan." },
-      { status: 404 }
-    );
+    return apiNotFound("Unit tidak ditemukan.");
   }
 
   const name = parsed.data.name.trim();
@@ -63,10 +61,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (duplicateName) {
-    return NextResponse.json(
-      { message: "Nama unit sudah digunakan." },
-      { status: 409 }
-    );
+    return apiConflict("Nama unit sudah digunakan.");
   }
 
   const unit = await prisma.unit.update({
@@ -91,8 +86,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     afterData: toAuditJson(unit)
   });
 
-  return NextResponse.json({
-    message: "Unit berhasil diperbarui.",
-    data: unit
+  return apiSuccess(unit, {
+    message: "Unit berhasil diperbarui."
   });
 }

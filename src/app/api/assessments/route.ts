@@ -4,6 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
 import {
+  apiConflict,
+  apiCreated,
+  apiNotFound,
+  apiUnauthorized,
+  apiValidationError,
+  apiSuccess,
+  mapPrismaError
+} from "@/lib/api-response";
+import {
   assessmentSchema,
   validateAssessmentBusinessRules
 } from "@/lib/validations/assessment";
@@ -69,7 +78,7 @@ export async function GET(request: Request) {
     orderBy: [{ assessmentDate: "desc" }, { createdAt: "desc" }]
   });
 
-  return NextResponse.json({ data: assessments });
+  return apiSuccess(assessments);
 }
 
 export async function POST(request: Request) {
@@ -80,22 +89,16 @@ export async function POST(request: Request) {
   }
 
   if (!session?.user) {
-    return NextResponse.json(
-      { message: "Unauthorized. Silakan login terlebih dahulu." },
-      { status: 401 }
-    );
+    return apiUnauthorized();
   }
 
   const body = await request.json();
   const parsed = assessmentSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: "Data penilaian tidak valid.",
-        errors: parsed.error.flatten().fieldErrors
-      },
-      { status: 400 }
+    return apiValidationError(
+      "Data penilaian tidak valid.",
+      parsed.error.flatten().fieldErrors
     );
   }
 
@@ -104,10 +107,7 @@ export async function POST(request: Request) {
   });
 
   if (!officer) {
-    return NextResponse.json(
-      { message: "Petugas tidak ditemukan." },
-      { status: 404 }
-    );
+    return apiNotFound("Petugas tidak ditemukan.");
   }
 
   const activeCriteria = await prisma.criteria.findMany({
@@ -130,7 +130,7 @@ export async function POST(request: Request) {
   });
 
   if (businessRuleError) {
-    return NextResponse.json({ message: businessRuleError }, { status: 400 });
+    return apiValidationError(businessRuleError);
   }
 
   const assessmentDate = toDateOnly(parsed.data.assessmentDate);
@@ -143,10 +143,7 @@ export async function POST(request: Request) {
   });
 
   if (duplicateAssessment) {
-    return NextResponse.json(
-      { message: "Penilaian untuk petugas dan tanggal tersebut sudah ada." },
-      { status: 409 }
-    );
+    return apiConflict("Penilaian untuk petugas dan tanggal tersebut sudah ada.");
   }
 
   try {
@@ -206,19 +203,14 @@ export async function POST(request: Request) {
       afterData: toAuditJson(assessment)
     });
 
-    return NextResponse.json(
-      { message: "Penilaian berhasil disimpan.", data: assessment },
-      { status: 201 }
-    );
+    return apiCreated(assessment, "Penilaian berhasil disimpan.");
   } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      return NextResponse.json(
-        { message: "Penilaian untuk petugas dan tanggal tersebut sudah ada." },
-        { status: 409 }
-      );
+    const prismaError = mapPrismaError(error, {
+      P2002: "Penilaian untuk petugas dan tanggal tersebut sudah ada."
+    });
+
+    if (prismaError) {
+      return prismaError;
     }
 
     throw error;

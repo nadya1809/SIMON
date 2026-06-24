@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 import type { Role } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
+import { apiForbidden, apiUnauthorized } from "@/lib/api-response";
 
 export async function requireAuth() {
   const session = await getServerSession(authOptions);
@@ -30,10 +31,7 @@ export async function requireApiAuth() {
   if (!session?.user) {
     return {
       session: null,
-      response: NextResponse.json(
-        { message: "Unauthorized. Silakan login terlebih dahulu." },
-        { status: 401 }
-      )
+      response: apiUnauthorized()
     };
   }
 
@@ -50,10 +48,7 @@ export async function requireApiRoles(roles: Role[]) {
   if (!roles.includes(session.user.role)) {
     return {
       session: null,
-      response: NextResponse.json(
-        { message: "Forbidden. Anda tidak memiliki akses ke fitur ini." },
-        { status: 403 }
-      )
+      response: apiForbidden()
     };
   }
 

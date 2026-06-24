@@ -521,9 +521,9 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Error handling
 
-- [ ] Standarkan response sukses API
-- [ ] Standarkan response error API
-- [ ] Mapping error Prisma ke pesan user-friendly
+- [x] Standarkan response sukses API
+- [x] Standarkan response error API
+- [x] Mapping error Prisma ke pesan user-friendly
 
 ### Naming dan consistency
 

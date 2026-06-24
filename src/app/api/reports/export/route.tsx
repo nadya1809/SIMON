@@ -12,6 +12,7 @@ import { requireApiAuth } from "@/lib/auth-guard";
 import { getReportData } from "@/lib/reports";
 import { reportExportSchema } from "@/lib/validations/report";
 import { formatAverageScore } from "@/lib/scoring";
+import { apiValidationError } from "@/lib/api-response";
 
 function toDateLabel(value: Date) {
   return new Intl.DateTimeFormat("id-ID", {
@@ -279,12 +280,9 @@ export async function GET(request: Request) {
   });
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: "Parameter export tidak valid.",
-        errors: parsed.error.flatten().fieldErrors
-      },
-      { status: 400 }
+    return apiValidationError(
+      "Parameter export tidak valid.",
+      parsed.error.flatten().fieldErrors
     );
   }
 
