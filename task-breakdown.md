@@ -478,9 +478,9 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 - [ ] Uji assessment `PRESENT`
 - [ ] Uji assessment `ABSENT`
 - [ ] Uji duplicate assessment
-- [ ] Uji dashboard dengan data ada
+- [x] Uji dashboard dengan data ada
 - [ ] Uji dashboard tanpa data
-- [ ] Uji reward/punishment
+- [x] Uji reward/punishment
 - [ ] Uji export PDF
 - [ ] Uji export Excel
 
@@ -493,7 +493,7 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Data integrity
 
-- [ ] Verifikasi audit log pada entitas penting
+- [x] Verifikasi audit log pada entitas penting
 - [ ] Verifikasi relasi data tetap aman saat data nonaktif
 - [ ] Verifikasi histori lama tidak rusak saat master data berubah
 
@@ -516,8 +516,8 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Validasi dan schema
 
-- [ ] Simpan semua Zod schema di `src/lib/validations`
-- [ ] Gunakan schema yang sama untuk client dan server bila memungkinkan
+- [x] Simpan semua Zod schema di `src/lib/validations`
+- [x] Gunakan schema yang sama untuk client dan server bila memungkinkan
 
 ### Error handling
 
