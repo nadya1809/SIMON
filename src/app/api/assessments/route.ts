@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth-guard";
+import { toAuditJson, writeAuditLog } from "@/lib/audit";
 import {
   assessmentSchema,
   validateAssessmentBusinessRules
@@ -195,6 +196,14 @@ export async function POST(request: Request) {
           }
         }
       }
+    });
+
+    await writeAuditLog({
+      userId: session.user.id,
+      action: "CREATE",
+      entity: "DailyAssessment",
+      entityId: assessment.id,
+      afterData: toAuditJson(assessment)
     });
 
     return NextResponse.json(

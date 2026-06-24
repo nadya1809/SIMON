@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRoles } from "@/lib/auth-guard";
+import { toAuditJson, writeAuditLog } from "@/lib/audit";
 import { userUpdateSchema } from "@/lib/validations/user";
 
 type RouteContext = {
@@ -94,6 +95,23 @@ export async function PATCH(request: Request, context: RouteContext) {
       createdAt: true,
       updatedAt: true
     }
+  });
+
+  await writeAuditLog({
+    userId: session.user.id,
+    action: "UPDATE",
+    entity: "User",
+    entityId: user.id,
+    beforeData: toAuditJson({
+      id: existingUser.id,
+      name: existingUser.name,
+      email: existingUser.email,
+      role: existingUser.role,
+      isActive: existingUser.isActive,
+      createdAt: existingUser.createdAt,
+      updatedAt: existingUser.updatedAt
+    }),
+    afterData: toAuditJson(user)
   });
 
   return NextResponse.json({

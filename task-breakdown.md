@@ -109,11 +109,11 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Audit architecture
 
-- [ ] Buat `src/lib/audit.ts`
-- [ ] Tentukan pendekatan audit terpusat:
+- [x] Buat `src/lib/audit.ts`
+- [x] Tentukan pendekatan audit terpusat:
   - Prisma middleware
   - atau wrapper service yang konsisten
-- [ ] Pastikan audit minimal mencatat:
+- [x] Pastikan audit minimal mencatat:
   - user
   - action
   - entity
@@ -124,10 +124,10 @@ Dokumen ini memecah `implementation-plan.md` menjadi task implementasi yang lebi
 
 ### Audit integration
 
-- [ ] Pasang audit untuk create/update/delete `DailyAssessment`
-- [ ] Pasang audit untuk create/update/delete `RewardPunishment`
-- [ ] Pertimbangkan juga audit untuk `Officer`, `Criteria`, dan `User`
-- [ ] Pastikan operasi gagal tidak membuat audit palsu
+- [x] Pasang audit untuk create/update/delete `DailyAssessment`
+- [x] Pasang audit untuk create/update/delete `RewardPunishment`
+- [x] Pertimbangkan juga audit untuk `Officer`, `Criteria`, dan `User`
+- [x] Pastikan operasi gagal tidak membuat audit palsu
 
 ### Audit verification
 

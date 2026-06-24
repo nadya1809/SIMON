@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth-guard";
+import { toAuditJson, writeAuditLog } from "@/lib/audit";
 import {
   assessmentSchema,
   validateAssessmentBusinessRules
@@ -94,7 +95,32 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const existingAssessment = await prisma.dailyAssessment.findUnique({
-    where: { id }
+    where: { id },
+    include: {
+      officer: {
+        include: {
+          unit: true
+        }
+      },
+      assessor: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true
+        }
+      },
+      scores: {
+        include: {
+          criteria: true
+        },
+        orderBy: {
+          criteria: {
+            sortOrder: "asc"
+          }
+        }
+      }
+    }
   });
 
   if (!existingAssessment) {
@@ -199,6 +225,15 @@ export async function PATCH(request: Request, context: RouteContext) {
         }
       }
     });
+  });
+
+  await writeAuditLog({
+    userId: session.user.id,
+    action: "UPDATE",
+    entity: "DailyAssessment",
+    entityId: assessment.id,
+    beforeData: toAuditJson(existingAssessment),
+    afterData: toAuditJson(assessment)
   });
 
   return NextResponse.json({

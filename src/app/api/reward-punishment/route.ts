@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth-guard";
-import { writeAuditLog } from "@/lib/audit";
+import { toAuditJson, writeAuditLog } from "@/lib/audit";
 import {
   getMonthlyRecommendationCandidates,
   isMonthInput,
@@ -24,10 +24,6 @@ const rewardPunishmentInclude = {
     }
   }
 } as const;
-
-function toAuditJson(value: unknown) {
-  return JSON.parse(JSON.stringify(value));
-}
 
 export async function GET(request: Request) {
   const { response } = await requireApiAuth();

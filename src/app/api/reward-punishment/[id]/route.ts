@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth-guard";
-import { writeAuditLog } from "@/lib/audit";
+import { toAuditJson, writeAuditLog } from "@/lib/audit";
 import { rewardPunishmentActionSchema } from "@/lib/validations/reward-punishment";
 
 type RouteContext = {
@@ -25,10 +25,6 @@ const rewardPunishmentInclude = {
     }
   }
 } as const;
-
-function toAuditJson(value: unknown) {
-  return JSON.parse(JSON.stringify(value));
-}
 
 export async function GET(_request: Request, context: RouteContext) {
   const { response } = await requireApiAuth();

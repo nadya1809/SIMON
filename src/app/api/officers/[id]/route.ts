@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRoles } from "@/lib/auth-guard";
+import { toAuditJson, writeAuditLog } from "@/lib/audit";
 import { officerUpdateSchema } from "@/lib/validations/officer";
 
 type RouteContext = {
@@ -36,10 +37,17 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const { response } = await requireApiRoles(["ADMIN"]);
+  const { session, response } = await requireApiRoles(["ADMIN"]);
 
   if (response) {
     return response;
+  }
+
+  if (!session?.user) {
+    return NextResponse.json(
+      { message: "Unauthorized. Silakan login terlebih dahulu." },
+      { status: 401 }
+    );
   }
 
   const { id } = await context.params;
@@ -99,6 +107,15 @@ export async function PATCH(request: Request, context: RouteContext) {
     include: {
       unit: true
     }
+  });
+
+  await writeAuditLog({
+    userId: session.user.id,
+    action: "UPDATE",
+    entity: "Officer",
+    entityId: officer.id,
+    beforeData: toAuditJson(existingOfficer),
+    afterData: toAuditJson(officer)
   });
 
   return NextResponse.json({

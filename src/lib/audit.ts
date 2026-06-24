@@ -22,3 +22,7 @@ export async function writeAuditLog(payload: AuditPayload) {
     }
   });
 }
+
+export function toAuditJson(value: unknown) {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}

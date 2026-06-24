@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRoles } from "@/lib/auth-guard";
+import { toAuditJson, writeAuditLog } from "@/lib/audit";
 import { unitSchema } from "@/lib/validations/unit";
 
 export async function GET() {
@@ -23,10 +24,17 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const { response } = await requireApiRoles(["ADMIN"]);
+  const { session, response } = await requireApiRoles(["ADMIN"]);
 
   if (response) {
     return response;
+  }
+
+  if (!session?.user) {
+    return NextResponse.json(
+      { message: "Unauthorized. Silakan login terlebih dahulu." },
+      { status: 401 }
+    );
   }
 
   const body = await request.json();
@@ -71,6 +79,14 @@ export async function POST(request: Request) {
         select: { officers: true }
       }
     }
+  });
+
+  await writeAuditLog({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "Unit",
+    entityId: unit.id,
+    afterData: toAuditJson(unit)
   });
 
   return NextResponse.json(
