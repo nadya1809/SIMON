@@ -1,20 +1,31 @@
 "use client";
 
 import { useDeferredValue, useMemo, useState, useTransition } from "react";
+import {
+  faPenToSquare,
+  faPlus,
+  faRotateLeft,
+  faTrash
+} from "@fortawesome/free-solid-svg-icons";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FormField } from "@/components/forms/form-field";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataTableShell } from "@/components/ui/data-table-shell";
 import { DateInput } from "@/components/ui/date-input";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { showConfirmToast } from "@/lib/confirm-toast";
 import { formatAverageScore } from "@/lib/scoring";
 import {
   assessmentSchema,
@@ -100,7 +111,6 @@ export function AssessmentManagement({
   initialAssessments,
   officers,
   criteria,
-  userName,
   role
 }: AssessmentManagementProps) {
   const [assessments, setAssessments] = useState(initialAssessments);
@@ -108,6 +118,9 @@ export function AssessmentManagement({
     useState<AssessmentItem | null>(null);
   const [statusValue, setStatusValue] = useState<"PRESENT" | "ABSENT">(
     "PRESENT"
+  );
+  const [deletingAssessmentId, setDeletingAssessmentId] = useState<string | null>(
+    null
   );
   const [selectedOfficerId, setSelectedOfficerId] = useState("");
   const [searchOfficer, setSearchOfficer] = useState("");
@@ -276,147 +289,224 @@ export function AssessmentManagement({
     });
   }
 
+  async function deleteAssessment(assessment: AssessmentItem) {
+    setDeletingAssessmentId(assessment.id);
+
+    try {
+      const response = await fetch(`/api/assessments/${assessment.id}`, {
+        method: "DELETE"
+      });
+
+      const result = (await response.json()) as {
+        message: string;
+      };
+
+      if (!response.ok) {
+        toast.error(result.message || "Gagal menghapus penilaian.");
+        return;
+      }
+
+      setAssessments((current) => current.filter((item) => item.id !== assessment.id));
+
+      if (editingAssessment?.id === assessment.id) {
+        resetForm();
+      }
+
+      toast.success(result.message || "Penilaian berhasil dihapus.");
+    } finally {
+      setDeletingAssessmentId(null);
+    }
+  }
+
   const activeOfficer = officers.find((item) => item.id === selectedOfficerId);
 
   return (
     <DashboardShell
       title="Penilaian Harian"
       description="Input dan pantau penilaian harian petugas PST. Status tidak hadir tetap harus dicatat agar kepatuhan pengisian harian tetap akurat."
-      userName={userName}
       role={role}
     >
       <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
         <div className="space-y-5">
-          <div className="grid gap-4 rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-5">
-            <FormField label="Cari petugas">
-              <Input
-                value={searchOfficer}
-                onChange={(event) => {
-                  setSearchOfficer(event.target.value);
-                  setVisibleRows(10);
-                }}
-                placeholder="Cari nama atau NIP"
-              />
-            </FormField>
+          <FilterToolbar>
+            <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <FormField label="Cari petugas">
+                <Input
+                  value={searchOfficer}
+                  onChange={(event) => {
+                    setSearchOfficer(event.target.value);
+                    setVisibleRows(10);
+                  }}
+                  placeholder="Cari nama atau NIP"
+                />
+              </FormField>
 
-            <FormField label="Filter unit">
-              <Select
-                value={unitFilter}
-                onChange={(event) => {
-                  setUnitFilter(event.target.value);
+              <FormField label="Filter unit">
+                <Select
+                  value={unitFilter}
+                  onChange={(event) => {
+                    setUnitFilter(event.target.value);
+                    setVisibleRows(10);
+                  }}
+                >
+                  <option value="all">Semua unit</option>
+                  {units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+
+              <FormField label="Status hadir">
+                <Select
+                  value={statusFilter}
+                  onChange={(event) => {
+                    setStatusFilter(event.target.value as StatusFilter);
+                    setVisibleRows(10);
+                  }}
+                >
+                  <option value="all">Semua status</option>
+                  <option value="PRESENT">Hadir</option>
+                  <option value="ABSENT">Tidak Hadir</option>
+                </Select>
+              </FormField>
+
+              <FormField label="Dari tanggal">
+                <DateInput
+                  value={fromDate}
+                  onChange={(event) => {
+                    setFromDate(event.target.value);
+                    setVisibleRows(10);
+                  }}
+                />
+              </FormField>
+
+              <FormField label="Sampai tanggal">
+                <DateInput
+                  value={toDate}
+                  onChange={(event) => {
+                    setToDate(event.target.value);
+                    setVisibleRows(10);
+                  }}
+                />
+              </FormField>
+            </div>
+
+            <div className="flex items-end gap-3">
+              <Button icon={faPlus} onClick={resetForm}>
+                Input Penilaian
+              </Button>
+              <Button
+                variant="secondary"
+                icon={faRotateLeft}
+                onClick={() => {
+                  setSearchOfficer("");
+                  setUnitFilter("all");
+                  setStatusFilter("all");
+                  setFromDate("");
+                  setToDate("");
                   setVisibleRows(10);
                 }}
               >
-                <option value="all">Semua unit</option>
-                {units.map((unit) => (
-                  <option key={unit.id} value={unit.id}>
-                    {unit.name}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
+                Reset Filter
+              </Button>
+            </div>
+          </FilterToolbar>
 
-            <FormField label="Status hadir">
-              <Select
-                value={statusFilter}
-                onChange={(event) => {
-                  setStatusFilter(event.target.value as StatusFilter);
-                  setVisibleRows(10);
-                }}
-              >
-                <option value="all">Semua status</option>
-                <option value="PRESENT">Hadir</option>
-                <option value="ABSENT">Tidak Hadir</option>
-              </Select>
-            </FormField>
-
-            <FormField label="Dari tanggal">
-              <DateInput
-                value={fromDate}
-                onChange={(event) => {
-                  setFromDate(event.target.value);
-                  setVisibleRows(10);
-                }}
-              />
-            </FormField>
-
-            <FormField label="Sampai tanggal">
-              <DateInput
-                value={toDate}
-                onChange={(event) => {
-                  setToDate(event.target.value);
-                  setVisibleRows(10);
-                }}
-              />
-            </FormField>
-          </div>
-
-          <Table
-            headers={[
-              "Tanggal",
-              "Petugas",
-              "Unit",
-              "Status",
-              "Skor",
-              "Rata-rata",
-              "Aksi"
-            ]}
+          <DataTableShell
+            title="Riwayat penilaian"
+            description={`${filteredAssessments.length} data sesuai filter aktif.`}
           >
-            {displayedAssessments.length ? (
-              displayedAssessments.map((item) => (
-                <tr key={item.id} className="border-t border-[var(--border)]">
-                  <td className="px-5 py-4 font-medium">
-                    {toDateInputValue(item.assessmentDate)}
-                  </td>
-                  <td className="px-5 py-4">
-                    <div>
-                      <p className="font-semibold">{item.officer.name}</p>
-                      <p className="text-xs text-[var(--muted)]">
-                        NIP: {item.officer.nip}
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-[var(--muted)]">
-                    {item.officer.unit?.name ?? "-"}
-                  </td>
-                  <td className="px-5 py-4">
-                    <Badge variant={item.status === "PRESENT" ? "success" : "warning"}>
-                      {item.status === "PRESENT" ? "Hadir" : "Tidak Hadir"}
-                    </Badge>
-                  </td>
-                  <td className="px-5 py-4 text-[var(--muted)]">
-                    {item.status === "ABSENT"
-                      ? "-"
-                      : item.scores
-                          .map((score) => `${score.criteria.name}: ${score.score}`)
-                          .join(", ")}
-                  </td>
-                  <td className="px-5 py-4 font-semibold">
-                    {formatAverageScore(item.averageScore)}
-                  </td>
-                  <td className="px-5 py-4">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => startEditMode(item)}
-                    >
-                      Edit
-                    </Button>
+            <Table
+              headers={[
+                "Tanggal",
+                "Petugas",
+                "Unit",
+                "Status",
+                "Skor",
+                "Rata-rata",
+                "Aksi"
+              ]}
+            >
+              {displayedAssessments.length ? (
+                displayedAssessments.map((item) => (
+                  <tr key={item.id} className="border-t border-[var(--border)]">
+                    <td className="px-5 py-4 font-medium">
+                      {toDateInputValue(item.assessmentDate)}
+                    </td>
+                    <td className="px-5 py-4">
+                      <div>
+                        <p className="font-semibold">{item.officer.name}</p>
+                        <p className="text-xs text-[var(--muted)]">
+                          NIP: {item.officer.nip}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-[var(--muted)]">
+                      {item.officer.unit?.name ?? "-"}
+                    </td>
+                    <td className="px-5 py-4">
+                      <Badge variant={item.status === "PRESENT" ? "success" : "warning"}>
+                        {item.status === "PRESENT" ? "Hadir" : "Tidak Hadir"}
+                      </Badge>
+                    </td>
+                    <td className="px-5 py-4 text-[var(--muted)]">
+                      {item.status === "ABSENT"
+                        ? "-"
+                        : item.scores
+                            .map((score) => `${score.criteria.name}: ${score.score}`)
+                            .join(", ")}
+                    </td>
+                    <td className="px-5 py-4 font-semibold">
+                      {formatAverageScore(item.averageScore)}
+                    </td>
+                    <td className="px-5 py-4">
+                      <ActionMenu
+                        items={[
+                          {
+                            label: "Edit penilaian",
+                            icon: faPenToSquare,
+                            onClick: () => startEditMode(item)
+                          },
+                          {
+                            label:
+                              deletingAssessmentId === item.id
+                                ? "Menghapus..."
+                                : "Hapus penilaian",
+                            icon: faTrash,
+                            variant: "danger",
+                            disabled: deletingAssessmentId === item.id,
+                            onClick: () =>
+                              showConfirmToast({
+                                title: `Hapus penilaian ${item.officer.name}?`,
+                                description:
+                                  "Data penilaian harian yang dihapus tidak bisa dipulihkan lagi.",
+                                confirmLabel: "Ya, hapus",
+                                cancelLabel: "Batal",
+                                onConfirm: () => deleteAssessment(item)
+                              })
+                          }
+                        ]}
+                      />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-5 py-8">
+                    <EmptyState
+                      title="Belum ada data penilaian yang cocok"
+                      description="Tambahkan penilaian baru atau ubah filter untuk melihat data pada tanggal dan petugas lain."
+                      icon="A"
+                      actionLabel="Input Penilaian"
+                      onAction={resetForm}
+                    />
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={7} className="px-5 py-8">
-                  <EmptyState
-                    title="Belum ada data penilaian yang cocok"
-                    description="Tambahkan penilaian baru atau ubah filter untuk melihat data pada tanggal dan petugas lain."
-                    icon="A"
-                  />
-                </td>
-              </tr>
-            )}
-          </Table>
+              )}
+            </Table>
+          </DataTableShell>
 
           {filteredAssessments.length > displayedAssessments.length ? (
             <div className="flex justify-center">
@@ -446,65 +536,66 @@ export function AssessmentManagement({
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-            <FormField
-              label="Petugas"
-              hint="Pilih petugas yang akan dinilai."
-              error={formState.errors.officerId?.message}
+            <FormSection
+              title="Informasi penilaian"
+              description="Pilih petugas, tanggal, dan status kehadiran sebelum mengisi skor penilaian."
             >
-              <Select
-                {...register("officerId")}
-                onChange={(event) => {
-                  setSelectedOfficerId(event.target.value);
-                  setValue("officerId", event.target.value);
-                }}
+              <FormField
+                label="Petugas"
+                hint="Pilih petugas yang akan dinilai."
+                error={formState.errors.officerId?.message}
               >
-                <option value="">Pilih petugas</option>
-                {officers.map((officer) => (
-                  <option key={officer.id} value={officer.id}>
-                    {officer.name} ({officer.nip})
-                  </option>
-                ))}
-              </Select>
-            </FormField>
+                <Select
+                  {...register("officerId")}
+                  onChange={(event) => {
+                    setSelectedOfficerId(event.target.value);
+                    setValue("officerId", event.target.value);
+                  }}
+                >
+                  <option value="">Pilih petugas</option>
+                  {officers.map((officer) => (
+                    <option key={officer.id} value={officer.id}>
+                      {officer.name} ({officer.nip})
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
 
-            {activeOfficer ? (
-              <div className="rounded-2xl bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
-                Unit: <span className="font-semibold text-[var(--foreground)]">
-                  {activeOfficer.unit?.name ?? "Belum ditentukan"}
-                </span>
-              </div>
-            ) : null}
+              {activeOfficer ? (
+                <div className="rounded-[var(--radius-control)] bg-white px-4 py-3 text-sm text-[var(--muted)] shadow-[var(--shadow-sm)]">
+                  Unit: <span className="font-semibold text-[var(--foreground)]">
+                    {activeOfficer.unit?.name ?? "Belum ditentukan"}
+                  </span>
+                </div>
+              ) : null}
 
-            <FormField
-              label="Tanggal penilaian"
-              error={formState.errors.assessmentDate?.message}
-            >
-              <DateInput {...register("assessmentDate")} />
-            </FormField>
-
-            <FormField label="Status kehadiran" error={formState.errors.status?.message}>
-              <Select
-                {...register("status")}
-                onChange={(event) => {
-                  const nextStatus = event.target.value as "PRESENT" | "ABSENT";
-                  setStatusValue(nextStatus);
-                  setValue("status", nextStatus);
-                }}
+              <FormField
+                label="Tanggal penilaian"
+                error={formState.errors.assessmentDate?.message}
               >
-                <option value="PRESENT">Hadir</option>
-                <option value="ABSENT">Tidak Hadir</option>
-              </Select>
-            </FormField>
+                <DateInput {...register("assessmentDate")} />
+              </FormField>
+
+              <FormField label="Status kehadiran" error={formState.errors.status?.message}>
+                <Select
+                  {...register("status")}
+                  onChange={(event) => {
+                    const nextStatus = event.target.value as "PRESENT" | "ABSENT";
+                    setStatusValue(nextStatus);
+                    setValue("status", nextStatus);
+                  }}
+                >
+                  <option value="PRESENT">Hadir</option>
+                  <option value="ABSENT">Tidak Hadir</option>
+                </Select>
+              </FormField>
+            </FormSection>
 
             {statusValue === "PRESENT" ? (
-              <div className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-                <div>
-                  <p className="font-semibold">Skor per kriteria</p>
-                  <p className="text-sm text-[var(--muted)]">
-                    Isi semua kriteria aktif dengan skala 1 sampai 10.
-                  </p>
-                </div>
-
+              <FormSection
+                title="Skor per kriteria"
+                description="Isi semua kriteria aktif dengan skala 1 sampai 10."
+              >
                 {criteria.map((item, index) => (
                   <div key={item.id} className="space-y-2">
                     <input
@@ -529,21 +620,31 @@ export function AssessmentManagement({
                     </FormField>
                   </div>
                 ))}
-              </div>
+              </FormSection>
             ) : (
-              <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
-                Status tidak hadir dipilih. Skor kriteria tidak akan disimpan,
-                dan rata-rata nilai akan menjadi kosong.
-              </div>
+              <FormSection
+                title="Status tidak hadir"
+                description="Skor kriteria tidak akan disimpan, dan rata-rata nilai akan menjadi kosong."
+              >
+                <div className="rounded-[var(--radius-control)] border border-dashed border-[var(--border)] bg-white px-4 py-3 text-sm text-[var(--muted)]">
+                  Status tidak hadir dipilih. Skor kriteria tidak akan disimpan,
+                  dan rata-rata nilai akan menjadi kosong.
+                </div>
+              </FormSection>
             )}
 
-            <FormField
-              label="Catatan"
-              hint="Opsional. Misalnya alasan tidak hadir atau catatan perilaku harian."
-              error={formState.errors.notes?.message}
+            <FormSection
+              title="Catatan tambahan"
+              description="Tambahkan catatan operasional atau alasan tidak hadir bila diperlukan."
             >
-              <Textarea placeholder="Tulis catatan jika diperlukan" {...register("notes")} />
-            </FormField>
+              <FormField
+                label="Catatan"
+                hint="Opsional. Misalnya alasan tidak hadir atau catatan perilaku harian."
+                error={formState.errors.notes?.message}
+              >
+                <Textarea placeholder="Tulis catatan jika diperlukan" {...register("notes")} />
+              </FormField>
+            </FormSection>
 
             <Button className="w-full" type="submit" disabled={isPending}>
               {isPending

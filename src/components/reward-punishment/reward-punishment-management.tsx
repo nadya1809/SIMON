@@ -1,19 +1,36 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
+import {
+  faCheck,
+  faFilter,
+  faGavel,
+  faRotateLeft,
+  faTrash,
+  faTriangleExclamation,
+  faTrophy,
+  faWandSparkles
+} from "@fortawesome/free-solid-svg-icons";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FormField } from "@/components/forms/form-field";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataTableShell } from "@/components/ui/data-table-shell";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
+import { SectionCard } from "@/components/ui/section-card";
 import { Select } from "@/components/ui/select";
+import { StatCard } from "@/components/ui/stat-card";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { showConfirmToast } from "@/lib/confirm-toast";
 import { formatAverageScore } from "@/lib/scoring";
 import {
   rewardPunishmentActionSchema,
@@ -148,7 +165,6 @@ export function RewardPunishmentManagement({
   initialRecommendations,
   units,
   defaultPeriod,
-  userName,
   role
 }: RewardPunishmentManagementProps) {
   const [recommendations, setRecommendations] = useState(initialRecommendations);
@@ -160,6 +176,9 @@ export function RewardPunishmentManagement({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [periodFilter, setPeriodFilter] = useState(defaultPeriod);
+  const [deletingRecommendationId, setDeletingRecommendationId] = useState<
+    string | null
+  >(null);
   const [isGenerating, startGenerating] = useTransition();
   const [isDeciding, startDeciding] = useTransition();
   const deferredSearch = useDeferredValue(search);
@@ -337,157 +356,220 @@ export function RewardPunishmentManagement({
     });
   }
 
+  async function deleteRecommendation(recommendation: RecommendationItem) {
+    setDeletingRecommendationId(recommendation.id);
+
+    try {
+      const response = await fetch(`/api/reward-punishment/${recommendation.id}`, {
+        method: "DELETE"
+      });
+
+      const result = (await response.json()) as {
+        message: string;
+      };
+
+      if (!response.ok) {
+        toast.error(result.message || "Gagal menghapus rekomendasi.");
+        return;
+      }
+
+      setRecommendations((current) =>
+        current.filter((item) => item.id !== recommendation.id)
+      );
+
+      if (selectedRecommendationId === recommendation.id) {
+        const nextRecommendation = recommendations.find(
+          (item) => item.id !== recommendation.id
+        );
+        setSelectedRecommendationId(nextRecommendation?.id ?? "");
+      }
+
+      toast.success(result.message || "Rekomendasi berhasil dihapus.");
+    } finally {
+      setDeletingRecommendationId(null);
+    }
+  }
+
   return (
     <DashboardShell
       title="Reward dan Punishment"
       description="Generate rekomendasi bulanan berdasarkan rata-rata penilaian hadir, lalu putuskan approval atau reject secara manual. MVP ini tidak menerapkan minimum jumlah hari hadir, selama petugas punya minimal satu penilaian PRESENT pada bulan tersebut."
-      userName={userName}
       role={role}
     >
       <section className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm">
-          <p className="text-sm text-[var(--muted)]">Total rekomendasi</p>
-          <p className="mt-2 text-2xl font-bold">{summary.total}</p>
-        </div>
-        <div className="rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm">
-          <p className="text-sm text-[var(--muted)]">Recommended</p>
-          <p className="mt-2 text-2xl font-bold">{summary.RECOMMENDED}</p>
-        </div>
-        <div className="rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm">
-          <p className="text-sm text-[var(--muted)]">Approved</p>
-          <p className="mt-2 text-2xl font-bold">{summary.APPROVED}</p>
-        </div>
-        <div className="rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm">
-          <p className="text-sm text-[var(--muted)]">Rejected</p>
-          <p className="mt-2 text-2xl font-bold">{summary.REJECTED}</p>
-        </div>
+        <StatCard label="Total rekomendasi" value={`${summary.total}`} icon={faWandSparkles} iconTone="sky" />
+        <StatCard label="Recommended" value={`${summary.RECOMMENDED}`} icon={faTrophy} iconTone="teal" />
+        <StatCard label="Approved" value={`${summary.APPROVED}`} icon={faCheck} iconTone="blue" />
+        <StatCard label="Rejected" value={`${summary.REJECTED}`} icon={faTriangleExclamation} iconTone="soft" />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
         <div className="space-y-5">
-          <div className="grid gap-4 rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-5">
-            <FormField label="Cari petugas">
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cari nama atau NIP"
-              />
-            </FormField>
+          <FilterToolbar>
+            <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <FormField label="Cari petugas">
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Cari nama atau NIP"
+                />
+              </FormField>
 
-            <FormField label="Periode">
-              <Input
-                type="month"
-                value={periodFilter}
-                onChange={(event) => setPeriodFilter(event.target.value)}
-              />
-            </FormField>
+              <FormField label="Periode">
+                <Input
+                  type="month"
+                  value={periodFilter}
+                  onChange={(event) => setPeriodFilter(event.target.value)}
+                />
+              </FormField>
 
-            <FormField label="Unit">
-              <Select
-                value={unitFilter}
-                onChange={(event) => setUnitFilter(event.target.value)}
-              >
-                <option value="all">Semua unit</option>
-                {units.map((unit) => (
-                  <option key={unit.id} value={unit.id}>
-                    {unit.name}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
+              <FormField label="Unit">
+                <Select
+                  value={unitFilter}
+                  onChange={(event) => setUnitFilter(event.target.value)}
+                >
+                  <option value="all">Semua unit</option>
+                  {units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
 
-            <FormField label="Tipe">
-              <Select
-                value={typeFilter}
-                onChange={(event) => setTypeFilter(event.target.value as TypeFilter)}
-              >
-                <option value="all">Semua tipe</option>
-                <option value="REWARD">Reward</option>
-                <option value="PUNISHMENT">Punishment</option>
-              </Select>
-            </FormField>
+              <FormField label="Tipe">
+                <Select
+                  value={typeFilter}
+                  onChange={(event) => setTypeFilter(event.target.value as TypeFilter)}
+                >
+                  <option value="all">Semua tipe</option>
+                  <option value="REWARD">Reward</option>
+                  <option value="PUNISHMENT">Punishment</option>
+                </Select>
+              </FormField>
 
-            <FormField label="Status">
-              <Select
-                value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(event.target.value as StatusFilter)
-                }
-              >
-                <option value="all">Semua status</option>
-                <option value="RECOMMENDED">Recommended</option>
-                <option value="APPROVED">Approved</option>
-                <option value="REJECTED">Rejected</option>
-              </Select>
-            </FormField>
-          </div>
+              <FormField label="Status">
+                <Select
+                  value={statusFilter}
+                  onChange={(event) =>
+                    setStatusFilter(event.target.value as StatusFilter)
+                  }
+                >
+                  <option value="all">Semua status</option>
+                  <option value="RECOMMENDED">Recommended</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="REJECTED">Rejected</option>
+                </Select>
+              </FormField>
+            </div>
 
-          <Table
-            headers={[
-              "Periode",
-              "Petugas",
-              "Tipe",
-              "Skor",
-              "Kategori",
-              "Status",
-              "Aksi"
-            ]}
+            <Button
+              icon={faRotateLeft}
+              variant="secondary"
+              onClick={() => {
+                setSearch("");
+                setUnitFilter("all");
+                setStatusFilter("all");
+                setTypeFilter("all");
+                setPeriodFilter(defaultPeriod);
+              }}
+            >
+              Reset Filter
+            </Button>
+          </FilterToolbar>
+
+          <DataTableShell
+            title="Daftar rekomendasi"
+            description={`${filteredRecommendations.length} rekomendasi sesuai filter.`}
           >
-            {filteredRecommendations.length ? (
-              filteredRecommendations.map((item) => (
-                <tr key={item.id} className="border-t border-[var(--border)]">
-                  <td className="px-5 py-4 font-medium">
-                    {toMonthLabel(item.periodStart)}
-                  </td>
-                  <td className="px-5 py-4">
-                    <div>
-                      <p className="font-semibold">{item.officer.name}</p>
-                      <p className="text-xs text-[var(--muted)]">
-                        {item.officer.nip} · {item.officer.unit?.name ?? "Tanpa unit"}
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <Badge variant={getTypeVariant(item.type)}>
-                      {getTypeLabel(item.type)}
-                    </Badge>
-                  </td>
-                  <td className="px-5 py-4 font-semibold">
-                    {formatAverageScore(item.triggerScore)}
-                  </td>
-                  <td className="px-5 py-4 text-[var(--muted)]">{item.category}</td>
-                  <td className="px-5 py-4">
-                    <Badge variant={getStatusVariant(item.status)}>
-                      {getStatusLabel(item.status)}
-                    </Badge>
-                  </td>
-                  <td className="px-5 py-4">
-                    <Button
-                      size="sm"
-                      variant={
-                        item.id === selectedRecommendationId ? "primary" : "secondary"
-                      }
-                      onClick={() => {
-                        setSelectedRecommendationId(item.id);
-                      }}
-                    >
-                      {item.id === selectedRecommendationId ? "Dipilih" : "Lihat"}
-                    </Button>
+            <Table
+              headers={[
+                "Periode",
+                "Petugas",
+                "Tipe",
+                "Skor",
+                "Kategori",
+                "Status",
+                "Aksi"
+              ]}
+            >
+              {filteredRecommendations.length ? (
+                filteredRecommendations.map((item) => (
+                  <tr key={item.id} className="border-t border-[var(--border)]">
+                    <td className="px-5 py-4 font-medium">
+                      {toMonthLabel(item.periodStart)}
+                    </td>
+                    <td className="px-5 py-4">
+                      <div>
+                        <p className="font-semibold">{item.officer.name}</p>
+                        <p className="text-xs text-[var(--muted)]">
+                          {item.officer.nip} · {item.officer.unit?.name ?? "Tanpa unit"}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <Badge variant={getTypeVariant(item.type)}>
+                        {getTypeLabel(item.type)}
+                      </Badge>
+                    </td>
+                    <td className="px-5 py-4 font-semibold">
+                      {formatAverageScore(item.triggerScore)}
+                    </td>
+                    <td className="px-5 py-4 text-[var(--muted)]">{item.category}</td>
+                    <td className="px-5 py-4">
+                      <Badge variant={getStatusVariant(item.status)}>
+                        {getStatusLabel(item.status)}
+                      </Badge>
+                    </td>
+                    <td className="px-5 py-4">
+                      <ActionMenu
+                        items={[
+                          {
+                            label:
+                              item.id === selectedRecommendationId
+                                ? "Detail dipilih"
+                                : "Lihat detail",
+                            icon: faGavel,
+                            onClick: () => {
+                              setSelectedRecommendationId(item.id);
+                            }
+                          },
+                          {
+                            label:
+                              deletingRecommendationId === item.id
+                                ? "Menghapus..."
+                                : "Hapus rekomendasi",
+                            icon: faTrash,
+                            variant: "danger",
+                            disabled: deletingRecommendationId === item.id,
+                            onClick: () =>
+                              showConfirmToast({
+                                title: `Hapus rekomendasi ${item.officer.name}?`,
+                                description:
+                                  "Rekomendasi yang dihapus tidak bisa dipulihkan lagi.",
+                                confirmLabel: "Ya, hapus",
+                                cancelLabel: "Batal",
+                                onConfirm: () => deleteRecommendation(item)
+                              })
+                          }
+                        ]}
+                      />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-5 py-8">
+                    <EmptyState
+                      title="Belum ada rekomendasi pada filter ini"
+                      description="Generate rekomendasi untuk periode yang dipilih atau ubah filter pencarian agar data lain muncul."
+                      icon="RP"
+                    />
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={7} className="px-5 py-8">
-                  <EmptyState
-                    title="Belum ada rekomendasi pada filter ini"
-                    description="Generate rekomendasi untuk periode yang dipilih atau ubah filter pencarian agar data lain muncul."
-                    icon="RP"
-                  />
-                </td>
-              </tr>
-            )}
-          </Table>
+              )}
+            </Table>
+          </DataTableShell>
         </div>
 
         <div className="space-y-5">
@@ -499,44 +581,49 @@ export function RewardPunishmentManagement({
               className="space-y-4"
               onSubmit={generateForm.handleSubmit(onGenerate)}
             >
-              <FormField
-                label="Periode bulanan"
-                hint="Format bulan dipakai untuk agregasi penuh satu bulan."
-                error={generateForm.formState.errors.period?.message}
+              <FormSection
+                title="Parameter generate"
+                description="Tentukan periode agregasi dan label kategori yang akan dipakai pada rekomendasi baru."
               >
-                <Input type="month" {...generateForm.register("period")} />
-              </FormField>
+                <FormField
+                  label="Periode bulanan"
+                  hint="Format bulan dipakai untuk agregasi penuh satu bulan."
+                  error={generateForm.formState.errors.period?.message}
+                >
+                  <Input type="month" {...generateForm.register("period")} />
+                </FormField>
 
-              <FormField
-                label="Kategori reward"
-                error={generateForm.formState.errors.rewardCategory?.message}
-              >
-                <Input
-                  placeholder="Contoh: Reward Bulanan"
-                  {...generateForm.register("rewardCategory")}
-                />
-              </FormField>
+                <FormField
+                  label="Kategori reward"
+                  error={generateForm.formState.errors.rewardCategory?.message}
+                >
+                  <Input
+                    placeholder="Contoh: Reward Bulanan"
+                    {...generateForm.register("rewardCategory")}
+                  />
+                </FormField>
 
-              <FormField
-                label="Kategori punishment"
-                error={generateForm.formState.errors.punishmentCategory?.message}
-              >
-                <Input
-                  placeholder="Contoh: Teguran Bulanan"
-                  {...generateForm.register("punishmentCategory")}
-                />
-              </FormField>
+                <FormField
+                  label="Kategori punishment"
+                  error={generateForm.formState.errors.punishmentCategory?.message}
+                >
+                  <Input
+                    placeholder="Contoh: Teguran Bulanan"
+                    {...generateForm.register("punishmentCategory")}
+                  />
+                </FormField>
 
-              <FormField
-                label="Catatan awal"
-                hint="Opsional. Catatan ini akan disalin ke rekomendasi yang baru dibuat."
-                error={generateForm.formState.errors.notes?.message}
-              >
-                <Textarea
-                  placeholder="Tulis catatan awal jika diperlukan"
-                  {...generateForm.register("notes")}
-                />
-              </FormField>
+                <FormField
+                  label="Catatan awal"
+                  hint="Opsional. Catatan ini akan disalin ke rekomendasi yang baru dibuat."
+                  error={generateForm.formState.errors.notes?.message}
+                >
+                  <Textarea
+                    placeholder="Tulis catatan awal jika diperlukan"
+                    {...generateForm.register("notes")}
+                  />
+                </FormField>
+              </FormSection>
 
               <Button className="w-full" type="submit" disabled={isGenerating}>
                 {isGenerating ? "Memproses..." : "Generate rekomendasi"}
@@ -550,7 +637,7 @@ export function RewardPunishmentManagement({
           >
             {selectedRecommendation ? (
               <>
-                <div className="mb-4 space-y-4 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4">
+                <SectionCard className="mb-4 space-y-4 border-none bg-[var(--surface)] p-4 shadow-none">
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={getTypeVariant(selectedRecommendation.type)}>
                       {getTypeLabel(selectedRecommendation.type)}
@@ -571,25 +658,25 @@ export function RewardPunishmentManagement({
                   </div>
 
                   <div className="grid gap-3 text-sm md:grid-cols-2">
-                    <div className="rounded-2xl bg-white px-4 py-3">
+                    <div className="rounded-[var(--radius-control)] bg-white px-4 py-3">
                       <p className="text-[var(--muted)]">Periode</p>
                       <p className="mt-1 font-semibold">
                         {toMonthLabel(selectedRecommendation.periodStart)}
                       </p>
                     </div>
-                    <div className="rounded-2xl bg-white px-4 py-3">
+                    <div className="rounded-[var(--radius-control)] bg-white px-4 py-3">
                       <p className="text-[var(--muted)]">Skor pemicu</p>
                       <p className="mt-1 font-semibold">
                         {formatAverageScore(selectedRecommendation.triggerScore)}
                       </p>
                     </div>
-                    <div className="rounded-2xl bg-white px-4 py-3">
+                    <div className="rounded-[var(--radius-control)] bg-white px-4 py-3">
                       <p className="text-[var(--muted)]">Kategori</p>
                       <p className="mt-1 font-semibold">
                         {selectedRecommendation.category}
                       </p>
                     </div>
-                    <div className="rounded-2xl bg-white px-4 py-3">
+                    <div className="rounded-[var(--radius-control)] bg-white px-4 py-3">
                       <p className="text-[var(--muted)]">Dibuat pada</p>
                       <p className="mt-1 font-semibold">
                         {toDateLabel(selectedRecommendation.createdAt)}
@@ -598,7 +685,7 @@ export function RewardPunishmentManagement({
                   </div>
 
                   {selectedRecommendation.decidedBy ? (
-                    <div className="rounded-2xl bg-white px-4 py-3 text-sm">
+                    <div className="rounded-[var(--radius-control)] bg-white px-4 py-3 text-sm">
                       <p className="text-[var(--muted)]">Keputusan terakhir</p>
                       <p className="mt-1 font-semibold">
                         {selectedRecommendation.decidedBy.name ?? "Pengguna"} ·{" "}
@@ -611,32 +698,37 @@ export function RewardPunishmentManagement({
                       </p>
                     </div>
                   ) : null}
-                </div>
+                </SectionCard>
 
                 <form
                   className="space-y-4"
                   onSubmit={actionForm.handleSubmit(onDecision)}
                 >
-                  <FormField
-                    label="Kategori final"
-                    error={actionForm.formState.errors.category?.message}
+                  <FormSection
+                    title="Keputusan akhir"
+                    description="Perbarui kategori atau catatan sebelum rekomendasi di-approve atau di-reject."
                   >
-                    <Input
-                      placeholder="Perbarui kategori jika diperlukan"
-                      {...actionForm.register("category")}
-                    />
-                  </FormField>
+                    <FormField
+                      label="Kategori final"
+                      error={actionForm.formState.errors.category?.message}
+                    >
+                      <Input
+                        placeholder="Perbarui kategori jika diperlukan"
+                        {...actionForm.register("category")}
+                      />
+                    </FormField>
 
-                  <FormField
-                    label="Catatan keputusan"
-                    hint="Opsional, tetapi disarankan untuk approval atau reject."
-                    error={actionForm.formState.errors.notes?.message}
-                  >
-                    <Textarea
-                      placeholder="Tulis alasan atau detail keputusan"
-                      {...actionForm.register("notes")}
-                    />
-                  </FormField>
+                    <FormField
+                      label="Catatan keputusan"
+                      hint="Opsional, tetapi disarankan untuk approval atau reject."
+                      error={actionForm.formState.errors.notes?.message}
+                    >
+                      <Textarea
+                        placeholder="Tulis alasan atau detail keputusan"
+                        {...actionForm.register("notes")}
+                      />
+                    </FormField>
+                  </FormSection>
 
                   {selectedRecommendation.status === "RECOMMENDED" ? (
                     <div className="grid gap-3 md:grid-cols-2">
@@ -657,7 +749,7 @@ export function RewardPunishmentManagement({
                       </Button>
                     </div>
                   ) : (
-                    <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
+                    <div className="rounded-[var(--radius-control)] border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
                       Rekomendasi ini sudah diputuskan. Buat rekomendasi baru pada
                       periode lain jika diperlukan tindak lanjut tambahan.
                     </div>

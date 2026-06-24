@@ -21,8 +21,10 @@
   --danger-fg: #b64034;
   --shadow-sm: 0 10px 30px rgba(24, 50, 71, 0.05);
   --shadow-md: 0 18px 40px rgba(24, 50, 71, 0.08);
-  --radius-card: 1.6rem;
-  --radius-control: 1rem;
+  --radius-card: 1.15rem;
+  --radius-panel: 1rem;
+  --radius-control: 0.85rem;
+  --radius-chip: 999px;
 }
 
 body {

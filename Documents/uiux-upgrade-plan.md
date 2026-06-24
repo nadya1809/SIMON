@@ -160,6 +160,9 @@ Checklist:
 - [x] Rapikan ranking table
 - [x] Samakan subtitle/copywriting
 - [x] Pastikan whitespace dan hierarchy lebih kuat
+- [x] Rapikan visual chart container
+- [x] Gunakan warna chart pastel berbasis palet BPS
+- [x] Tipiskan grid dan axis chart
 
 ## Fase 5 — Redesign Halaman Data Management
 
@@ -182,14 +185,14 @@ Fokus:
 
 Checklist:
 
-- [ ] Semua halaman list memakai `PageHeader`
-- [~] Semua halaman list memakai `FilterToolbar`
-- [~] Semua halaman list memakai `DataTableShell`
-- [~] Semua halaman row action pindah ke `ActionMenu`
-- [~] Semua badge status dilembutkan
-- [~] Semua empty state diperbarui
-- [~] Semua table spacing dibuat lebih tipis dan clean
-- [ ] Semua subtitle halaman dirapikan
+- [x] Semua halaman list memakai `PageHeader`
+- [x] Semua halaman list memakai `FilterToolbar`
+- [x] Semua halaman list memakai `DataTableShell`
+- [x] Semua halaman row action pindah ke `ActionMenu`
+- [x] Semua badge status dilembutkan
+- [x] Semua empty state diperbarui
+- [x] Semua table spacing dibuat lebih tipis dan clean
+- [x] Semua subtitle halaman dirapikan
 
 ## Fase 6 — Form UX Refactor
 
@@ -200,13 +203,13 @@ Fokus:
 
 Checklist:
 
-- [ ] Pecah form panjang menjadi section modular
-- [ ] Tambahkan judul kecil per section
-- [ ] Tambahkan helper text yang ringkas
-- [ ] Standarkan error state
-- [ ] Standarkan success/loading state
-- [ ] Pastikan destructive action jelas
-- [ ] Rapikan grid 2 kolom untuk desktop bila cocok
+- [x] Pecah form panjang menjadi section modular
+- [x] Tambahkan judul kecil per section
+- [x] Tambahkan helper text yang ringkas
+- [x] Standarkan error state
+- [x] Standarkan success/loading state
+- [x] Pastikan destructive action jelas
+- [x] Rapikan grid 2 kolom untuk desktop bila cocok
 
 ## Fase 7 — Table UX Refactor
 

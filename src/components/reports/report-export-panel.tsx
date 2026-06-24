@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { faFileArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "sonner";
 import { FormField } from "@/components/forms/form-field";
 import { Button } from "@/components/ui/button";
+import { FormSection } from "@/components/ui/form-section";
+import { SectionCard } from "@/components/ui/section-card";
 import { Select } from "@/components/ui/select";
 
 type ReportExportPanelProps = {
@@ -65,7 +68,7 @@ export function ReportExportPanel({
   }
 
   return (
-    <div className="space-y-4 rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm">
+    <SectionCard className="space-y-4 p-5">
       <div>
         <h3 className="text-lg font-bold">Export laporan</h3>
         <p className="mt-1 text-sm text-[var(--muted)]">
@@ -73,19 +76,24 @@ export function ReportExportPanel({
         </p>
       </div>
 
-      <FormField label="Format export">
-        <Select
-          value={format}
-          onChange={(event) => setFormat(event.target.value as "pdf" | "xlsx")}
-        >
-          <option value="xlsx">Excel (.xlsx)</option>
-          <option value="pdf">PDF (.pdf)</option>
-        </Select>
-      </FormField>
+      <FormSection
+        title="Pilih format file"
+        description="Gunakan Excel untuk olah data lanjutan atau PDF untuk pelaporan formal."
+      >
+        <FormField label="Format export">
+          <Select
+            value={format}
+            onChange={(event) => setFormat(event.target.value as "pdf" | "xlsx")}
+          >
+            <option value="xlsx">Excel (.xlsx)</option>
+            <option value="pdf">PDF (.pdf)</option>
+          </Select>
+        </FormField>
+      </FormSection>
 
-      <Button className="w-full" onClick={handleExport} disabled={isPending}>
+      <Button className="w-full" icon={faFileArrowDown} onClick={handleExport} disabled={isPending}>
         {isPending ? "Menyiapkan file..." : "Export laporan"}
       </Button>
-    </div>
+    </SectionCard>
   );
 }

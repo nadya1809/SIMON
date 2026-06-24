@@ -37,7 +37,7 @@ export function StatCard({
           </div>
         </div>
         <div
-          className={`flex h-11 w-11 items-center justify-center rounded-2xl ${toneClasses[iconTone]}`}
+          className={`flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] ${toneClasses[iconTone]}`}
         >
           <FontAwesomeIcon icon={icon} className="h-4 w-4" />
         </div>

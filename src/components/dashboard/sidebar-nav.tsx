@@ -88,7 +88,7 @@ export function SidebarNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "block rounded-[1.1rem] border px-4 py-3 transition",
+                "block rounded-[var(--radius-panel)] border px-4 py-3 transition",
                 isActive
                   ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-[var(--shadow-sm)]"
                   : "border-transparent bg-transparent hover:border-[var(--border)] hover:bg-[var(--surface)]"
@@ -97,7 +97,7 @@ export function SidebarNav() {
               <div className="flex items-start gap-3">
                 <div
                   className={cn(
-                    "mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl",
+                    "mt-0.5 flex h-9 w-9 items-center justify-center rounded-[var(--radius-control)]",
                     isActive
                       ? "bg-white text-[var(--accent)]"
                       : "bg-[var(--surface)] text-[var(--muted)]"

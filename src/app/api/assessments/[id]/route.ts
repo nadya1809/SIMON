@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
 import {
+  apiMessage,
   apiConflict,
   apiNotFound,
   apiUnauthorized,
@@ -231,4 +232,65 @@ export async function PATCH(request: Request, context: RouteContext) {
   return apiSuccess(assessment, {
     message: "Penilaian berhasil diperbarui."
   });
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { session, response } = await requireApiAuth();
+
+  if (response) {
+    return response;
+  }
+
+  if (!session?.user) {
+    return apiUnauthorized();
+  }
+
+  const { id } = await context.params;
+
+  const existingAssessment = await prisma.dailyAssessment.findUnique({
+    where: { id },
+    include: {
+      officer: {
+        include: {
+          unit: true
+        }
+      },
+      assessor: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true
+        }
+      },
+      scores: {
+        include: {
+          criteria: true
+        },
+        orderBy: {
+          criteria: {
+            sortOrder: "asc"
+          }
+        }
+      }
+    }
+  });
+
+  if (!existingAssessment) {
+    return apiNotFound("Data penilaian tidak ditemukan.");
+  }
+
+  await prisma.dailyAssessment.delete({
+    where: { id }
+  });
+
+  await writeAuditLog({
+    userId: session.user.id,
+    action: "DELETE",
+    entity: "DailyAssessment",
+    entityId: existingAssessment.id,
+    beforeData: toAuditJson(existingAssessment)
+  });
+
+  return apiMessage("Penilaian berhasil dihapus.");
 }

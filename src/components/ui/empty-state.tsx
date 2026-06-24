@@ -36,7 +36,7 @@ export function EmptyState({
 
   return (
     <SectionCard className="border-dashed p-10 text-center">
-      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[linear-gradient(135deg,var(--accent-soft),#f0f8fe)] text-[var(--accent)]">
+      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[var(--radius-panel)] bg-[linear-gradient(135deg,var(--accent-soft),#f0f8fe)] text-[var(--accent)]">
         {mappedIcon ? (
           <FontAwesomeIcon icon={mappedIcon} className="h-6 w-6" />
         ) : (

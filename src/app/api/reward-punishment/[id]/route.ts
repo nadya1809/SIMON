@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
+import {
+  apiMessage,
+  apiNotFound,
+  apiUnauthorized,
+  apiValidationError
+} from "@/lib/api-response";
 import { rewardPunishmentActionSchema } from "@/lib/validations/reward-punishment";
 
 type RouteContext = {
@@ -41,10 +47,7 @@ export async function GET(_request: Request, context: RouteContext) {
   });
 
   if (!recommendation) {
-    return NextResponse.json(
-      { message: "Rekomendasi reward atau punishment tidak ditemukan." },
-      { status: 404 }
-    );
+    return apiNotFound("Rekomendasi reward atau punishment tidak ditemukan.");
   }
 
   return NextResponse.json({ data: recommendation });
@@ -58,10 +61,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   if (!session?.user) {
-    return NextResponse.json(
-      { message: "Unauthorized. Silakan login terlebih dahulu." },
-      { status: 401 }
-    );
+    return apiUnauthorized();
   }
 
   const { id } = await context.params;
@@ -69,12 +69,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   const parsed = rewardPunishmentActionSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: "Data keputusan tidak valid.",
-        errors: parsed.error.flatten().fieldErrors
-      },
-      { status: 400 }
+    return apiValidationError(
+      "Data keputusan tidak valid.",
+      parsed.error.flatten().fieldErrors
     );
   }
 
@@ -84,16 +81,12 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (!existingRecommendation) {
-    return NextResponse.json(
-      { message: "Rekomendasi reward atau punishment tidak ditemukan." },
-      { status: 404 }
-    );
+    return apiNotFound("Rekomendasi reward atau punishment tidak ditemukan.");
   }
 
   if (existingRecommendation.status !== "RECOMMENDED") {
-    return NextResponse.json(
-      { message: "Keputusan hanya bisa dilakukan untuk status RECOMMENDED." },
-      { status: 400 }
+    return apiValidationError(
+      "Keputusan hanya bisa dilakukan untuk status RECOMMENDED."
     );
   }
 
@@ -131,4 +124,41 @@ export async function PATCH(request: Request, context: RouteContext) {
         : "Rekomendasi berhasil di-reject.",
     data: updatedRecommendation
   });
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { session, response } = await requireApiAuth();
+
+  if (response) {
+    return response;
+  }
+
+  if (!session?.user) {
+    return apiUnauthorized();
+  }
+
+  const { id } = await context.params;
+
+  const existingRecommendation = await prisma.rewardPunishment.findUnique({
+    where: { id },
+    include: rewardPunishmentInclude
+  });
+
+  if (!existingRecommendation) {
+    return apiNotFound("Rekomendasi reward atau punishment tidak ditemukan.");
+  }
+
+  await prisma.rewardPunishment.delete({
+    where: { id }
+  });
+
+  await writeAuditLog({
+    userId: session.user.id,
+    action: "DELETE",
+    entity: "RewardPunishment",
+    entityId: existingRecommendation.id,
+    beforeData: toAuditJson(existingRecommendation)
+  });
+
+  return apiMessage("Rekomendasi berhasil dihapus.");
 }

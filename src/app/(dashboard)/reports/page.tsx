@@ -1,11 +1,21 @@
 import Link from "next/link";
+import {
+  faArrowTrendUp,
+  faCalendarCheck,
+  faFileLines,
+  faUsers
+} from "@fortawesome/free-solid-svg-icons";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FormField } from "@/components/forms/form-field";
 import { ReportExportPanel } from "@/components/reports/report-export-panel";
 import { Button } from "@/components/ui/button";
+import { DataTableShell } from "@/components/ui/data-table-shell";
 import { DateInput } from "@/components/ui/date-input";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { SectionCard } from "@/components/ui/section-card";
 import { Select } from "@/components/ui/select";
+import { StatCard } from "@/components/ui/stat-card";
 import { Table } from "@/components/ui/table";
 import { requireAuth } from "@/lib/auth-guard";
 import { getReportData } from "@/lib/reports";
@@ -40,81 +50,61 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     <DashboardShell
       title="Laporan dan Export"
       description="Tinjau data penilaian pada periode tertentu, lihat ranking petugas, lalu unduh file Excel atau PDF untuk kebutuhan pelaporan formal."
-      userName={session.user.name ?? "Pengguna"}
       role={session.user.role}
     >
       <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
         <div className="space-y-6">
           <form
             action="/reports"
-            className="grid gap-4 rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-4"
+            className="space-y-0"
           >
-            <FormField label="Dari tanggal">
-              <DateInput name="from" defaultValue={report.filters.from} />
-            </FormField>
+            <FilterToolbar>
+              <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <FormField label="Dari tanggal">
+                  <DateInput name="from" defaultValue={report.filters.from} />
+                </FormField>
 
-            <FormField label="Sampai tanggal">
-              <DateInput name="to" defaultValue={report.filters.to} />
-            </FormField>
+                <FormField label="Sampai tanggal">
+                  <DateInput name="to" defaultValue={report.filters.to} />
+                </FormField>
 
-            <FormField label="Filter unit">
-              <Select name="unitId" defaultValue={report.filters.unitId}>
-                <option value="">Semua unit</option>
-                {report.units.map((unit) => (
-                  <option key={unit.id} value={unit.id}>
-                    {unit.name}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
+                <FormField label="Filter unit">
+                  <Select name="unitId" defaultValue={report.filters.unitId}>
+                    <option value="">Semua unit</option>
+                    {report.units.map((unit) => (
+                      <option key={unit.id} value={unit.id}>
+                        {unit.name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+              </div>
 
-            <div className="flex items-end gap-3">
-              <Button className="flex-1" type="submit">
-                Terapkan
-              </Button>
-              <Link
-                href="/reports"
-                className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--surface)]"
-              >
-                Reset
-              </Link>
-            </div>
+              <div className="flex items-end gap-3">
+                <Button className="flex-1" type="submit">
+                  Terapkan
+                </Button>
+                <Link
+                  href="/reports"
+                  className="inline-flex h-11 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-[var(--shadow-sm)] transition hover:bg-[var(--surface)]"
+                >
+                  Reset
+                </Link>
+              </div>
+            </FilterToolbar>
           </form>
 
           <div className="grid gap-4 md:grid-cols-4">
-            <div className="rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm">
-              <p className="text-sm text-[var(--muted)]">Total penilaian</p>
-              <p className="mt-2 text-2xl font-bold">
-                {report.summary.totalAssessments}
-              </p>
-            </div>
-            <div className="rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm">
-              <p className="text-sm text-[var(--muted)]">Petugas tercakup</p>
-              <p className="mt-2 text-2xl font-bold">
-                {report.summary.totalOfficers}
-              </p>
-            </div>
-            <div className="rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm">
-              <p className="text-sm text-[var(--muted)]">Hadir</p>
-              <p className="mt-2 text-2xl font-bold">{report.summary.totalPresent}</p>
-            </div>
-            <div className="rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm">
-              <p className="text-sm text-[var(--muted)]">Rata-rata</p>
-              <p className="mt-2 text-2xl font-bold">
-                {report.summary.overallAverage.toFixed(2)}
-              </p>
-            </div>
+            <StatCard label="Total penilaian" value={`${report.summary.totalAssessments}`} icon={faFileLines} iconTone="sky" />
+            <StatCard label="Petugas tercakup" value={`${report.summary.totalOfficers}`} icon={faUsers} iconTone="teal" />
+            <StatCard label="Hadir" value={`${report.summary.totalPresent}`} icon={faCalendarCheck} iconTone="blue" />
+            <StatCard label="Rata-rata" value={report.summary.overallAverage.toFixed(2)} icon={faArrowTrendUp} iconTone="soft" />
           </div>
 
-          <section className="rounded-[2rem] border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="mb-4">
-              <h3 className="text-lg font-bold">Ranking petugas</h3>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Ranking dihitung dari rata-rata seluruh assessment berstatus hadir
-                pada periode yang dipilih.
-              </p>
-            </div>
-
+          <DataTableShell
+            title="Ranking petugas"
+            description="Ranking dihitung dari rata-rata seluruh assessment berstatus hadir pada periode yang dipilih."
+          >
             {report.ranking.length ? (
               <Table
                 headers={[
@@ -151,16 +141,12 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                 icon="R"
               />
             )}
-          </section>
+          </DataTableShell>
 
-          <section className="rounded-[2rem] border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="mb-4">
-              <h3 className="text-lg font-bold">Preview data laporan</h3>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Tabel ini menampilkan data utama yang akan masuk ke file export.
-              </p>
-            </div>
-
+          <DataTableShell
+            title="Preview data laporan"
+            description="Tabel ini menampilkan data utama yang akan masuk ke file export."
+          >
             {report.rows.length ? (
               <Table
                 headers={[
@@ -208,7 +194,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                 icon="L"
               />
             )}
-          </section>
+          </DataTableShell>
         </div>
 
         <div className="space-y-6">
@@ -218,13 +204,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             unitId={report.filters.unitId}
           />
 
-          <div className="rounded-[2rem] border border-[var(--border)] bg-white p-5 shadow-sm">
+          <SectionCard className="p-5">
             <h3 className="text-lg font-bold">Isi file export</h3>
             <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
               File laporan memuat daftar penilaian per tanggal, skor per kriteria,
               rata-rata nilai, dan ranking petugas untuk periode aktif.
             </p>
-          </div>
+          </SectionCard>
         </div>
       </section>
     </DashboardShell>

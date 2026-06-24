@@ -18,7 +18,7 @@ export function Topbar({ userName, role }: TopbarProps) {
     <header className="sticky top-0 z-20 mb-6 rounded-[var(--radius-card)] border border-[var(--border)] bg-white/90 px-5 py-4 shadow-[var(--shadow-sm)] backdrop-blur">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--accent-strong),var(--accent))] text-white shadow-[var(--shadow-sm)]">
+          <div className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] bg-[linear-gradient(135deg,var(--accent-strong),var(--accent))] text-white shadow-[var(--shadow-sm)]">
             <FontAwesomeIcon icon={faBuildingColumns} className="h-4 w-4" />
           </div>
           <div>
@@ -34,14 +34,14 @@ export function Topbar({ userName, role }: TopbarProps) {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
             aria-label="Notifikasi sistem"
           >
             <FontAwesomeIcon icon={faBell} className="h-4 w-4" />
           </button>
 
-          <div className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+          <div className="flex items-center gap-3 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-control)] bg-[var(--accent-soft)] text-[var(--accent)]">
               <FontAwesomeIcon icon={faUserShield} className="h-4 w-4" />
             </div>
             <div className="min-w-0">
