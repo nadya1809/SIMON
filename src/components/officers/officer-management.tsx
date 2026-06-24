@@ -21,6 +21,7 @@ import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { ModalDialog } from "@/components/ui/modal-dialog";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
 import { officerSchema, type OfficerFormValues } from "@/lib/validations/officer";
@@ -66,7 +67,8 @@ export function OfficerManagement({
   const [unitFilter, setUnitFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("name");
-  const [visibleRows, setVisibleRows] = useState(10);
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [isActiveValue, setIsActiveValue] = useState(true);
   const [isPending, startTransition] = useTransition();
   const deferredSearch = useDeferredValue(search);
@@ -147,7 +149,12 @@ export function OfficerManagement({
       return a.name.localeCompare(b.name);
     });
 
-  const displayedOfficers = filteredOfficers.slice(0, visibleRows);
+  const totalPages = Math.max(1, Math.ceil(filteredOfficers.length / rowsPerPage));
+  const currentPage = Math.min(page, totalPages);
+  const displayedOfficers = filteredOfficers.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
 
   async function onSubmit(values: OfficerFormValues) {
     const endpoint = editingOfficer
@@ -235,7 +242,7 @@ export function OfficerManagement({
                 value={search}
                 onChange={(event) => {
                   setSearch(event.target.value);
-                  setVisibleRows(10);
+                  setPage(1);
                 }}
                 placeholder="Cari nama atau NIP"
               />
@@ -246,7 +253,7 @@ export function OfficerManagement({
                 value={unitFilter}
                 onChange={(event) => {
                   setUnitFilter(event.target.value);
-                  setVisibleRows(10);
+                  setPage(1);
                 }}
               >
                 <option value="all">Semua unit</option>
@@ -263,7 +270,7 @@ export function OfficerManagement({
                 value={statusFilter}
                 onChange={(event) => {
                   setStatusFilter(event.target.value as StatusFilter);
-                  setVisibleRows(10);
+                  setPage(1);
                 }}
               >
                 <option value="all">Semua status</option>
@@ -351,8 +358,16 @@ export function OfficerManagement({
                 <tr>
                   <td colSpan={6} className="px-5 py-8">
                     <EmptyState
-                      title="Belum ada petugas yang cocok"
-                      description="Tambahkan petugas baru atau ubah filter pencarian untuk melihat data lain."
+                      title={
+                        officers.length
+                          ? "Tidak ada hasil untuk filter ini"
+                          : "Belum ada petugas PST"
+                      }
+                      description={
+                        officers.length
+                          ? "Ubah kata kunci, filter unit, atau status aktif agar data lain muncul."
+                          : "Tambahkan petugas baru agar modul penilaian dan jadwal bisa mulai dipakai."
+                      }
                       icon="P"
                       actionLabel="Tambah Petugas"
                       onAction={() => {
@@ -366,15 +381,18 @@ export function OfficerManagement({
             </Table>
           </DataTableShell>
 
-          {filteredOfficers.length > displayedOfficers.length ? (
-            <div className="flex justify-center">
-              <Button
-                variant="secondary"
-                onClick={() => setVisibleRows((current) => current + 10)}
-              >
-                Tampilkan lebih banyak
-              </Button>
-            </div>
+          {filteredOfficers.length ? (
+            <PaginationBar
+              page={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredOfficers.length}
+              rowsPerPage={rowsPerPage}
+              onPageChange={setPage}
+              onRowsPerPageChange={(rows) => {
+                setRowsPerPage(rows);
+                setPage(1);
+              }}
+            />
           ) : null}
       </section>
 

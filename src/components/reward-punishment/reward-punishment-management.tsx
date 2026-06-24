@@ -25,6 +25,7 @@ import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { ModalDialog } from "@/components/ui/modal-dialog";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { SectionCard } from "@/components/ui/section-card";
 import { Select } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
@@ -179,6 +180,8 @@ export function RewardPunishmentManagement({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [periodFilter, setPeriodFilter] = useState(defaultPeriod);
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [deletingRecommendationId, setDeletingRecommendationId] = useState<
     string | null
   >(null);
@@ -281,6 +284,16 @@ export function RewardPunishmentManagement({
       }
     );
   }, [filteredRecommendations]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredRecommendations.length / rowsPerPage)
+  );
+  const currentPage = Math.min(page, totalPages);
+  const displayedRecommendations = filteredRecommendations.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
 
   async function onGenerate(values: RewardPunishmentGenerationValues) {
     startGenerating(async () => {
@@ -420,26 +433,35 @@ export function RewardPunishmentManagement({
         <FilterToolbar>
           <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
             <FormField label="Cari petugas">
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cari nama atau NIP"
-              />
+                <Input
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Cari nama atau NIP"
+                />
             </FormField>
 
             <FormField label="Periode">
-              <Input
-                type="month"
-                value={periodFilter}
-                onChange={(event) => setPeriodFilter(event.target.value)}
-              />
+                <Input
+                  type="month"
+                  value={periodFilter}
+                  onChange={(event) => {
+                    setPeriodFilter(event.target.value);
+                    setPage(1);
+                  }}
+                />
             </FormField>
 
             <FormField label="Unit">
-              <Select
-                value={unitFilter}
-                onChange={(event) => setUnitFilter(event.target.value)}
-              >
+                <Select
+                  value={unitFilter}
+                  onChange={(event) => {
+                    setUnitFilter(event.target.value);
+                    setPage(1);
+                  }}
+                >
                 <option value="all">Semua unit</option>
                 {units.map((unit) => (
                   <option key={unit.id} value={unit.id}>
@@ -450,10 +472,13 @@ export function RewardPunishmentManagement({
             </FormField>
 
             <FormField label="Tipe">
-              <Select
-                value={typeFilter}
-                onChange={(event) => setTypeFilter(event.target.value as TypeFilter)}
-              >
+                <Select
+                  value={typeFilter}
+                  onChange={(event) => {
+                    setTypeFilter(event.target.value as TypeFilter);
+                    setPage(1);
+                  }}
+                >
                 <option value="all">Semua tipe</option>
                 <option value="REWARD">Reward</option>
                 <option value="PUNISHMENT">Punishment</option>
@@ -461,12 +486,13 @@ export function RewardPunishmentManagement({
             </FormField>
 
             <FormField label="Status">
-              <Select
-                value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(event.target.value as StatusFilter)
-                }
-              >
+                <Select
+                  value={statusFilter}
+                  onChange={(event) => {
+                    setStatusFilter(event.target.value as StatusFilter);
+                    setPage(1);
+                  }}
+                >
                 <option value="all">Semua status</option>
                 <option value="RECOMMENDED">Recommended</option>
                 <option value="APPROVED">Approved</option>
@@ -488,6 +514,7 @@ export function RewardPunishmentManagement({
                 setStatusFilter("all");
                 setTypeFilter("all");
                 setPeriodFilter(defaultPeriod);
+                setPage(1);
               }}
             >
               Reset Filter
@@ -510,8 +537,8 @@ export function RewardPunishmentManagement({
               "Aksi"
             ]}
           >
-            {filteredRecommendations.length ? (
-              filteredRecommendations.map((item) => (
+            {displayedRecommendations.length ? (
+              displayedRecommendations.map((item) => (
                 <tr key={item.id} className="border-t border-[var(--border)]">
                   <td className="px-5 py-4 font-medium">
                     {toMonthLabel(item.periodStart)}
@@ -571,8 +598,16 @@ export function RewardPunishmentManagement({
               <tr>
                 <td colSpan={7} className="px-5 py-8">
                   <EmptyState
-                    title="Belum ada rekomendasi pada filter ini"
-                    description="Generate rekomendasi baru untuk periode aktif atau ubah filter agar data lain muncul."
+                    title={
+                      recommendations.length
+                        ? "Tidak ada rekomendasi untuk filter ini"
+                        : "Belum ada rekomendasi yang dibuat"
+                    }
+                    description={
+                      recommendations.length
+                        ? "Ubah periode, status, tipe, atau unit agar data lain muncul."
+                        : "Generate rekomendasi baru agar daftar reward dan punishment mulai terisi."
+                    }
                     icon="RP"
                     actionLabel="Generate Rekomendasi"
                     onAction={() => setIsGenerateDialogOpen(true)}
@@ -582,6 +617,20 @@ export function RewardPunishmentManagement({
             )}
           </Table>
         </DataTableShell>
+
+        {filteredRecommendations.length ? (
+          <PaginationBar
+            page={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredRecommendations.length}
+            rowsPerPage={rowsPerPage}
+            onPageChange={setPage}
+            onRowsPerPageChange={(rows) => {
+              setRowsPerPage(rows);
+              setPage(1);
+            }}
+          />
+        ) : null}
       </section>
 
       <ModalDialog

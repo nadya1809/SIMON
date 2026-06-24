@@ -23,6 +23,7 @@ import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { ModalDialog } from "@/components/ui/modal-dialog";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -131,7 +132,8 @@ export function AssessmentManagement({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [visibleRows, setVisibleRows] = useState(10);
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [isPending, startTransition] = useTransition();
   const deferredSearch = useDeferredValue(searchOfficer);
 
@@ -237,7 +239,12 @@ export function AssessmentManagement({
       return a.officer.name.localeCompare(b.officer.name);
     });
 
-  const displayedAssessments = filteredAssessments.slice(0, visibleRows);
+  const totalPages = Math.max(1, Math.ceil(filteredAssessments.length / rowsPerPage));
+  const currentPage = Math.min(page, totalPages);
+  const displayedAssessments = filteredAssessments.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
 
   async function onSubmit(values: AssessmentFormValues) {
     const payload = {
@@ -339,7 +346,7 @@ export function AssessmentManagement({
                 value={searchOfficer}
                 onChange={(event) => {
                   setSearchOfficer(event.target.value);
-                  setVisibleRows(10);
+                  setPage(1);
                 }}
                 placeholder="Cari nama atau NIP"
               />
@@ -350,7 +357,7 @@ export function AssessmentManagement({
                 value={unitFilter}
                 onChange={(event) => {
                   setUnitFilter(event.target.value);
-                  setVisibleRows(10);
+                  setPage(1);
                 }}
               >
                 <option value="all">Semua unit</option>
@@ -367,7 +374,7 @@ export function AssessmentManagement({
                 value={statusFilter}
                 onChange={(event) => {
                   setStatusFilter(event.target.value as StatusFilter);
-                  setVisibleRows(10);
+                  setPage(1);
                 }}
               >
                 <option value="all">Semua status</option>
@@ -381,7 +388,7 @@ export function AssessmentManagement({
                 value={fromDate}
                 onChange={(event) => {
                   setFromDate(event.target.value);
-                  setVisibleRows(10);
+                  setPage(1);
                 }}
               />
             </FormField>
@@ -391,7 +398,7 @@ export function AssessmentManagement({
                 value={toDate}
                 onChange={(event) => {
                   setToDate(event.target.value);
-                  setVisibleRows(10);
+                  setPage(1);
                 }}
               />
             </FormField>
@@ -416,7 +423,7 @@ export function AssessmentManagement({
                 setStatusFilter("all");
                 setFromDate("");
                 setToDate("");
-                setVisibleRows(10);
+                setPage(1);
               }}
             >
               Reset Filter
@@ -498,8 +505,16 @@ export function AssessmentManagement({
               <tr>
                 <td colSpan={7} className="px-5 py-8">
                   <EmptyState
-                    title="Belum ada data penilaian yang cocok"
-                    description="Tambahkan penilaian baru atau ubah filter untuk melihat data pada tanggal dan petugas lain."
+                    title={
+                      assessments.length
+                        ? "Tidak ada penilaian untuk filter ini"
+                        : "Belum ada penilaian harian"
+                    }
+                    description={
+                      assessments.length
+                        ? "Ubah filter tanggal, unit, atau nama petugas untuk melihat data yang lain."
+                        : "Tambahkan penilaian pertama agar monitoring harian petugas PST mulai berjalan."
+                    }
                     icon="A"
                     actionLabel="Input Penilaian"
                     onAction={() => {
@@ -513,15 +528,18 @@ export function AssessmentManagement({
           </Table>
         </DataTableShell>
 
-        {filteredAssessments.length > displayedAssessments.length ? (
-          <div className="flex justify-center">
-            <Button
-              variant="secondary"
-              onClick={() => setVisibleRows((current) => current + 10)}
-            >
-              Tampilkan lebih banyak
-            </Button>
-          </div>
+        {filteredAssessments.length ? (
+          <PaginationBar
+            page={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredAssessments.length}
+            rowsPerPage={rowsPerPage}
+            onPageChange={setPage}
+            onRowsPerPageChange={(rows) => {
+              setRowsPerPage(rows);
+              setPage(1);
+            }}
+          />
         ) : null}
       </section>
 

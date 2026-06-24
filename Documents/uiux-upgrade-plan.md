@@ -220,10 +220,10 @@ Checklist:
 - [x] Border lebih tipis
 - [x] Row action jadi `...`
 - [x] Toolbar filter horizontal
-- [ ] Pagination lebih modern
-- [ ] Rows-per-page lebih rapi
+- [x] Pagination lebih modern
+- [x] Rows-per-page lebih rapi
 - [x] Status chip konsisten
-- [ ] Search empty state dan no result state dibedakan
+- [x] Search empty state dan no result state dibedakan
 
 ## Fase 8 — Empty, Loading, Feedback, and Motion
 
@@ -315,22 +315,22 @@ Checklist:
 - [x] Refactor halaman petugas
 - [x] Refactor halaman kriteria
 - [x] Refactor halaman user
-- [ ] Refactor halaman laporan
-- [ ] Refactor halaman reward/punishment
-- [ ] Refactor halaman assessment
+- [x] Refactor halaman laporan
+- [x] Refactor halaman reward/punishment
+- [x] Refactor halaman assessment
 
 ## Batch F — Form Modularity
 
-- [ ] Pecah assessment form menjadi section
-- [ ] Pecah reward/punishment form menjadi section
-- [ ] Review dialog form lain agar konsisten
+- [x] Pecah assessment form menjadi section
+- [x] Pecah reward/punishment form menjadi section
+- [x] Review dialog form lain agar konsisten
 
 ## Batch G — Final Polish
 
-- [ ] Style Sonner final
-- [ ] Loading skeleton pass
-- [ ] Empty states pass
-- [ ] Accessibility visual pass
+- [x] Style Sonner final
+- [x] Loading skeleton pass
+- [x] Empty states pass
+- [x] Accessibility visual pass
 - [ ] Desktop QA pass
 
 ## Template Prompt AI Agent
