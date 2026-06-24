@@ -12,7 +12,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-10">
-      <section className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-white p-8 shadow-sm">
+      <section className="w-full max-w-md rounded-[var(--radius-card)] border border-[var(--border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(247,250,253,0.98))] p-8 shadow-[var(--shadow-md)]">
         <div className="mb-8 space-y-2">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
             SIMON PST

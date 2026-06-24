@@ -249,7 +249,7 @@ Fokus:
 
 Checklist:
 
-- [ ] Desktop layout final
+- [x] Desktop layout final
 - [x] Tablet layout aman
 - [x] Sidebar siap menjadi drawer di mobile
 - [x] Toolbar filter tetap usable pada layar sempit
@@ -263,15 +263,15 @@ Fokus:
 
 Checklist:
 
-- [ ] Audit semua spacing
-- [ ] Audit semua heading/subtitle
-- [ ] Audit semua card style
-- [ ] Audit semua form label/helper/error
-- [ ] Audit semua table toolbar/action
-- [ ] Audit semua badge/status
-- [ ] Audit semua chart palette
-- [ ] Audit semua empty state
-- [ ] Audit topbar/sidebar consistency
+- [x] Audit semua spacing
+- [x] Audit semua heading/subtitle
+- [x] Audit semua card style
+- [x] Audit semua form label/helper/error
+- [x] Audit semua table toolbar/action
+- [x] Audit semua badge/status
+- [x] Audit semua chart palette
+- [x] Audit semua empty state
+- [x] Audit topbar/sidebar consistency
 
 ## Task Breakdown Eksekusi
 
@@ -305,7 +305,7 @@ Checklist:
 ## Batch D — Dashboard
 
 - [x] Refactor halaman dashboard utama
-- [ ] Refactor chart wrappers
+- [x] Refactor chart wrappers
 - [x] Sesuaikan filter dashboard
 - [x] Rapikan ranking section
 
@@ -331,7 +331,7 @@ Checklist:
 - [x] Loading skeleton pass
 - [x] Empty states pass
 - [x] Accessibility visual pass
-- [ ] Desktop QA pass
+- [x] Desktop QA pass
 
 ## Template Prompt AI Agent
 

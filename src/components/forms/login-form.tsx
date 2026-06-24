@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/forms/form-field";
 import { Input } from "@/components/ui/input";
+import { SectionCard } from "@/components/ui/section-card";
 
 type LoginFormProps = {
   callbackUrl: string;
@@ -64,9 +65,9 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
       </FormField>
 
       {error ? (
-        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </p>
+        <SectionCard className="border-red-200 bg-[linear-gradient(180deg,#fff8f7,#fff4f2)] px-4 py-3 shadow-none">
+          <p className="text-sm text-red-700">{error}</p>
+        </SectionCard>
       ) : null}
 
       <Button
