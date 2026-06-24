@@ -16,11 +16,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTableShell } from "@/components/ui/data-table-shell";
-import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
+import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
 import {
@@ -55,6 +55,7 @@ export function UserManagement({
   role
 }: UserManagementProps) {
   const [users, setUsers] = useState<UserItem[]>(initialUsers);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
   const [confirmingUser, setConfirmingUser] = useState<UserItem | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
@@ -87,6 +88,7 @@ export function UserManagement({
   const { register, handleSubmit, reset, formState, setValue } = activeForm;
 
   function resetCreateMode() {
+    setIsFormDialogOpen(false);
     setEditingUser(null);
     setIsActiveValue(true);
     createForm.reset({
@@ -106,6 +108,7 @@ export function UserManagement({
   }
 
   function startEditMode(user: UserItem) {
+    setIsFormDialogOpen(true);
     setEditingUser(user);
     setIsActiveValue(user.isActive);
     updateForm.reset({
@@ -210,8 +213,7 @@ export function UserManagement({
       description="Kelola akun Admin, Supervisor, dan Pimpinan. Semua akun dibuat manual oleh Admin sesuai keputusan PRD."
       role={role}
     >
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-5">
+      <section className="space-y-5">
           <FilterToolbar>
             <div>
               <p className="text-sm font-semibold text-[var(--foreground)]">
@@ -221,7 +223,13 @@ export function UserManagement({
                 Kelola hak akses pengguna internal dengan struktur role yang jelas dan aman.
               </p>
             </div>
-            <Button icon={faPlus} onClick={resetCreateMode}>
+            <Button
+              icon={faPlus}
+              onClick={() => {
+                resetCreateMode();
+                setIsFormDialogOpen(true);
+              }}
+            >
               Tambah User
             </Button>
           </FilterToolbar>
@@ -277,19 +285,25 @@ export function UserManagement({
                       description="Tambahkan akun Supervisor atau Pimpinan agar tim bisa mulai menggunakan sistem."
                       icon="U"
                       actionLabel="Tambah User"
-                      onAction={resetCreateMode}
+                      onAction={() => {
+                        resetCreateMode();
+                        setIsFormDialogOpen(true);
+                      }}
                     />
                   </td>
                 </tr>
               )}
             </Table>
           </DataTableShell>
-        </div>
+      </section>
 
-        <Dialog
-          title={editingUser ? "Edit user" : "Tambah user baru"}
-          description="Email harus unik. Password bisa diisi ulang saat edit jika ingin melakukan reset."
-        >
+      <ModalDialog
+        open={isFormDialogOpen}
+        onClose={resetCreateMode}
+        title={editingUser ? "Edit user" : "Tambah user baru"}
+        description="Email harus unik. Password bisa diisi ulang saat edit jika ingin melakukan reset."
+        className="max-w-4xl"
+      >
           <div className="mb-4 flex items-center justify-between">
             <Badge variant={editingUser ? "warning" : "success"}>
               {editingUser ? "Mode edit" : "Mode tambah"}
@@ -378,16 +392,20 @@ export function UserManagement({
               </FormField>
             </FormSection>
 
-            <Button className="w-full" type="submit" disabled={isPending}>
-              {isPending
-                ? "Menyimpan..."
-                : editingUser
-                  ? "Simpan perubahan"
-                  : "Tambah user"}
-            </Button>
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="secondary" onClick={resetCreateMode}>
+                Batal
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending
+                  ? "Menyimpan..."
+                  : editingUser
+                    ? "Simpan perubahan"
+                    : "Tambah user"}
+              </Button>
+            </div>
           </form>
-        </Dialog>
-      </section>
+      </ModalDialog>
 
       <ConfirmDialog
         open={Boolean(confirmingUser)}

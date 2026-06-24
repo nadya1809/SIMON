@@ -16,11 +16,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTableShell } from "@/components/ui/data-table-shell";
-import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
+import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
 import { officerSchema, type OfficerFormValues } from "@/lib/validations/officer";
@@ -56,6 +56,7 @@ export function OfficerManagement({
   role
 }: OfficerManagementProps) {
   const [officers, setOfficers] = useState<OfficerItem[]>(initialOfficers);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingOfficer, setEditingOfficer] = useState<OfficerItem | null>(null);
   const [confirmingOfficer, setConfirmingOfficer] = useState<OfficerItem | null>(
     null
@@ -84,6 +85,7 @@ export function OfficerManagement({
   const { register, handleSubmit, reset, formState, setValue } = form;
 
   function resetForm() {
+    setIsFormDialogOpen(false);
     setEditingOfficer(null);
     setIsActiveValue(true);
     reset({
@@ -96,6 +98,7 @@ export function OfficerManagement({
   }
 
   function startEditMode(officer: OfficerItem) {
+    setIsFormDialogOpen(true);
     setEditingOfficer(officer);
     setIsActiveValue(officer.isActive);
     reset({
@@ -224,8 +227,7 @@ export function OfficerManagement({
       description="Kelola daftar petugas PST yang akan dinilai. Modul ini mendukung pencarian, filter unit, status aktif, dan pengeditan cepat untuk skala data yang lebih besar."
       role={role}
     >
-      <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <div className="space-y-5">
+      <section className="space-y-5">
           <FilterToolbar>
             <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <FormField label="Cari petugas">
@@ -281,7 +283,13 @@ export function OfficerManagement({
               </Select>
             </FormField>
             </div>
-            <Button icon={faPlus} onClick={resetForm}>
+            <Button
+              icon={faPlus}
+              onClick={() => {
+                resetForm();
+                setIsFormDialogOpen(true);
+              }}
+            >
               Tambah Petugas
             </Button>
           </FilterToolbar>
@@ -347,7 +355,10 @@ export function OfficerManagement({
                       description="Tambahkan petugas baru atau ubah filter pencarian untuk melihat data lain."
                       icon="P"
                       actionLabel="Tambah Petugas"
-                      onAction={resetForm}
+                      onAction={() => {
+                        resetForm();
+                        setIsFormDialogOpen(true);
+                      }}
                     />
                   </td>
                 </tr>
@@ -365,12 +376,15 @@ export function OfficerManagement({
               </Button>
             </div>
           ) : null}
-        </div>
+      </section>
 
-        <Dialog
-          title={editingOfficer ? "Edit petugas" : "Tambah petugas baru"}
-          description="Gunakan NIP unik untuk setiap petugas. Status nonaktif akan mempertahankan histori data lama."
-        >
+      <ModalDialog
+        open={isFormDialogOpen}
+        onClose={resetForm}
+        title={editingOfficer ? "Edit petugas" : "Tambah petugas baru"}
+        description="Gunakan NIP unik untuk setiap petugas. Status nonaktif akan mempertahankan histori data lama."
+        className="max-w-4xl"
+      >
           <div className="mb-4 flex items-center justify-between">
             <Badge variant={editingOfficer ? "warning" : "success"}>
               {editingOfficer ? "Mode edit" : "Mode tambah"}
@@ -458,16 +472,20 @@ export function OfficerManagement({
               </FormField>
             </FormSection>
 
-            <Button className="w-full" type="submit" disabled={isPending}>
-              {isPending
-                ? "Menyimpan..."
-                : editingOfficer
-                  ? "Simpan perubahan"
-                  : "Tambah petugas"}
-            </Button>
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="secondary" onClick={resetForm}>
+                Batal
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending
+                  ? "Menyimpan..."
+                  : editingOfficer
+                    ? "Simpan perubahan"
+                    : "Tambah petugas"}
+              </Button>
+            </div>
           </form>
-        </Dialog>
-      </section>
+      </ModalDialog>
 
       <ConfirmDialog
         open={Boolean(confirmingOfficer)}

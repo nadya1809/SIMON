@@ -16,11 +16,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTableShell } from "@/components/ui/data-table-shell";
-import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
+import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -56,6 +56,7 @@ export function CriteriaManagement({
   role
 }: CriteriaManagementProps) {
   const [criteria, setCriteria] = useState<CriteriaItem[]>(initialCriteria);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingCriteria, setEditingCriteria] = useState<CriteriaItem | null>(
     null
   );
@@ -80,6 +81,7 @@ export function CriteriaManagement({
   const { register, handleSubmit, reset, formState, setValue } = form;
 
   function resetForm() {
+    setIsFormDialogOpen(false);
     setEditingCriteria(null);
     setIsActiveValue(true);
     reset({
@@ -91,6 +93,7 @@ export function CriteriaManagement({
   }
 
   function startEditMode(item: CriteriaItem) {
+    setIsFormDialogOpen(true);
     setEditingCriteria(item);
     setIsActiveValue(item.isActive);
     reset({
@@ -183,8 +186,7 @@ export function CriteriaManagement({
       description="Kelola kriteria penilaian yang aktif dipakai sistem. Histori skor lama akan tetap aman meskipun suatu kriteria dinonaktifkan."
       role={role}
     >
-      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="space-y-5">
+      <section className="space-y-5">
           <FilterToolbar>
             <div>
               <p className="text-sm font-semibold text-[var(--foreground)]">
@@ -194,7 +196,13 @@ export function CriteriaManagement({
                 Pastikan urutan dan status kriteria sesuai kebutuhan operasional harian.
               </p>
             </div>
-            <Button icon={faPlus} onClick={resetForm}>
+            <Button
+              icon={faPlus}
+              onClick={() => {
+                resetForm();
+                setIsFormDialogOpen(true);
+              }}
+            >
               Tambah Kriteria
             </Button>
           </FilterToolbar>
@@ -269,19 +277,24 @@ export function CriteriaManagement({
                       description="Tambahkan kriteria penilaian agar form assessment bisa memakai struktur yang kamu tentukan."
                       icon="K"
                       actionLabel="Tambah Kriteria"
-                      onAction={resetForm}
+                      onAction={() => {
+                        resetForm();
+                        setIsFormDialogOpen(true);
+                      }}
                     />
                   </td>
                 </tr>
               )}
             </Table>
           </DataTableShell>
-        </div>
+      </section>
 
-        <Dialog
-          title={editingCriteria ? "Edit kriteria" : "Tambah kriteria baru"}
-          description="Kriteria aktif akan dipakai di form penilaian harian. Nonaktifkan jika ingin menghentikan pemakaian tanpa merusak histori."
-        >
+      <ModalDialog
+        open={isFormDialogOpen}
+        onClose={resetForm}
+        title={editingCriteria ? "Edit kriteria" : "Tambah kriteria baru"}
+        description="Kriteria aktif akan dipakai di form penilaian harian. Nonaktifkan jika ingin menghentikan pemakaian tanpa merusak histori."
+      >
           <div className="mb-4 flex items-center justify-between">
             <Badge variant={editingCriteria ? "warning" : "success"}>
               {editingCriteria ? "Mode edit" : "Mode tambah"}
@@ -359,16 +372,20 @@ export function CriteriaManagement({
               </FormField>
             </FormSection>
 
-            <Button className="w-full" type="submit" disabled={isPending}>
-              {isPending
-                ? "Menyimpan..."
-                : editingCriteria
-                  ? "Simpan perubahan"
-                  : "Tambah kriteria"}
-            </Button>
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="secondary" onClick={resetForm}>
+                Batal
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending
+                  ? "Menyimpan..."
+                  : editingCriteria
+                    ? "Simpan perubahan"
+                    : "Tambah kriteria"}
+              </Button>
+            </div>
           </form>
-        </Dialog>
-      </section>
+      </ModalDialog>
 
       <ConfirmDialog
         open={Boolean(confirmingCriteria)}

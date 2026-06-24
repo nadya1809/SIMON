@@ -16,11 +16,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTableShell } from "@/components/ui/data-table-shell";
-import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
+import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import type { UnitFormValues } from "@/lib/validations/unit";
@@ -46,6 +46,7 @@ export function UnitManagement({
   role
 }: UnitManagementProps) {
   const [units, setUnits] = useState<UnitItem[]>(initialUnits);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<UnitItem | null>(null);
   const [confirmingUnit, setConfirmingUnit] = useState<UnitItem | null>(null);
   const [deletingUnitId, setDeletingUnitId] = useState<string | null>(null);
@@ -62,11 +63,13 @@ export function UnitManagement({
   const { register, handleSubmit, reset, formState } = form;
 
   function startCreateMode() {
+    setIsFormDialogOpen(true);
     setEditingUnit(null);
     reset({ name: "", description: "" });
   }
 
   function startEditMode(unit: UnitItem) {
+    setIsFormDialogOpen(true);
     setEditingUnit(unit);
     reset({
       name: unit.name,
@@ -116,6 +119,7 @@ export function UnitManagement({
       }
 
       setEditingUnit(null);
+      setIsFormDialogOpen(false);
       reset({ name: "", description: "" });
     });
   }
@@ -155,88 +159,93 @@ export function UnitManagement({
       description="Kelola unit kerja yang akan dipakai untuk pengelompokan petugas PST dan analisis dashboard per unit."
       role={role}
     >
-      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-5">
-          <FilterToolbar>
-            <div>
-              <p className="text-sm font-semibold text-[var(--foreground)]">
-                Direktori unit kerja
-              </p>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Gunakan struktur unit yang rapi agar dashboard dan penilaian lebih mudah dibaca.
-              </p>
-            </div>
-            <Button icon={faPlus} onClick={startCreateMode}>
-              Tambah Unit
-            </Button>
-          </FilterToolbar>
+      <section className="space-y-5">
+        <FilterToolbar>
+          <div>
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              Direktori unit kerja
+            </p>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Gunakan struktur unit yang rapi agar dashboard dan penilaian lebih mudah dibaca.
+            </p>
+          </div>
+          <Button icon={faPlus} onClick={startCreateMode}>
+            Tambah Unit
+          </Button>
+        </FilterToolbar>
 
-          <DataTableShell
-            title="Daftar unit"
-            description={`${units.length} unit tercatat di sistem.`}
-          >
-            <Table headers={["Nama Unit", "Jumlah Petugas", "Deskripsi", "Aksi"]}>
-              {units.length ? (
-                units.map((unit) => (
-                  <tr key={unit.id} className="border-t border-[var(--border)]">
-                    <td className="px-5 py-4">
-                      <div>
-                        <p className="font-semibold">{unit.name}</p>
-                        <p className="mt-1 text-xs text-[var(--muted)]">
-                          Unit kerja untuk pengelompokan petugas PST
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <Badge variant="default">{unit._count.officers} petugas</Badge>
-                    </td>
-                    <td className="px-5 py-4 text-[var(--muted)]">
-                      {unit.description || "-"}
-                    </td>
-                    <td className="px-5 py-4">
-                      <ActionMenu
-                        items={[
-                          {
-                            label: "Edit unit",
-                            icon: faPenToSquare,
-                            onClick: () => startEditMode(unit)
-                          },
-                          {
-                            label:
-                              deletingUnitId === unit.id
-                                ? "Menghapus..."
-                                : "Hapus unit",
-                            icon: faTrash,
-                            variant: "danger",
-                            disabled: deletingUnitId === unit.id,
-                            onClick: () => setConfirmingUnit(unit)
-                          }
-                        ]}
-                      />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="px-5 py-8">
-                    <EmptyState
-                      title="Belum ada unit"
-                      description="Tambahkan unit pertama agar pengelompokan petugas PST bisa mulai digunakan."
-                      icon="U"
-                      actionLabel="Tambah Unit"
-                      onAction={startCreateMode}
+        <DataTableShell
+          title="Daftar unit"
+          description={`${units.length} unit tercatat di sistem.`}
+        >
+          <Table headers={["Nama Unit", "Jumlah Petugas", "Deskripsi", "Aksi"]}>
+            {units.length ? (
+              units.map((unit) => (
+                <tr key={unit.id} className="border-t border-[var(--border)]">
+                  <td className="px-5 py-4">
+                    <div>
+                      <p className="font-semibold">{unit.name}</p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">
+                        Unit kerja untuk pengelompokan petugas PST
+                      </p>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <Badge variant="default">{unit._count.officers} petugas</Badge>
+                  </td>
+                  <td className="px-5 py-4 text-[var(--muted)]">
+                    {unit.description || "-"}
+                  </td>
+                  <td className="px-5 py-4">
+                    <ActionMenu
+                      items={[
+                        {
+                          label: "Edit unit",
+                          icon: faPenToSquare,
+                          onClick: () => startEditMode(unit)
+                        },
+                        {
+                          label:
+                            deletingUnitId === unit.id
+                              ? "Menghapus..."
+                              : "Hapus unit",
+                          icon: faTrash,
+                          variant: "danger",
+                          disabled: deletingUnitId === unit.id,
+                          onClick: () => setConfirmingUnit(unit)
+                        }
+                      ]}
                     />
                   </td>
                 </tr>
-              )}
-            </Table>
-          </DataTableShell>
-        </div>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4} className="px-5 py-8">
+                  <EmptyState
+                    title="Belum ada unit"
+                    description="Tambahkan unit pertama agar pengelompokan petugas PST bisa mulai digunakan."
+                    icon="U"
+                    actionLabel="Tambah Unit"
+                    onAction={startCreateMode}
+                  />
+                </td>
+              </tr>
+            )}
+          </Table>
+        </DataTableShell>
+      </section>
 
-        <Dialog
-          title={editingUnit ? "Edit unit" : "Tambah unit baru"}
-          description="Unit akan dipakai di modul petugas dan dashboard per unit."
-        >
+      <ModalDialog
+        open={isFormDialogOpen}
+        onClose={() => {
+          setIsFormDialogOpen(false);
+          setEditingUnit(null);
+          reset({ name: "", description: "" });
+        }}
+        title={editingUnit ? "Edit unit" : "Tambah unit baru"}
+        description="Unit akan dipakai di modul petugas dan dashboard per unit."
+      >
           <div className="mb-4 flex items-center justify-between">
             <Badge variant={editingUnit ? "warning" : "success"}>
               {editingUnit ? "Mode edit" : "Mode tambah"}
@@ -276,16 +285,28 @@ export function UnitManagement({
               </FormField>
             </FormSection>
 
-            <Button className="w-full" type="submit" disabled={isPending}>
-              {isPending
-                ? "Menyimpan..."
-                : editingUnit
-                  ? "Simpan perubahan"
-                  : "Tambah unit"}
-            </Button>
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setIsFormDialogOpen(false);
+                  setEditingUnit(null);
+                  reset({ name: "", description: "" });
+                }}
+              >
+                Batal
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending
+                  ? "Menyimpan..."
+                  : editingUnit
+                    ? "Simpan perubahan"
+                    : "Tambah unit"}
+              </Button>
+            </div>
           </form>
-        </Dialog>
-      </section>
+      </ModalDialog>
 
       <ConfirmDialog
         open={Boolean(confirmingUnit)}

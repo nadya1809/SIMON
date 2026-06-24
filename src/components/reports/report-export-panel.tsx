@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { FormField } from "@/components/forms/form-field";
 import { Button } from "@/components/ui/button";
 import { FormSection } from "@/components/ui/form-section";
+import { ModalDialog } from "@/components/ui/modal-dialog";
 import { SectionCard } from "@/components/ui/section-card";
 import { Select } from "@/components/ui/select";
 
@@ -21,6 +22,7 @@ export function ReportExportPanel({
   unitId
 }: ReportExportPanelProps) {
   const [format, setFormat] = useState<"pdf" | "xlsx">("xlsx");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   async function handleExport() {
@@ -64,36 +66,65 @@ export function ReportExportPanel({
           ? "File Excel berhasil disiapkan dan diunduh."
           : "File PDF berhasil disiapkan dan diunduh."
       );
+      setIsDialogOpen(false);
     });
   }
 
   return (
-    <SectionCard className="space-y-4 p-5">
-      <div>
-        <h3 className="text-lg font-bold">Export laporan</h3>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Pilih format file lalu generate laporan sesuai filter aktif.
-        </p>
-      </div>
+    <>
+      <SectionCard className="space-y-4 p-5">
+        <div>
+          <h3 className="text-lg font-bold">Export laporan</h3>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Buka dialog export untuk memilih format file sesuai filter aktif.
+          </p>
+        </div>
 
-      <FormSection
-        title="Pilih format file"
-        description="Gunakan Excel untuk olah data lanjutan atau PDF untuk pelaporan formal."
+        <Button
+          className="w-full"
+          icon={faFileArrowDown}
+          onClick={() => setIsDialogOpen(true)}
+        >
+          Buka Dialog Export
+        </Button>
+      </SectionCard>
+
+      <ModalDialog
+        open={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        title="Export laporan"
+        description="Pilih format file lalu generate laporan sesuai filter aktif."
       >
-        <FormField label="Format export">
-          <Select
-            value={format}
-            onChange={(event) => setFormat(event.target.value as "pdf" | "xlsx")}
+        <div className="space-y-4">
+          <FormSection
+            title="Pilih format file"
+            description="Gunakan Excel untuk olah data lanjutan atau PDF untuk pelaporan formal."
           >
-            <option value="xlsx">Excel (.xlsx)</option>
-            <option value="pdf">PDF (.pdf)</option>
-          </Select>
-        </FormField>
-      </FormSection>
+            <FormField label="Format export">
+              <Select
+                value={format}
+                onChange={(event) => setFormat(event.target.value as "pdf" | "xlsx")}
+              >
+                <option value="xlsx">Excel (.xlsx)</option>
+                <option value="pdf">PDF (.pdf)</option>
+              </Select>
+            </FormField>
+          </FormSection>
 
-      <Button className="w-full" icon={faFileArrowDown} onClick={handleExport} disabled={isPending}>
-        {isPending ? "Menyiapkan file..." : "Export laporan"}
-      </Button>
-    </SectionCard>
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsDialogOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button icon={faFileArrowDown} onClick={handleExport} disabled={isPending}>
+              {isPending ? "Menyiapkan file..." : "Export laporan"}
+            </Button>
+          </div>
+        </div>
+      </ModalDialog>
+    </>
   );
 }
