@@ -43,8 +43,8 @@ const menuItems = [
   },
   {
     href: "/reward-punishment",
-    label: "Reward & Punishment",
-    description: "Rekomendasi dan keputusan",
+    label: "Evaluasi, Reward, dan Punishment",
+    description: "Generate, tinjau, dan putuskan hasil",
     icon: faTrophy
   },
   {

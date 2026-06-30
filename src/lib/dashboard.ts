@@ -1,18 +1,18 @@
 import { prisma } from "@/lib/prisma";
+import { parseDateOnlyUtc } from "@/lib/date-only";
+import {
+  getTimePresetRange,
+  resolveTimePreset
+} from "@/lib/time-presets";
 
 type DashboardParams = {
-  from?: string;
-  to?: string;
+  timePreset?: string;
   unitId?: string;
 };
 
 type AssessmentWithRelations = Awaited<
   ReturnType<typeof prisma.dailyAssessment.findMany>
 >[number];
-
-function toDateOnly(value: string) {
-  return new Date(`${value}T00:00:00`);
-}
 
 function formatDay(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -73,13 +73,15 @@ function buildTrendMap(
 }
 
 export async function getDashboardSummary(params: DashboardParams) {
+  const timePreset = resolveTimePreset(params.timePreset);
+  const range = getTimePresetRange(timePreset);
   const filters = {
     ...(params.unitId ? { officer: { unitId: params.unitId } } : {}),
-    ...(params.from || params.to
+    ...(range.from || range.to
       ? {
           assessmentDate: {
-            ...(params.from ? { gte: toDateOnly(params.from) } : {}),
-            ...(params.to ? { lte: toDateOnly(params.to) } : {})
+            ...(range.from ? { gte: parseDateOnlyUtc(range.from) } : {}),
+            ...(range.to ? { lte: parseDateOnlyUtc(range.to) } : {})
           }
         }
       : {})
@@ -229,8 +231,9 @@ export async function getDashboardSummary(params: DashboardParams) {
 
   return {
     filters: {
-      from: params.from ?? "",
-      to: params.to ?? "",
+      timePreset,
+      from: range.from,
+      to: range.to,
       unitId: params.unitId ?? ""
     },
     units,

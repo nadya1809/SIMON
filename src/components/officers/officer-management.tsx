@@ -2,6 +2,7 @@
 
 import { useDeferredValue, useState, useTransition } from "react";
 import {
+  faClipboardList,
   faPenToSquare,
   faPlus,
   faTrash
@@ -25,6 +26,7 @@ import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
 import { officerSchema, type OfficerFormValues } from "@/lib/validations/officer";
+import { formatAverageScore } from "@/lib/scoring";
 
 type UnitOption = {
   id: string;
@@ -35,10 +37,46 @@ type OfficerItem = {
   id: string;
   nip: string;
   name: string;
-  position: string | null;
+  pejabat: string | null;
   unitId: string | null;
   isActive: boolean;
   unit: UnitOption | null;
+};
+
+type OfficerAssessmentHistoryItem = {
+  id: string;
+  assessmentDate: string;
+  status: "PRESENT" | "ABSENT";
+  averageScore: number | null;
+  notes: string | null;
+  assessor: {
+    id: string;
+    name: string | null;
+    role: string;
+  };
+  scores: Array<{
+    id: string;
+    score: number;
+    criteria: {
+      id: string;
+      name: string;
+      sortOrder: number;
+    };
+  }>;
+};
+
+type OfficerHistoryResponse = {
+  officer: {
+    id: string;
+    name: string;
+    nip: string;
+    unit: UnitOption | null;
+  };
+  filters: {
+    from: string;
+    to: string;
+  };
+  assessments: OfficerAssessmentHistoryItem[];
 };
 
 type OfficerManagementProps = {
@@ -65,6 +103,11 @@ export function OfficerManagement({
     null
   );
   const [deletingOfficerId, setDeletingOfficerId] = useState<string | null>(null);
+  const [historyOfficer, setHistoryOfficer] = useState<OfficerItem | null>(null);
+  const [historyItems, setHistoryItems] = useState<OfficerAssessmentHistoryItem[]>([]);
+  const [historyFrom, setHistoryFrom] = useState("");
+  const [historyTo, setHistoryTo] = useState("");
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [unitFilter, setUnitFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -80,7 +123,7 @@ export function OfficerManagement({
     defaultValues: {
       nip: "",
       name: "",
-      position: "",
+      pejabat: "",
       unitId: "",
       isActive: true
     }
@@ -95,7 +138,7 @@ export function OfficerManagement({
     reset({
       nip: "",
       name: "",
-      position: "",
+      pejabat: "",
       unitId: "",
       isActive: true
     });
@@ -108,7 +151,7 @@ export function OfficerManagement({
     reset({
       nip: officer.nip,
       name: officer.name,
-      position: officer.position ?? "",
+      pejabat: officer.pejabat ?? "",
       unitId: officer.unitId ?? "",
       isActive: officer.isActive
     });
@@ -230,6 +273,60 @@ export function OfficerManagement({
     }
   }
 
+  async function loadOfficerHistory(
+    officer: OfficerItem,
+    filters?: {
+      from?: string;
+      to?: string;
+    }
+  ) {
+    setHistoryOfficer(officer);
+    setIsHistoryLoading(true);
+
+    try {
+      const params = new URLSearchParams();
+
+      if (filters?.from) {
+        params.set("from", filters.from);
+      }
+
+      if (filters?.to) {
+        params.set("to", filters.to);
+      }
+
+      const query = params.toString();
+      const response = await fetch(
+        `/api/officers/${officer.id}/assessments${query ? `?${query}` : ""}`
+      );
+
+      const result = (await response.json()) as {
+        message?: string;
+        data?: OfficerHistoryResponse;
+      };
+
+      if (!response.ok || !result.data) {
+        toast.error(result.message || "Gagal memuat riwayat penilaian.");
+        return;
+      }
+
+      setHistoryOfficer(officer);
+      setHistoryItems(result.data.assessments);
+      setHistoryFrom(result.data.filters.from);
+      setHistoryTo(result.data.filters.to);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }
+
+  function formatDateLabel(value: string) {
+    return new Intl.DateTimeFormat("id-ID", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }).format(new Date(value));
+  }
+
   return (
     <DashboardShell
       title="Master Data Petugas PST"
@@ -308,7 +405,7 @@ export function OfficerManagement({
             description={`${filteredOfficers.length} data sesuai filter aktif.`}
           >
             <Table
-              headers={["NIP", "Nama", "Unit", "Posisi", "Status", "Aksi"]}
+              headers={["NIP", "Nama", "Unit", "Pejabat", "Status", "Aksi"]}
             >
               {displayedOfficers.length ? (
                 displayedOfficers.map((officer) => (
@@ -326,7 +423,7 @@ export function OfficerManagement({
                       {officer.unit?.name ?? "-"}
                     </td>
                     <td className="px-5 py-4 text-[var(--muted)]">
-                      {officer.position || "-"}
+                      {officer.pejabat || "-"}
                     </td>
                     <td className="px-5 py-4">
                       <Badge variant={officer.isActive ? "success" : "warning"}>
@@ -336,6 +433,20 @@ export function OfficerManagement({
                     <td className="px-5 py-4">
                       <ActionMenu
                         items={[
+                          {
+                            label: "Riwayat penilaian",
+                            icon: faClipboardList,
+                            onClick: () => {
+                              setHistoryOfficer(officer);
+                              setHistoryItems([]);
+                              setHistoryFrom("");
+                              setHistoryTo("");
+                              void loadOfficerHistory(officer, {
+                                from: "",
+                                to: ""
+                              });
+                            }
+                          },
                           {
                             label: "Edit petugas",
                             icon: faPenToSquare,
@@ -399,6 +510,161 @@ export function OfficerManagement({
       </section>
 
       <ModalDialog
+        open={Boolean(historyOfficer)}
+        onClose={() => {
+          if (!isHistoryLoading) {
+            setHistoryOfficer(null);
+            setHistoryItems([]);
+            setHistoryFrom("");
+            setHistoryTo("");
+          }
+        }}
+        title={
+          historyOfficer
+            ? `Riwayat penilaian ${historyOfficer.name}`
+            : "Riwayat penilaian petugas"
+        }
+        description="Lihat detail penilaian harian per petugas, termasuk skor tiap kriteria dan rata-rata per hari."
+        className="max-w-6xl"
+      >
+        {historyOfficer ? (
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-[var(--radius-control)] bg-white px-4 py-3 shadow-[var(--shadow-sm)]">
+                <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Petugas
+                </p>
+                <p className="mt-1 font-semibold">{historyOfficer.name}</p>
+                <p className="text-sm text-[var(--muted)]">NIP: {historyOfficer.nip}</p>
+              </div>
+              <div className="rounded-[var(--radius-control)] bg-white px-4 py-3 shadow-[var(--shadow-sm)]">
+                <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Unit
+                </p>
+                <p className="mt-1 font-semibold">
+                  {historyOfficer.unit?.name ?? "Belum ditentukan"}
+                </p>
+              </div>
+              <div className="rounded-[var(--radius-control)] bg-white px-4 py-3 shadow-[var(--shadow-sm)]">
+                <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Total data
+                </p>
+                <p className="mt-1 font-semibold">{historyItems.length} hari penilaian</p>
+              </div>
+            </div>
+
+            <form
+              className="grid gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-[1fr_1fr_auto]"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void loadOfficerHistory(historyOfficer, {
+                  from: historyFrom,
+                  to: historyTo
+                });
+              }}
+            >
+              <FormField label="Dari tanggal">
+                <Input
+                  type="date"
+                  value={historyFrom}
+                  onChange={(event) => setHistoryFrom(event.target.value)}
+                />
+              </FormField>
+              <FormField label="Sampai tanggal">
+                <Input
+                  type="date"
+                  value={historyTo}
+                  onChange={(event) => setHistoryTo(event.target.value)}
+                />
+              </FormField>
+              <div className="flex items-end gap-3">
+                <Button type="submit" disabled={isHistoryLoading}>
+                  {isHistoryLoading ? "Memuat..." : "Terapkan"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setHistoryFrom("");
+                    setHistoryTo("");
+                    void loadOfficerHistory(historyOfficer, {
+                      from: "",
+                      to: ""
+                    });
+                  }}
+                  disabled={isHistoryLoading}
+                >
+                  Reset
+                </Button>
+              </div>
+            </form>
+
+            <div className="rounded-[var(--radius-card)] border border-[var(--border)]">
+              <Table
+                headers={[
+                  "Tanggal",
+                  "Status",
+                  "Skor per kriteria",
+                  "Rata-rata",
+                  "Penilai",
+                  "Catatan"
+                ]}
+              >
+                {historyItems.length ? (
+                  historyItems.map((item) => (
+                    <tr key={item.id} className="border-t border-[var(--border)]">
+                      <td className="px-5 py-4 font-medium">
+                        {formatDateLabel(item.assessmentDate)}
+                      </td>
+                      <td className="px-5 py-4">
+                        <Badge variant={item.status === "PRESENT" ? "success" : "warning"}>
+                          {item.status === "PRESENT" ? "Hadir" : "Tidak Hadir"}
+                        </Badge>
+                      </td>
+                      <td className="px-5 py-4 text-[var(--muted)]">
+                        {item.status === "ABSENT"
+                          ? "-"
+                          : item.scores
+                              .map((score) => `${score.criteria.name}: ${score.score}`)
+                              .join(", ")}
+                      </td>
+                      <td className="px-5 py-4 font-semibold">
+                        {formatAverageScore(item.averageScore)}
+                      </td>
+                      <td className="px-5 py-4 text-[var(--muted)]">
+                        {item.assessor.name ?? "Pengguna"} ({item.assessor.role})
+                      </td>
+                      <td className="px-5 py-4 text-[var(--muted)]">
+                        {item.notes || "-"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-8">
+                      <EmptyState
+                        title={
+                          isHistoryLoading
+                            ? "Sedang memuat riwayat"
+                            : "Belum ada riwayat penilaian"
+                        }
+                        description={
+                          isHistoryLoading
+                            ? "Mohon tunggu sebentar sementara data penilaian harian diambil."
+                            : "Coba ubah rentang tanggal atau tambahkan penilaian harian untuk petugas ini."
+                        }
+                        icon="R"
+                      />
+                    </td>
+                  </tr>
+                )}
+              </Table>
+            </div>
+          </div>
+        ) : null}
+      </ModalDialog>
+
+      <ModalDialog
         open={isFormDialogOpen}
         onClose={resetForm}
         title={editingOfficer ? "Edit petugas" : "Tambah petugas baru"}
@@ -428,10 +694,15 @@ export function OfficerManagement({
             >
               <FormField
                 label="NIP"
-                hint="Harus unik untuk setiap petugas."
+                hint="Harus unik untuk setiap petugas dan hanya boleh berisi angka."
                 error={formState.errors.nip?.message}
               >
-                <Input placeholder="Masukkan NIP petugas" {...register("nip")} />
+                <Input
+                  placeholder="Masukkan NIP petugas"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  {...register("nip")}
+                />
               </FormField>
 
               <FormField
@@ -445,13 +716,13 @@ export function OfficerManagement({
               </FormField>
 
               <FormField
-                label="Posisi"
+                label="Pejabat"
                 hint="Opsional, misalnya Front Office atau Petugas Layanan."
-                error={formState.errors.position?.message}
+                error={formState.errors.pejabat?.message}
               >
                 <Input
-                  placeholder="Masukkan posisi petugas"
-                  {...register("position")}
+                  placeholder="Masukkan pejabat petugas"
+                  {...register("pejabat")}
                 />
               </FormField>
 

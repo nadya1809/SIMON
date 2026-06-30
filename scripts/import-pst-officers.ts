@@ -68,7 +68,7 @@ async function main() {
   const rowsToImport: Array<{
     nip: string;
     name: string;
-    position: string | null;
+    pejabat: string | null;
     unitId: string | null;
   }> = [];
 
@@ -79,7 +79,7 @@ async function main() {
 
     const no = normalizeCell(row.getCell(1).value);
     const name = normalizeCell(row.getCell(2).value);
-    const position = normalizeCell(row.getCell(4).value);
+    const pejabat = normalizeCell(row.getCell(4).value);
     const rawNip = normalizeCell(row.getCell(5).value);
     const unitName = normalizeCell(row.getCell(6).value);
 
@@ -94,7 +94,7 @@ async function main() {
     rowsToImport.push({
       nip: normalizeNip(rawNip),
       name,
-      position: position || null,
+      pejabat: pejabat || null,
       unitId: unitMap.get(unitName) ?? null
     });
   });
@@ -112,7 +112,7 @@ async function main() {
         where: { id: existing.id },
         data: {
           name: item.name,
-          position: item.position,
+          pejabat: item.pejabat,
           unitId: item.unitId,
           isActive: true
         }
@@ -125,7 +125,7 @@ async function main() {
       data: {
         nip: item.nip,
         name: item.name,
-        position: item.position,
+        pejabat: item.pejabat,
         unitId: item.unitId,
         isActive: true
       }

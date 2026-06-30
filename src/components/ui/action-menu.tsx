@@ -86,15 +86,19 @@ export function ActionMenu({
       const rect = triggerRef.current.getBoundingClientRect();
       const minWidth = 176;
       const viewportPadding = 16;
-      const top = rect.bottom + window.scrollY + 8;
+      const estimatedMenuHeight = items.length * 40 + 16;
+      const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+      const shouldOpenUpward = spaceBelow < estimatedMenuHeight;
+      const top = shouldOpenUpward
+        ? Math.max(viewportPadding, rect.top - estimatedMenuHeight - 8)
+        : rect.bottom + 8;
       const preferredLeft =
         align === "right"
-          ? rect.right + window.scrollX - minWidth
-          : rect.left + window.scrollX;
-      const maxLeft =
-        window.scrollX + window.innerWidth - minWidth - viewportPadding;
+          ? rect.right - minWidth
+          : rect.left;
+      const maxLeft = window.innerWidth - minWidth - viewportPadding;
       const left = Math.min(
-        Math.max(window.scrollX + viewportPadding, preferredLeft),
+        Math.max(viewportPadding, preferredLeft),
         maxLeft
       );
 
@@ -113,7 +117,7 @@ export function ActionMenu({
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [align, isOpen]);
+  }, [align, isOpen, items.length]);
 
   return (
     <div className="relative inline-flex" ref={menuRef}>
@@ -134,7 +138,7 @@ export function ActionMenu({
             <div
               id={menuId}
               ref={portalMenuRef}
-              className="fixed z-[120] rounded-[var(--radius-panel)] border border-[var(--border)] bg-white p-2 shadow-[0_22px_44px_rgba(24,50,71,0.18)]"
+              className="fixed z-[200] rounded-[var(--radius-panel)] border border-[var(--border)] bg-white p-2 shadow-[0_22px_44px_rgba(24,50,71,0.18)]"
               style={{
                 top: menuStyle.top,
                 left: menuStyle.left,

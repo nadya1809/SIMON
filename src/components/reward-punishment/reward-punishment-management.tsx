@@ -10,7 +10,7 @@ import {
   faTrophy,
   faWandSparkles
 } from "@fortawesome/free-solid-svg-icons";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
@@ -31,7 +31,20 @@ import { Select } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { toMonthInputValue } from "@/lib/reward-punishment";
+import { formatDateOnlyUtc } from "@/lib/date-only";
+import {
+  formatRecommendationPeriodLabel,
+  getRewardPunishmentPeriodKindLabel,
+  getRewardPunishmentTypeLabel,
+  rewardPunishmentGenerationModeOptions,
+  rewardPunishmentPeriodOptions
+} from "@/lib/reward-punishment";
+import {
+  getDefaultTimePreset,
+  getTimePresetRange,
+  TIME_PRESET_OPTIONS,
+  type TimePreset
+} from "@/lib/time-presets";
 import { formatAverageScore } from "@/lib/scoring";
 import {
   rewardPunishmentActionSchema,
@@ -50,7 +63,15 @@ type UnitOption = {
 type RecommendationItem = {
   id: string;
   officerId: string;
-  type: "REWARD" | "PUNISHMENT";
+  type: "EVALUASI" | "REWARD" | "PUNISHMENT";
+  periodKind:
+    | "DAILY"
+    | "WORKWEEK"
+    | "MONTHLY"
+    | "QUARTERLY"
+    | "SEMIANNUAL"
+    | "YEARLY";
+  referenceDate: string | Date;
   category: string;
   periodStart: string | Date;
   periodEnd: string | Date;
@@ -76,13 +97,12 @@ type RecommendationItem = {
 type RewardPunishmentManagementProps = {
   initialRecommendations: RecommendationItem[];
   units: UnitOption[];
-  defaultPeriod: string;
-  userName: string;
+  defaultReferenceDate: string;
   role: string;
 };
 
 type StatusFilter = "all" | "RECOMMENDED" | "APPROVED" | "REJECTED";
-type TypeFilter = "all" | "REWARD" | "PUNISHMENT";
+type TypeFilter = "all" | "EVALUASI" | "REWARD" | "PUNISHMENT";
 
 function toDateLabel(value: string | Date) {
   const date = typeof value === "string" ? new Date(value) : value;
@@ -90,15 +110,6 @@ function toDateLabel(value: string | Date) {
     day: "2-digit",
     month: "short",
     year: "numeric"
-  }).format(date);
-}
-
-function toMonthLabel(value: string | Date) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  return new Intl.DateTimeFormat("id-ID", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC"
   }).format(date);
 }
 
@@ -127,11 +138,15 @@ function getStatusLabel(status: RecommendationItem["status"]) {
 }
 
 function getTypeVariant(type: RecommendationItem["type"]) {
+  if (type === "EVALUASI") {
+    return "default";
+  }
+
   return type === "REWARD" ? "success" : "danger";
 }
 
 function getTypeLabel(type: RecommendationItem["type"]) {
-  return type === "REWARD" ? "Reward" : "Punishment";
+  return getRewardPunishmentTypeLabel(type);
 }
 
 function mergeRecommendations(
@@ -159,7 +174,7 @@ function mergeRecommendations(
 export function RewardPunishmentManagement({
   initialRecommendations,
   units,
-  defaultPeriod,
+  defaultReferenceDate,
   role
 }: RewardPunishmentManagementProps) {
   const [recommendations, setRecommendations] = useState(initialRecommendations);
@@ -178,16 +193,12 @@ export function RewardPunishmentManagement({
   const [unitFilter, setUnitFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-  const [periodFilter, setPeriodFilter] = useState(defaultPeriod);
+  const [timePreset, setTimePreset] = useState<TimePreset>(getDefaultTimePreset());
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [deletingRecommendationId, setDeletingRecommendationId] = useState<
     string | null
   >(null);
-  const [isGenerating, startGenerating] = useTransition();
-  const [isDeciding, startDeciding] = useTransition();
-  const deferredSearch = useDeferredValue(search);
-
   const generateForm = useForm<
     RewardPunishmentGenerationInput,
     unknown,
@@ -195,7 +206,10 @@ export function RewardPunishmentManagement({
   >({
     resolver: zodResolver(rewardPunishmentGenerationSchema),
     defaultValues: {
-      period: defaultPeriod,
+      periodKind: "MONTHLY",
+      referenceDate: defaultReferenceDate,
+      generationMode: "REWARD_PUNISHMENT",
+      evaluationCategory: "Evaluasi Berkala",
       rewardCategory: "Reward Bulanan",
       punishmentCategory: "Teguran Bulanan",
       notes: ""
@@ -214,6 +228,15 @@ export function RewardPunishmentManagement({
       notes: ""
     }
   });
+
+  const [isGenerating, startGenerating] = useTransition();
+  const [isDeciding, startDeciding] = useTransition();
+  const deferredSearch = useDeferredValue(search);
+  const generationMode = useWatch({
+    control: generateForm.control,
+    name: "generationMode"
+  });
+  const { from: fromDate, to: toDate } = getTimePresetRange(timePreset);
 
   const selectedRecommendation =
     recommendations.find((item) => item.id === selectedRecommendationId) ?? null;
@@ -260,13 +283,23 @@ export function RewardPunishmentManagement({
         return false;
       }
 
-      if (periodFilter && toMonthInputValue(item.periodStart) !== periodFilter) {
+      if (
+        fromDate &&
+        formatDateOnlyUtc(item.periodEnd) < fromDate
+      ) {
+        return false;
+      }
+
+      if (
+        toDate &&
+        formatDateOnlyUtc(item.periodStart) > toDate
+      ) {
         return false;
       }
 
       return true;
     });
-  }, [deferredSearch, periodFilter, recommendations, statusFilter, typeFilter, unitFilter]);
+  }, [deferredSearch, fromDate, recommendations, statusFilter, toDate, typeFilter, unitFilter]);
 
   const summary = useMemo(() => {
     return filteredRecommendations.reduce(
@@ -308,7 +341,13 @@ export function RewardPunishmentManagement({
         message: string;
         data?: RecommendationItem[];
         meta?: {
-          period: string;
+          periodKind: RecommendationItem["periodKind"];
+          referenceDate: string;
+          generationMode:
+            | "EVALUASI"
+            | "REWARD"
+            | "PUNISHMENT"
+            | "REWARD_PUNISHMENT";
           totalCandidates: number;
           createdCount: number;
           skippedCount: number;
@@ -332,8 +371,8 @@ export function RewardPunishmentManagement({
 
       toast.success(
         result.meta
-          ? `${result.message || "Generate rekomendasi berhasil."} Kandidat: ${result.meta.totalCandidates}, dibuat: ${result.meta.createdCount}, dilewati: ${result.meta.skippedCount}.`
-          : result.message || "Generate rekomendasi berhasil."
+          ? `${result.message || "Generate data berhasil."} Kandidat: ${result.meta.totalCandidates}, dibuat: ${result.meta.createdCount}, dilewati: ${result.meta.skippedCount}.`
+          : result.message || "Generate data berhasil."
       );
 
       setIsGenerateDialogOpen(false);
@@ -417,8 +456,8 @@ export function RewardPunishmentManagement({
 
   return (
     <DashboardShell
-      title="Reward dan Punishment"
-      description="Generate rekomendasi bulanan berdasarkan rata-rata penilaian hadir, lalu putuskan approval atau reject secara manual. MVP ini tidak menerapkan minimum jumlah hari hadir, selama petugas punya minimal satu penilaian PRESENT pada bulan tersebut."
+      title="Evaluasi, Reward, dan Punishment"
+      description="Generate evaluasi netral maupun rekomendasi reward dan punishment berdasarkan penilaian hadir pada periode yang dipilih, lalu putuskan approval atau reject secara manual."
       role={role}
     >
       <section className="grid gap-4 md:grid-cols-4">
@@ -442,15 +481,20 @@ export function RewardPunishmentManagement({
                 />
             </FormField>
 
-            <FormField label="Periode">
-                <Input
-                  type="month"
-                  value={periodFilter}
+            <FormField label="Filter waktu">
+                <Select
+                  value={timePreset}
                   onChange={(event) => {
-                    setPeriodFilter(event.target.value);
+                    setTimePreset(event.target.value as TimePreset);
                     setPage(1);
                   }}
-                />
+                >
+                {TIME_PRESET_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
             </FormField>
 
             <FormField label="Unit">
@@ -479,6 +523,7 @@ export function RewardPunishmentManagement({
                   }}
                 >
                 <option value="all">Semua tipe</option>
+                <option value="EVALUASI">Evaluasi</option>
                 <option value="REWARD">Reward</option>
                 <option value="PUNISHMENT">Punishment</option>
               </Select>
@@ -502,7 +547,7 @@ export function RewardPunishmentManagement({
 
           <div className="flex items-end gap-3">
             <Button icon={faWandSparkles} onClick={() => setIsGenerateDialogOpen(true)}>
-              Generate Rekomendasi
+              Generate Data
             </Button>
             <Button
               icon={faRotateLeft}
@@ -512,7 +557,7 @@ export function RewardPunishmentManagement({
                 setUnitFilter("all");
                 setStatusFilter("all");
                 setTypeFilter("all");
-                setPeriodFilter(defaultPeriod);
+                setTimePreset(getDefaultTimePreset());
                 setPage(1);
               }}
             >
@@ -540,7 +585,11 @@ export function RewardPunishmentManagement({
               displayedRecommendations.map((item) => (
                 <tr key={item.id} className="border-t border-[var(--border)]">
                   <td className="px-5 py-4 font-medium">
-                    {toMonthLabel(item.periodStart)}
+                    {formatRecommendationPeriodLabel({
+                      periodKind: item.periodKind,
+                      periodStart: item.periodStart,
+                      periodEnd: item.periodEnd
+                    })}
                   </td>
                   <td className="px-5 py-4">
                     <div>
@@ -605,10 +654,10 @@ export function RewardPunishmentManagement({
                     description={
                       recommendations.length
                         ? "Ubah periode, status, tipe, atau unit agar data lain muncul."
-                        : "Generate rekomendasi baru agar daftar reward dan punishment mulai terisi."
+                        : "Generate evaluasi, reward, atau punishment baru agar daftar mulai terisi."
                     }
                     icon="RP"
-                    actionLabel="Generate Rekomendasi"
+                    actionLabel="Generate Data"
                     onAction={() => setIsGenerateDialogOpen(true)}
                   />
                 </td>
@@ -635,8 +684,8 @@ export function RewardPunishmentManagement({
       <ModalDialog
         open={isGenerateDialogOpen}
         onClose={() => setIsGenerateDialogOpen(false)}
-        title="Generate rekomendasi"
-        description="Sistem akan menghitung rata-rata skor bulanan dari assessment PRESENT saja. Petugas tanpa data hadir tidak akan dibuatkan rekomendasi."
+        title="Generate evaluasi atau tindak lanjut"
+        description="Sistem akan menghitung rata-rata skor dari assessment PRESENT pada periode terpilih. Evaluasi bersifat netral, sedangkan reward dan punishment tetap mengikuti threshold."
       >
         <form
           className="space-y-4"
@@ -646,35 +695,80 @@ export function RewardPunishmentManagement({
         >
           <FormSection
             title="Parameter generate"
-            description="Tentukan periode agregasi dan label kategori yang akan dipakai pada rekomendasi baru."
+            description="Tentukan jenis periode, tanggal acuan, jenis generate, dan label kategori yang akan dipakai pada data baru."
           >
             <FormField
-              label="Periode bulanan"
-              hint="Format bulan dipakai untuk agregasi penuh satu bulan."
-              error={generateForm.formState.errors.period?.message}
+              label="Jenis periode"
+              error={generateForm.formState.errors.periodKind?.message}
             >
-              <Input type="month" {...generateForm.register("period")} />
+              <Select {...generateForm.register("periodKind")}>
+                {rewardPunishmentPeriodOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
             </FormField>
 
             <FormField
-              label="Kategori reward"
-              error={generateForm.formState.errors.rewardCategory?.message}
+              label="Tanggal acuan"
+              hint="Untuk minggu kerja, sistem akan otomatis menarik ke Jumat terakhir."
+              error={generateForm.formState.errors.referenceDate?.message}
             >
-              <Input
-                placeholder="Contoh: Reward Bulanan"
-                {...generateForm.register("rewardCategory")}
-              />
+              <Input type="date" {...generateForm.register("referenceDate")} />
             </FormField>
 
             <FormField
-              label="Kategori punishment"
-              error={generateForm.formState.errors.punishmentCategory?.message}
+              label="Jenis generate"
+              error={generateForm.formState.errors.generationMode?.message}
             >
-              <Input
-                placeholder="Contoh: Teguran Bulanan"
-                {...generateForm.register("punishmentCategory")}
-              />
+              <Select {...generateForm.register("generationMode")}>
+                {rewardPunishmentGenerationModeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
             </FormField>
+
+            {(generationMode === "EVALUASI" ||
+              generationMode === "REWARD_PUNISHMENT") && (
+              <FormField
+                label="Kategori evaluasi"
+                error={generateForm.formState.errors.evaluationCategory?.message}
+              >
+                <Input
+                  placeholder="Contoh: Evaluasi Mingguan"
+                  {...generateForm.register("evaluationCategory")}
+                />
+              </FormField>
+            )}
+
+            {(generationMode === "REWARD" ||
+              generationMode === "REWARD_PUNISHMENT") && (
+              <FormField
+                label="Kategori reward"
+                error={generateForm.formState.errors.rewardCategory?.message}
+              >
+                <Input
+                  placeholder="Contoh: Reward Bulanan"
+                  {...generateForm.register("rewardCategory")}
+                />
+              </FormField>
+            )}
+
+            {(generationMode === "PUNISHMENT" ||
+              generationMode === "REWARD_PUNISHMENT") && (
+              <FormField
+                label="Kategori punishment"
+                error={generateForm.formState.errors.punishmentCategory?.message}
+              >
+                <Input
+                  placeholder="Contoh: Teguran Bulanan"
+                  {...generateForm.register("punishmentCategory")}
+                />
+              </FormField>
+            )}
 
             <FormField
               label="Catatan awal"
@@ -697,7 +791,7 @@ export function RewardPunishmentManagement({
               Batal
             </Button>
             <Button type="submit" disabled={isGenerating} icon={faWandSparkles}>
-              {isGenerating ? "Memproses..." : "Generate rekomendasi"}
+              {isGenerating ? "Memproses..." : "Generate Data"}
             </Button>
           </div>
         </form>
@@ -736,7 +830,17 @@ export function RewardPunishmentManagement({
                     <div className="rounded-[var(--radius-control)] bg-white px-4 py-3">
                       <p className="text-[var(--muted)]">Periode</p>
                       <p className="mt-1 font-semibold">
-                        {toMonthLabel(selectedRecommendation.periodStart)}
+                        {formatRecommendationPeriodLabel({
+                          periodKind: selectedRecommendation.periodKind,
+                          periodStart: selectedRecommendation.periodStart,
+                          periodEnd: selectedRecommendation.periodEnd
+                        })}
+                      </p>
+                    </div>
+                    <div className="rounded-[var(--radius-control)] bg-white px-4 py-3">
+                      <p className="text-[var(--muted)]">Tanggal acuan</p>
+                      <p className="mt-1 font-semibold">
+                        {formatDateOnlyUtc(selectedRecommendation.referenceDate)}
                       </p>
                     </div>
                     <div className="rounded-[var(--radius-control)] bg-white px-4 py-3">
@@ -752,9 +856,9 @@ export function RewardPunishmentManagement({
                       </p>
                     </div>
                     <div className="rounded-[var(--radius-control)] bg-white px-4 py-3">
-                      <p className="text-[var(--muted)]">Dibuat pada</p>
+                      <p className="text-[var(--muted)]">Jenis periode</p>
                       <p className="mt-1 font-semibold">
-                        {toDateLabel(selectedRecommendation.createdAt)}
+                        {getRewardPunishmentPeriodKindLabel(selectedRecommendation.periodKind)}
                       </p>
                     </div>
                   </div>
@@ -862,8 +966,8 @@ export function RewardPunishmentManagement({
 
       <ConfirmDialog
         open={Boolean(pendingGenerateValues)}
-        title="Generate rekomendasi baru?"
-        description="Sistem akan membuat rekomendasi reward dan punishment untuk periode yang dipilih."
+        title="Generate data baru?"
+        description="Sistem akan membuat evaluasi, reward, atau punishment untuk periode yang dipilih."
         variant="warning"
         icon={faWandSparkles}
         confirmLabel="Ya, generate"

@@ -15,16 +15,13 @@ import {
   validateAssessmentBusinessRules
 } from "@/lib/validations/assessment";
 import { calculateAverageScore } from "@/lib/scoring";
+import { parseDateOnlyUtc } from "@/lib/date-only";
 
 type RouteContext = {
   params: Promise<{
     id: string;
   }>;
 };
-
-function toDateOnly(value: string) {
-  return new Date(`${value}T00:00:00`);
-}
 
 export async function GET(_request: Request, context: RouteContext) {
   const { response } = await requireApiAuth();
@@ -149,7 +146,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return apiValidationError(businessRuleError);
   }
 
-  const assessmentDate = toDateOnly(parsed.data.assessmentDate);
+  const assessmentDate = parseDateOnlyUtc(parsed.data.assessmentDate);
 
   const duplicateAssessment = await prisma.dailyAssessment.findFirst({
     where: {

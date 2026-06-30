@@ -5,16 +5,17 @@ export const officerSchema = z.object({
     .string()
     .trim()
     .min(5, "NIP minimal 5 karakter.")
-    .max(30, "NIP maksimal 30 karakter."),
+    .max(30, "NIP maksimal 30 karakter.")
+    .regex(/^\d+$/, "NIP hanya boleh berisi angka."),
   name: z
     .string()
     .trim()
     .min(2, "Nama petugas minimal 2 karakter.")
     .max(120, "Nama petugas maksimal 120 karakter."),
-  position: z
+  pejabat: z
     .string()
     .trim()
-    .max(120, "Posisi maksimal 120 karakter.")
+    .max(120, "Pejabat maksimal 120 karakter.")
     .optional()
     .or(z.literal("")),
   unitId: z.string().trim().optional().or(z.literal("")),

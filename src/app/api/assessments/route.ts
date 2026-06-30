@@ -13,15 +13,12 @@ import {
   mapPrismaError
 } from "@/lib/api-response";
 import { logServerError } from "@/lib/logger";
+import { parseDateOnlyUtc } from "@/lib/date-only";
 import {
   assessmentSchema,
   validateAssessmentBusinessRules
 } from "@/lib/validations/assessment";
 import { calculateAverageScore } from "@/lib/scoring";
-
-function toDateOnly(value: string) {
-  return new Date(`${value}T00:00:00`);
-}
 
 export async function GET(request: Request) {
   const { response } = await requireApiAuth();
@@ -45,8 +42,8 @@ export async function GET(request: Request) {
       ...(from || to
         ? {
             assessmentDate: {
-              ...(from ? { gte: toDateOnly(from) } : {}),
-              ...(to ? { lte: toDateOnly(to) } : {})
+              ...(from ? { gte: parseDateOnlyUtc(from) } : {}),
+              ...(to ? { lte: parseDateOnlyUtc(to) } : {})
             }
           }
         : {})
@@ -134,7 +131,7 @@ export async function POST(request: Request) {
     return apiValidationError(businessRuleError);
   }
 
-  const assessmentDate = toDateOnly(parsed.data.assessmentDate);
+  const assessmentDate = parseDateOnlyUtc(parsed.data.assessmentDate);
 
   const duplicateAssessment = await prisma.dailyAssessment.findFirst({
     where: {

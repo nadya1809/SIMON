@@ -12,8 +12,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
   const data = await getDashboardSummary({
-    from: searchParams.get("from")?.trim() || "",
-    to: searchParams.get("to")?.trim() || "",
+    timePreset: searchParams.get("timePreset")?.trim() || "",
     unitId: searchParams.get("unitId")?.trim() || ""
   });
 

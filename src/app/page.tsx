@@ -11,8 +11,8 @@ export default function HomePage() {
           </h1>
           <p className="text-base leading-7 text-[var(--muted)]">
             Aplikasi ini akan digunakan untuk monitoring penilaian harian,
-            dashboard kinerja, reward dan punishment, serta pelaporan petugas
-            PST dalam satu kantor BPS.
+            dashboard kinerja, evaluasi, reward, punishment, serta pelaporan
+            petugas PST dalam satu kantor BPS.
           </p>
         </div>
       </section>

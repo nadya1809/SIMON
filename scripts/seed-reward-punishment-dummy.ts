@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { calculateAverageScore } from "@/lib/scoring";
-import { getMonthlyRecommendationCandidates } from "@/lib/reward-punishment";
+import { getRecommendationCandidates } from "@/lib/reward-punishment";
 
 const prisma = new PrismaClient();
 
@@ -197,7 +197,11 @@ async function main() {
     }
   }
 
-  const candidates = await getMonthlyRecommendationCandidates(period);
+  const candidates = await getRecommendationCandidates({
+    periodKind: "MONTHLY",
+    referenceDate: reservedDates[reservedDates.length - 1],
+    generationMode: "REWARD_PUNISHMENT"
+  });
   const seededSummary = selected.map(({ officer, profile }) => {
     const candidate = candidates.candidates.find((item) => item.officerId === officer.id);
 
@@ -217,7 +221,7 @@ async function main() {
         period,
         reservedDates,
         message:
-          "Dummy assessment untuk reward dan punishment berhasil dibuat. Lanjutkan dengan klik Generate Rekomendasi di UI.",
+          "Dummy assessment untuk evaluasi/reward/punishment berhasil dibuat. Lanjutkan dengan klik Generate Data di UI.",
         seededSummary
       },
       null,

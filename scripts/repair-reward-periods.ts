@@ -1,15 +1,22 @@
 import { PrismaClient } from "@prisma/client";
+import {
+  buildRecommendationPeriod,
+  type RewardPunishmentPeriodKind
+} from "@/lib/reward-punishment";
+import { formatDateOnlyUtc } from "@/lib/date-only";
 
 const prisma = new PrismaClient();
 
-function getNormalizedMonthRange(source: Date) {
-  const year = source.getUTCFullYear();
-  const monthIndex = source.getUTCMonth();
+function resolveReferenceDateInput(params: {
+  periodKind: RewardPunishmentPeriodKind;
+  referenceDate: Date;
+  periodEnd: Date;
+}) {
+  if (params.periodKind === "MONTHLY") {
+    return formatDateOnlyUtc(params.periodEnd);
+  }
 
-  return {
-    periodStart: new Date(Date.UTC(year, monthIndex, 1)),
-    periodEnd: new Date(Date.UTC(year, monthIndex + 1, 0))
-  };
+  return formatDateOnlyUtc(params.referenceDate);
 }
 
 async function main() {
@@ -20,34 +27,38 @@ async function main() {
   let repairedCount = 0;
 
   for (const item of items) {
-    const periodStartDay = item.periodStart.getUTCDate();
-    const expectedEnd = new Date(
-      Date.UTC(
-        item.periodEnd.getUTCFullYear(),
-        item.periodEnd.getUTCMonth() + 1,
-        0
-      )
-    ).getUTCDate();
-    const periodEndDay = item.periodEnd.getUTCDate();
+    const periodKind = item.periodKind;
+    const referenceDateInput = resolveReferenceDateInput({
+      periodKind,
+      referenceDate: item.referenceDate,
+      periodEnd: item.periodEnd
+    });
+    const expected = buildRecommendationPeriod(periodKind, referenceDateInput);
 
-    if (periodStartDay === 1 && periodEndDay === expectedEnd) {
+    const currentReferenceDate = formatDateOnlyUtc(item.referenceDate);
+    const currentPeriodStart = formatDateOnlyUtc(item.periodStart);
+    const currentPeriodEnd = formatDateOnlyUtc(item.periodEnd);
+    const expectedReferenceDate = formatDateOnlyUtc(expected.referenceDate);
+    const expectedPeriodStart = formatDateOnlyUtc(expected.periodStart);
+    const expectedPeriodEnd = formatDateOnlyUtc(expected.periodEnd);
+
+    if (
+      currentReferenceDate === expectedReferenceDate &&
+      currentPeriodStart === expectedPeriodStart &&
+      currentPeriodEnd === expectedPeriodEnd
+    ) {
       continue;
     }
-
-    const anchor = new Date(
-      Date.UTC(
-        item.periodStart.getUTCFullYear(),
-        item.periodStart.getUTCMonth(),
-        item.periodStart.getUTCDate() + 1
-      )
-    );
-    const normalized = getNormalizedMonthRange(anchor);
 
     await prisma.rewardPunishment.update({
       where: {
         id: item.id
       },
-      data: normalized
+      data: {
+        referenceDate: expected.referenceDate,
+        periodStart: expected.periodStart,
+        periodEnd: expected.periodEnd
+      }
     });
 
     repairedCount += 1;
@@ -61,8 +72,8 @@ async function main() {
         repairedCount,
         message:
           repairedCount > 0
-            ? "Periode reward/punishment yang bergeser berhasil dinormalisasi."
-            : "Tidak ada periode reward/punishment yang perlu diperbaiki."
+            ? "Periode evaluasi/reward/punishment yang tidak sinkron berhasil dinormalisasi."
+            : "Tidak ada periode evaluasi/reward/punishment yang perlu diperbaiki."
       },
       null,
       2

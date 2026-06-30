@@ -21,8 +21,7 @@ import { getDashboardSummary } from "@/lib/dashboard";
 
 type DashboardPageProps = {
   searchParams?: Promise<{
-    from?: string;
-    to?: string;
+    timePreset?: string;
     unitId?: string;
   }>;
 };
@@ -33,8 +32,7 @@ export default async function DashboardPage({
   const session = await requireAuth();
   const resolvedSearchParams = await searchParams;
   const data = await getDashboardSummary({
-    from: resolvedSearchParams?.from,
-    to: resolvedSearchParams?.to,
+    timePreset: resolvedSearchParams?.timePreset,
     unitId: resolvedSearchParams?.unitId
   });
   const hasDashboardData = data.summaryCards.totalAssessments > 0;

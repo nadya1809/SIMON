@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { calculateAverageScore } from "@/lib/scoring";
 import { getDashboardSummary } from "@/lib/dashboard";
-import { getMonthlyRecommendationCandidates } from "@/lib/reward-punishment";
+import { getRecommendationCandidates } from "@/lib/reward-punishment";
 import { getReportData } from "@/lib/reports";
 import {
   buildExcelReportBuffer,
@@ -16,13 +16,6 @@ function formatDateInput(date: Date) {
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
   const day = `${date.getDate()}`.padStart(2, "0");
   return `${year}-${month}-${day}`;
-}
-
-function formatMonthInput(date: Date) {
-  return formatDateInput(new Date(date.getFullYear(), date.getMonth(), 1)).slice(
-    0,
-    7
-  );
 }
 
 function assertCondition(condition: unknown, message: string) {
@@ -65,7 +58,6 @@ async function main() {
   const absentDate = new Date(now.getFullYear(), now.getMonth(), 11);
   const dateFrom = formatDateInput(new Date(now.getFullYear(), now.getMonth(), 1));
   const dateTo = formatDateInput(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-  const monthPeriod = formatMonthInput(now);
   const createdAuditIds: string[] = [];
   let createdAssessmentIds: string[] = [];
   let createdOfficerId: string | null = null;
@@ -194,7 +186,7 @@ async function main() {
       data: {
         nip: `QA-${Date.now()}`,
         name: `Petugas ${uniqueKey}`,
-        position: "QA Smoke",
+        pejabat: "QA Smoke",
         unitId: unit.id,
         isActive: true
       }
@@ -207,7 +199,7 @@ async function main() {
         id: officer.id
       },
       data: {
-        position: "QA Smoke Updated",
+        pejabat: "QA Smoke Updated",
         isActive: false
       }
     });
@@ -306,8 +298,7 @@ async function main() {
     createdAuditIds.push(createAudit.id, updateAudit.id);
 
     const dashboard = await getDashboardSummary({
-      from: dateFrom,
-      to: dateTo,
+      timePreset: "30d",
       unitId: unit.id
     });
 
@@ -329,8 +320,7 @@ async function main() {
     );
 
     const emptyDashboard = await getDashboardSummary({
-      from: "2099-01-01",
-      to: "2099-01-31",
+      timePreset: "today",
       unitId: unit.id
     });
 
@@ -339,7 +329,11 @@ async function main() {
       "Dashboard tanpa data harus mengembalikan total 0."
     );
 
-    const rewardCandidates = await getMonthlyRecommendationCandidates(monthPeriod);
+    const rewardCandidates = await getRecommendationCandidates({
+      periodKind: "MONTHLY",
+      referenceDate: dateTo,
+      generationMode: "REWARD_PUNISHMENT"
+    });
     const officerCandidate = rewardCandidates.candidates.find(
       (item) => item.officerId === officer.id
     );
@@ -354,8 +348,7 @@ async function main() {
     );
 
     const report = await getReportData({
-      from: dateFrom,
-      to: dateTo,
+      timePreset: "30d",
       unitId: unit.id
     });
 
@@ -389,8 +382,7 @@ async function main() {
     });
 
     const reportWithInactiveOfficer = await getReportData({
-      from: dateFrom,
-      to: dateTo,
+      timePreset: "30d",
       unitId: unit.id
     });
 

@@ -47,7 +47,7 @@ export async function GET(_request: Request, context: RouteContext) {
   });
 
   if (!recommendation) {
-    return apiNotFound("Rekomendasi reward atau punishment tidak ditemukan.");
+    return apiNotFound("Data evaluasi, reward, atau punishment tidak ditemukan.");
   }
 
   return NextResponse.json({ data: recommendation });
@@ -81,7 +81,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (!existingRecommendation) {
-    return apiNotFound("Rekomendasi reward atau punishment tidak ditemukan.");
+    return apiNotFound("Data evaluasi, reward, atau punishment tidak ditemukan.");
   }
 
   if (existingRecommendation.status !== "RECOMMENDED") {
@@ -145,7 +145,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
   });
 
   if (!existingRecommendation) {
-    return apiNotFound("Rekomendasi reward atau punishment tidak ditemukan.");
+    return apiNotFound("Data evaluasi, reward, atau punishment tidak ditemukan.");
   }
 
   await prisma.rewardPunishment.delete({
@@ -160,5 +160,5 @@ export async function DELETE(_request: Request, context: RouteContext) {
     beforeData: toAuditJson(existingRecommendation)
   });
 
-  return apiMessage("Rekomendasi berhasil dihapus.");
+  return apiMessage("Data berhasil dihapus.");
 }

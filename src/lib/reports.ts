@@ -1,21 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { parseDateOnlyUtc } from "@/lib/date-only";
+import { getTimePresetRange, resolveTimePreset } from "@/lib/time-presets";
 
 type ReportParams = {
-  from?: string;
-  to?: string;
+  timePreset?: string;
   unitId?: string;
 };
-
-function toDateOnly(value: string) {
-  return new Date(`${value}T00:00:00`);
-}
-
-function toDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 function average(values: number[]) {
   if (!values.length) {
@@ -26,31 +16,26 @@ function average(values: number[]) {
   return Number((total / values.length).toFixed(2));
 }
 
-function createDefaultDateRange() {
-  const today = new Date();
-  const from = new Date(today.getFullYear(), today.getMonth(), 1);
-  const to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-  return {
-    from: toDateInputValue(from),
-    to: toDateInputValue(to)
-  };
-}
-
 export async function getReportData(params: ReportParams) {
-  const defaultRange = createDefaultDateRange();
+  const timePreset = resolveTimePreset(params.timePreset);
+  const presetRange = getTimePresetRange(timePreset);
   const filters = {
-    from: params.from?.trim() || defaultRange.from,
-    to: params.to?.trim() || defaultRange.to,
+    timePreset,
+    from: presetRange.from,
+    to: presetRange.to,
     unitId: params.unitId?.trim() || ""
   };
 
   const where = {
     ...(filters.unitId ? { officer: { unitId: filters.unitId } } : {}),
-    assessmentDate: {
-      gte: toDateOnly(filters.from),
-      lte: toDateOnly(filters.to)
-    }
+    ...(filters.from || filters.to
+      ? {
+          assessmentDate: {
+            ...(filters.from ? { gte: parseDateOnlyUtc(filters.from) } : {}),
+            ...(filters.to ? { lte: parseDateOnlyUtc(filters.to) } : {})
+          }
+        }
+      : {})
   };
 
   const [assessments, units] = await Promise.all([

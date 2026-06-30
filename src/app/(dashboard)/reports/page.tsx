@@ -10,7 +10,6 @@ import { FormField } from "@/components/forms/form-field";
 import { ReportExportPanel } from "@/components/reports/report-export-panel";
 import { Button } from "@/components/ui/button";
 import { DataTableShell } from "@/components/ui/data-table-shell";
-import { DateInput } from "@/components/ui/date-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { SectionCard } from "@/components/ui/section-card";
@@ -20,11 +19,11 @@ import { Table } from "@/components/ui/table";
 import { requireAuth } from "@/lib/auth-guard";
 import { getReportData } from "@/lib/reports";
 import { formatAverageScore } from "@/lib/scoring";
+import { TIME_PRESET_OPTIONS } from "@/lib/time-presets";
 
 type ReportsPageProps = {
   searchParams?: Promise<{
-    from?: string;
-    to?: string;
+    timePreset?: string;
     unitId?: string;
   }>;
 };
@@ -41,8 +40,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const session = await requireAuth();
   const resolvedSearchParams = await searchParams;
   const report = await getReportData({
-    from: resolvedSearchParams?.from,
-    to: resolvedSearchParams?.to,
+    timePreset: resolvedSearchParams?.timePreset,
     unitId: resolvedSearchParams?.unitId
   });
 
@@ -58,13 +56,15 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           className="space-y-0"
         >
           <FilterToolbar>
-            <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <FormField label="Dari tanggal">
-                <DateInput name="from" defaultValue={report.filters.from} />
-              </FormField>
-
-              <FormField label="Sampai tanggal">
-                <DateInput name="to" defaultValue={report.filters.to} />
+            <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-2">
+              <FormField label="Filter waktu">
+                <Select name="timePreset" defaultValue={report.filters.timePreset}>
+                  {TIME_PRESET_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
               </FormField>
 
               <FormField label="Filter unit">

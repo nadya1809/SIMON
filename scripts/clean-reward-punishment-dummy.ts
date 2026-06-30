@@ -22,7 +22,8 @@ async function main() {
       JSON.stringify(
         {
           success: true,
-          message: "Tidak ada dummy assessment reward/punishment yang perlu dihapus."
+          message:
+            "Tidak ada dummy assessment evaluasi/reward/punishment yang perlu dihapus."
         },
         null,
         2
@@ -52,7 +53,8 @@ async function main() {
       {
         success: true,
         deletedAssessments: assessmentIds.length,
-        message: "Dummy assessment reward/punishment berhasil dibersihkan."
+        message:
+          "Dummy assessment evaluasi/reward/punishment berhasil dibersihkan."
       },
       null,
       2

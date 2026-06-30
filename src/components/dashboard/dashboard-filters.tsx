@@ -1,17 +1,16 @@
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faRotateLeft, faFilter } from "@fortawesome/free-solid-svg-icons";
-import { DateInput } from "@/components/ui/date-input";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { FormField } from "@/components/forms/form-field";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { TIME_PRESET_OPTIONS, type TimePreset } from "@/lib/time-presets";
 
 type DashboardFiltersProps = {
   units: Array<{ id: string; name: string }>;
   filters: {
-    from: string;
-    to: string;
+    timePreset: TimePreset;
     unitId: string;
   };
 };
@@ -23,13 +22,15 @@ export function DashboardFilters({ units, filters }: DashboardFiltersProps) {
       className="space-y-0"
     >
       <FilterToolbar>
-        <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <FormField label="Dari tanggal">
-            <DateInput name="from" defaultValue={filters.from} />
-          </FormField>
-
-          <FormField label="Sampai tanggal">
-            <DateInput name="to" defaultValue={filters.to} />
+        <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-2">
+          <FormField label="Filter waktu">
+            <Select name="timePreset" defaultValue={filters.timePreset}>
+              {TIME_PRESET_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
           </FormField>
 
           <FormField label="Filter unit">

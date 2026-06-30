@@ -28,6 +28,16 @@ import { ScoreScalePicker } from "@/components/ui/score-scale-picker";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  formatDateOnlyUtc,
+  getTodayDateInputValue
+} from "@/lib/date-only";
+import {
+  getDefaultTimePreset,
+  getTimePresetRange,
+  TIME_PRESET_OPTIONS,
+  type TimePreset
+} from "@/lib/time-presets";
 import { formatAverageScore } from "@/lib/scoring";
 import {
   assessmentSchema,
@@ -94,19 +104,15 @@ type AssessmentScoreInput = {
   score: number;
 };
 
-function toDateInputValue(value: string | Date) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function createDefaultScores(criteria: CriteriaOption[]) {
   return criteria.map((item) => ({
     criteriaId: item.id,
     score: 1
   }));
+}
+
+function getOfficerDisplayLabel(officer: Pick<OfficerOption, "name" | "nip">) {
+  return `${officer.name} (${officer.nip})`;
 }
 
 type ScoreFieldProps = {
@@ -145,15 +151,16 @@ export function AssessmentManagement({
     null
   );
   const [selectedOfficerId, setSelectedOfficerId] = useState("");
+  const [officerPickerQuery, setOfficerPickerQuery] = useState("");
   const [searchOfficer, setSearchOfficer] = useState("");
   const [unitFilter, setUnitFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const [timePreset, setTimePreset] = useState<TimePreset>(getDefaultTimePreset());
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [isPending, startTransition] = useTransition();
   const deferredSearch = useDeferredValue(searchOfficer);
+  const { from: fromDate, to: toDate } = getTimePresetRange(timePreset);
 
   const units = useMemo(() => {
     const unitMap = new Map<string, { id: string; name: string }>();
@@ -171,7 +178,7 @@ export function AssessmentManagement({
     resolver: zodResolver(assessmentSchema),
     defaultValues: {
       officerId: "",
-      assessmentDate: toDateInputValue(new Date()),
+      assessmentDate: getTodayDateInputValue(),
       status: "PRESENT",
       notes: "",
       scores: createDefaultScores(criteria)
@@ -185,9 +192,10 @@ export function AssessmentManagement({
     setEditingAssessment(null);
     setStatusValue("PRESENT");
     setSelectedOfficerId("");
+    setOfficerPickerQuery("");
     reset({
       officerId: "",
-      assessmentDate: toDateInputValue(new Date()),
+      assessmentDate: getTodayDateInputValue(),
       status: "PRESENT",
       notes: "",
       scores: createDefaultScores(criteria)
@@ -199,9 +207,10 @@ export function AssessmentManagement({
     setEditingAssessment(assessment);
     setStatusValue(assessment.status);
     setSelectedOfficerId(assessment.officerId);
+    setOfficerPickerQuery(getOfficerDisplayLabel(assessment.officer));
     reset({
       officerId: assessment.officerId,
-      assessmentDate: toDateInputValue(assessment.assessmentDate),
+      assessmentDate: formatDateOnlyUtc(assessment.assessmentDate),
       status: assessment.status,
       notes: assessment.notes ?? "",
       scores: criteria.map((item) => ({
@@ -234,7 +243,7 @@ export function AssessmentManagement({
         return false;
       }
 
-      const dateValue = toDateInputValue(item.assessmentDate);
+      const dateValue = formatDateOnlyUtc(item.assessmentDate);
 
       if (fromDate && dateValue < fromDate) {
         return false;
@@ -263,6 +272,18 @@ export function AssessmentManagement({
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
   );
+  const normalizedOfficerPickerQuery = officerPickerQuery.trim().toLowerCase();
+  const displayedOfficerOptions = officers
+    .filter((officer) => {
+      if (!normalizedOfficerPickerQuery) {
+        return true;
+      }
+
+      return `${officer.name} ${officer.nip}`
+        .toLowerCase()
+        .includes(normalizedOfficerPickerQuery);
+    })
+    .slice(0, normalizedOfficerPickerQuery ? 8 : 6);
 
   async function onSubmit(values: AssessmentFormValues) {
     const payload = {
@@ -350,6 +371,16 @@ export function AssessmentManagement({
 
   const activeOfficer = officers.find((item) => item.id === selectedOfficerId);
 
+  function selectOfficer(officer: OfficerOption) {
+    setSelectedOfficerId(officer.id);
+    setOfficerPickerQuery(getOfficerDisplayLabel(officer));
+    setValue("officerId", officer.id, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true
+    });
+  }
+
   return (
     <DashboardShell
       title="Penilaian Harian"
@@ -358,7 +389,7 @@ export function AssessmentManagement({
     >
       <section className="space-y-5">
         <FilterToolbar>
-          <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <FormField label="Cari petugas">
               <Input
                 value={searchOfficer}
@@ -401,24 +432,20 @@ export function AssessmentManagement({
               </Select>
             </FormField>
 
-            <FormField label="Dari tanggal">
-              <DateInput
-                value={fromDate}
+            <FormField label="Filter waktu">
+              <Select
+                value={timePreset}
                 onChange={(event) => {
-                  setFromDate(event.target.value);
+                  setTimePreset(event.target.value as TimePreset);
                   setPage(1);
                 }}
-              />
-            </FormField>
-
-            <FormField label="Sampai tanggal">
-              <DateInput
-                value={toDate}
-                onChange={(event) => {
-                  setToDate(event.target.value);
-                  setPage(1);
-                }}
-              />
+              >
+                {TIME_PRESET_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
             </FormField>
           </div>
 
@@ -439,8 +466,7 @@ export function AssessmentManagement({
                 setSearchOfficer("");
                 setUnitFilter("all");
                 setStatusFilter("all");
-                setFromDate("");
-                setToDate("");
+                setTimePreset(getDefaultTimePreset());
                 setPage(1);
               }}
             >
@@ -468,7 +494,7 @@ export function AssessmentManagement({
               displayedAssessments.map((item) => (
                 <tr key={item.id} className="border-t border-[var(--border)]">
                   <td className="px-5 py-4 font-medium">
-                    {toDateInputValue(item.assessmentDate)}
+                    {formatDateOnlyUtc(item.assessmentDate)}
                   </td>
                   <td className="px-5 py-4">
                     <div>
@@ -591,23 +617,68 @@ export function AssessmentManagement({
             >
               <FormField
                 label="Petugas"
-                hint="Pilih petugas yang akan dinilai."
+                hint="Cari nama atau NIP, lalu pilih salah satu hasil di bawah."
                 error={formState.errors.officerId?.message}
               >
-                <Select
-                  {...register("officerId")}
-                  onChange={(event) => {
-                    setSelectedOfficerId(event.target.value);
-                    setValue("officerId", event.target.value);
-                  }}
-                >
-                  <option value="">Pilih petugas</option>
-                  {officers.map((officer) => (
-                    <option key={officer.id} value={officer.id}>
-                      {officer.name} ({officer.nip})
-                    </option>
-                  ))}
-                </Select>
+                <div className="space-y-3">
+                  <input type="hidden" {...register("officerId")} />
+                  <Input
+                    value={officerPickerQuery}
+                    onChange={(event) => {
+                      const nextQuery = event.target.value;
+                      setOfficerPickerQuery(nextQuery);
+
+                      if (
+                        activeOfficer &&
+                        nextQuery !== getOfficerDisplayLabel(activeOfficer)
+                      ) {
+                        setSelectedOfficerId("");
+                        setValue("officerId", "", {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true
+                        });
+                      }
+                    }}
+                    placeholder="Cari nama atau NIP petugas"
+                  />
+                  <div className="max-h-56 overflow-y-auto rounded-[var(--radius-control)] border border-[var(--border)] bg-white p-2 shadow-[var(--shadow-sm)]">
+                    {displayedOfficerOptions.length ? (
+                      <div className="space-y-1">
+                        {displayedOfficerOptions.map((officer) => {
+                          const isSelected = selectedOfficerId === officer.id;
+
+                          return (
+                            <button
+                              key={officer.id}
+                              type="button"
+                              onClick={() => selectOfficer(officer)}
+                              className={`flex w-full items-start justify-between gap-3 rounded-[0.85rem] px-3 py-2 text-left transition ${
+                                isSelected
+                                  ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                                  : "hover:bg-[var(--surface)]"
+                              }`}
+                            >
+                              <div>
+                                <p className="font-medium">{officer.name}</p>
+                                <p className="text-xs text-[var(--muted)]">
+                                  NIP: {officer.nip}
+                                </p>
+                              </div>
+                              <div className="text-right text-xs text-[var(--muted)]">
+                                {officer.unit?.name ?? "Tanpa unit"}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="px-3 py-6 text-center text-sm text-[var(--muted)]">
+                        Tidak ada petugas yang cocok dengan pencarian ini.
+                      </div>
+                    )}
+                  </div>
+                </div>
               </FormField>
 
               {activeOfficer ? (

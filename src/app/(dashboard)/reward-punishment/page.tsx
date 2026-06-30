@@ -2,7 +2,7 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { RewardPunishmentManagement } from "@/components/reward-punishment/reward-punishment-management";
 import { requireAuth } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
-import { toMonthInputValue } from "@/lib/reward-punishment";
+import { getTodayDateInputValue } from "@/lib/date-only";
 
 export default async function RewardPunishmentPage() {
   const session = await requireAuth();
@@ -24,7 +24,7 @@ export default async function RewardPunishmentPage() {
           }
         }
       },
-      orderBy: [{ periodStart: "desc" }, { createdAt: "desc" }]
+      orderBy: [{ referenceDate: "desc" }, { createdAt: "desc" }]
     }),
     prisma.unit.findMany({
       orderBy: {
@@ -37,8 +37,7 @@ export default async function RewardPunishmentPage() {
     <RewardPunishmentManagement
       initialRecommendations={recommendations}
       units={units}
-      defaultPeriod={toMonthInputValue(new Date())}
-      userName={session.user.name ?? "Pengguna"}
+      defaultReferenceDate={getTodayDateInputValue()}
       role={session.user.role}
     />
   );

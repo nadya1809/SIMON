@@ -3,9 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
 import {
-  getMonthlyRecommendationCandidates,
-  isMonthInput,
-  toMonthPeriod
+  getRecommendationCandidates
 } from "@/lib/reward-punishment";
 import { rewardPunishmentGenerationSchema } from "@/lib/validations/reward-punishment";
 
@@ -37,38 +35,35 @@ export async function GET(request: Request) {
   const unitId = searchParams.get("unitId")?.trim();
   const status = searchParams.get("status")?.trim();
   const type = searchParams.get("type")?.trim();
-  const period = searchParams.get("period")?.trim();
-  const periodFilter =
-    period && isMonthInput(period) ? toMonthPeriod(period) : null;
+  const officerWhere =
+    search || unitId
+      ? {
+          ...(unitId ? { unitId } : {}),
+          ...(search
+            ? {
+                OR: [
+                  { name: { contains: search, mode: "insensitive" as const } },
+                  { nip: { contains: search, mode: "insensitive" as const } }
+                ]
+              }
+            : {})
+        }
+      : undefined;
 
   const recommendations = await prisma.rewardPunishment.findMany({
     where: {
-      ...(search
-        ? {
-            officer: {
-              OR: [
-                { name: { contains: search, mode: "insensitive" } },
-                { nip: { contains: search, mode: "insensitive" } }
-              ]
-            }
-          }
-        : {}),
-      ...(unitId ? { officer: { unitId } } : {}),
+      ...(officerWhere ? { officer: officerWhere } : {}),
       ...(status === "RECOMMENDED" ||
       status === "APPROVED" ||
       status === "REJECTED"
         ? { status }
         : {}),
-      ...(type === "REWARD" || type === "PUNISHMENT" ? { type } : {}),
-      ...(periodFilter
-        ? {
-            periodStart: periodFilter.periodStart,
-            periodEnd: periodFilter.periodEnd
-          }
+      ...(type === "REWARD" || type === "PUNISHMENT" || type === "EVALUASI"
+        ? { type }
         : {})
     },
     include: rewardPunishmentInclude,
-    orderBy: [{ periodStart: "desc" }, { createdAt: "desc" }]
+    orderBy: [{ referenceDate: "desc" }, { createdAt: "desc" }]
   });
 
   return NextResponse.json({ data: recommendations });
@@ -101,17 +96,33 @@ export async function POST(request: Request) {
     );
   }
 
-  const { period, rewardCategory, punishmentCategory, notes } = parsed.data;
-  const { periodStart, periodEnd, candidates } =
-    await getMonthlyRecommendationCandidates(period);
+  const {
+    periodKind,
+    referenceDate,
+    generationMode,
+    evaluationCategory,
+    rewardCategory,
+    punishmentCategory,
+    notes
+  } = parsed.data;
+  const { periodStart, periodEnd, referenceDate: resolvedReferenceDate, candidates } =
+    await getRecommendationCandidates({
+      periodKind,
+      referenceDate,
+      generationMode
+    });
 
   if (!candidates.length) {
     return NextResponse.json({
       message:
-        "Tidak ada petugas yang memenuhi threshold reward atau punishment pada periode ini.",
+        generationMode === "EVALUASI"
+          ? "Tidak ada petugas yang memiliki data hadir pada periode ini."
+          : "Tidak ada petugas yang memenuhi threshold reward atau punishment pada periode ini.",
       data: [],
       meta: {
-        period,
+        periodKind,
+        referenceDate,
+        generationMode,
         totalCandidates: 0,
         createdCount: 0,
         skippedCount: 0
@@ -124,6 +135,11 @@ export async function POST(request: Request) {
       officerId: {
         in: candidates.map((item) => item.officerId)
       },
+      type: {
+        in: [...new Set(candidates.map((item) => item.type))]
+      },
+      periodKind,
+      referenceDate: resolvedReferenceDate,
       periodStart,
       periodEnd
     },
@@ -146,7 +162,9 @@ export async function POST(request: Request) {
         "Semua rekomendasi untuk periode ini sudah pernah dibuat sebelumnya.",
       data: [],
       meta: {
-        period,
+        periodKind,
+        referenceDate,
+        generationMode,
         totalCandidates: candidates.length,
         createdCount: 0,
         skippedCount: candidates.length
@@ -156,15 +174,24 @@ export async function POST(request: Request) {
 
   const createdRecommendations = await prisma.$transaction(async (tx) => {
     const records = [];
+    const normalizedEvaluationCategory = evaluationCategory?.trim() ?? "";
+    const normalizedRewardCategory = rewardCategory.trim();
+    const normalizedPunishmentCategory = punishmentCategory.trim();
 
     for (const candidate of candidatesToCreate) {
       const category =
-        candidate.type === "REWARD" ? rewardCategory : punishmentCategory;
+        candidate.type === "EVALUASI"
+          ? normalizedEvaluationCategory
+          : candidate.type === "REWARD"
+            ? normalizedRewardCategory
+            : normalizedPunishmentCategory;
 
       const recommendation = await tx.rewardPunishment.create({
         data: {
           officerId: candidate.officerId,
           type: candidate.type,
+          periodKind,
+          referenceDate: resolvedReferenceDate,
           category,
           periodStart,
           periodEnd,
@@ -194,10 +221,12 @@ export async function POST(request: Request) {
 
   return NextResponse.json(
     {
-      message: `${createdRecommendations.length} rekomendasi berhasil dibuat untuk periode ${period}.`,
+      message: `${createdRecommendations.length} data berhasil dibuat untuk periode terpilih.`,
       data: createdRecommendations,
       meta: {
-        period,
+        periodKind,
+        referenceDate,
+        generationMode,
         totalCandidates: candidates.length,
         createdCount: createdRecommendations.length,
         skippedCount: candidates.length - createdRecommendations.length

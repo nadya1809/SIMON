@@ -14,8 +14,18 @@ enum Role {
 }
 
 enum RewardPunishmentType {
+  EVALUASI
   REWARD
   PUNISHMENT
+}
+
+enum RewardPunishmentPeriodKind {
+  DAILY
+  WORKWEEK
+  MONTHLY
+  QUARTERLY
+  SEMIANNUAL
+  YEARLY
 }
 
 enum RewardPunishmentStatus {
@@ -61,7 +71,7 @@ model Officer {
   id        String    @id @default(cuid())
   nip       String    @unique
   name      String
-  position  String?
+  pejabat   String?
   unitId    String?
   unit      Unit?     @relation(fields: [unitId], references: [id])
   isActive  Boolean   @default(true)
@@ -119,6 +129,8 @@ model RewardPunishment {
   officerId    String
   officer      Officer                @relation(fields: [officerId], references: [id])
   type         RewardPunishmentType
+  periodKind   RewardPunishmentPeriodKind
+  referenceDate DateTime              @db.Date
   category     String
   periodStart  DateTime               @db.Date
   periodEnd    DateTime               @db.Date
