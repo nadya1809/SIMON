@@ -36,7 +36,7 @@ export function Topbar({ userName, role, onMenuToggle }: TopbarProps) {
           <ThemeToggle />
           <button
             type="button"
-            className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
             aria-label="Notifikasi sistem"
           >
             <FontAwesomeIcon icon={faBell} className="h-4 w-4" />

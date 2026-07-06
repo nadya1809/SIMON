@@ -109,7 +109,8 @@ function toDateLabel(value: string | Date) {
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
     month: "short",
-    year: "numeric"
+    year: "numeric",
+    timeZone: "UTC"
   }).format(date);
 }
 

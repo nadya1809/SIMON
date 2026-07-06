@@ -331,7 +331,8 @@ export function OfficerManagement({
       weekday: "short",
       day: "2-digit",
       month: "short",
-      year: "numeric"
+      year: "numeric",
+      timeZone: "UTC"
     }).format(new Date(value));
   }
 

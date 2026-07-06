@@ -13,14 +13,14 @@ function getTone(score: number, min: number, max: number) {
   const midpoint = (min + max) / 2;
 
   if (score >= midpoint + 2) {
-    return "bg-[rgba(33,150,83,0.12)] text-[#157347] border-[rgba(33,150,83,0.2)]";
+    return "border-[color:var(--success-bg)] bg-[var(--success-bg)] text-[var(--success-fg)]";
   }
 
   if (score <= midpoint - 2) {
-    return "bg-[rgba(198,66,66,0.12)] text-[#b64034] border-[rgba(198,66,66,0.18)]";
+    return "border-[color:var(--danger-bg)] bg-[var(--danger-bg)] text-[var(--danger-fg)]";
   }
 
-  return "bg-[rgba(30,136,229,0.1)] text-[var(--accent-strong)] border-[rgba(30,136,229,0.18)]";
+  return "border-[color:var(--accent-soft)] bg-[var(--accent-soft)] text-[var(--accent-strong)]";
 }
 
 export function ScoreScalePicker({
@@ -57,13 +57,13 @@ export function ScoreScalePicker({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
-        <span className="rounded-full bg-[rgba(198,66,66,0.08)] px-2.5 py-1 text-[#b64034]">
+        <span className="rounded-full bg-[var(--danger-bg)] px-2.5 py-1 text-[var(--danger-fg)]">
           1-3 rendah
         </span>
-        <span className="rounded-full bg-[rgba(30,136,229,0.08)] px-2.5 py-1 text-[var(--accent-strong)]">
+        <span className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-[var(--accent-strong)]">
           4-7 cukup
         </span>
-        <span className="rounded-full bg-[rgba(33,150,83,0.08)] px-2.5 py-1 text-[#157347]">
+        <span className="rounded-full bg-[var(--success-bg)] px-2.5 py-1 text-[var(--success-fg)]">
           8-10 tinggi
         </span>
       </div>

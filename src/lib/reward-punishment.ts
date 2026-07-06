@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { formatDateOnlyUtc, parseDateOnlyUtc } from "@/lib/date-only";
 
-export const REWARD_THRESHOLD = 8;
-export const PUNISHMENT_THRESHOLD = 4;
+export const REWARD_THRESHOLD = 85;
+export const PUNISHMENT_THRESHOLD = 70;
 
 export const rewardPunishmentPeriodOptions = [
   { value: "DAILY", label: "Harian" },

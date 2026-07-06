@@ -11,7 +11,7 @@ const variants = {
   ghost:
     "bg-transparent text-[var(--foreground)] hover:bg-[var(--surface)] hover:text-[var(--accent-strong)]",
   danger:
-    "bg-[linear-gradient(135deg,#c45145,#b64034)] text-white shadow-[var(--shadow-sm)] hover:brightness-[1.02]"
+    "bg-[linear-gradient(135deg,var(--danger-strong),var(--danger-fg))] text-white shadow-[var(--shadow-sm)] hover:brightness-[1.02]"
 };
 
 const sizes = {

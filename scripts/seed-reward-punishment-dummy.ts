@@ -49,54 +49,54 @@ async function main() {
       label: "Reward unggul A",
       expectedType: "REWARD",
       scoreSets: [
-        [10, 9],
-        [9, 9],
-        [10, 10]
+        [98, 94],
+        [95, 93],
+        [99, 97]
       ]
     },
     {
       label: "Reward unggul B",
       expectedType: "REWARD",
       scoreSets: [
-        [8, 9],
-        [9, 8],
-        [9, 9]
+        [90, 92],
+        [91, 89],
+        [93, 94]
       ]
     },
     {
       label: "Punishment rendah A",
       expectedType: "PUNISHMENT",
       scoreSets: [
-        [3, 2],
-        [4, 3],
-        [2, 2]
+        [58, 55],
+        [60, 57],
+        [54, 53]
       ]
     },
     {
       label: "Punishment rendah B",
       expectedType: "PUNISHMENT",
       scoreSets: [
-        [1, 2],
-        [2, 3],
-        [1, 1]
+        [48, 52],
+        [50, 54],
+        [46, 47]
       ]
     },
     {
       label: "Netral tengah A",
       expectedType: "NEUTRAL",
       scoreSets: [
-        [6, 7],
-        [7, 6],
-        [7, 7]
+        [76, 79],
+        [80, 78],
+        [77, 81]
       ]
     },
     {
       label: "Netral tengah B",
       expectedType: "NEUTRAL",
       scoreSets: [
-        [5, 6],
-        [6, 7],
-        [7, 6]
+        [72, 75],
+        [74, 78],
+        [79, 76]
       ]
     }
   ];

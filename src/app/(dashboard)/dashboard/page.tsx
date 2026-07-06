@@ -43,7 +43,11 @@ export default async function DashboardPage({
       description="Pantau ringkasan kinerja petugas PST, tren penilaian harian, distribusi skor kriteria, dan perbandingan performa antar unit."
       role={session.user.role}
     >
-      <DashboardFilters units={data.units} filters={data.filters} />
+      <DashboardFilters
+        key={`${data.filters.timePreset}:${data.filters.unitId || "all"}`}
+        units={data.units}
+        filters={data.filters}
+      />
 
       <section className="grid gap-4 md:grid-cols-3">
         <StatCard

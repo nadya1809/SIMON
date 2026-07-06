@@ -12,7 +12,7 @@ export function Dialog({ title, description, children, className }: DialogProps)
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card-bg)] p-6 shadow-[var(--shadow-md)]",
+        "rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]",
         className
       )}
     >

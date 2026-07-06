@@ -28,6 +28,7 @@
   --warning-fg: #ad7300;
   --danger-bg: #fceceb;
   --danger-fg: #b64034;
+  --danger-strong: #c45145;
   --shadow-sm: 0 10px 30px rgba(24, 50, 71, 0.05);
   --shadow-md: 0 18px 40px rgba(24, 50, 71, 0.08);
   --radius-card: 1.15rem;
@@ -64,6 +65,7 @@
   --warning-fg: #f2c36b;
   --danger-bg: rgba(182, 64, 52, 0.18);
   --danger-fg: #f2988f;
+  --danger-strong: #d96d63;
   --shadow-sm: 0 16px 36px rgba(0, 0, 0, 0.28);
   --shadow-md: 0 24px 50px rgba(0, 0, 0, 0.32);
 }
@@ -103,6 +105,14 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+:where(body, header, aside, main, section, article, nav, div, button, input, select, textarea, a) {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 :focus-visible {

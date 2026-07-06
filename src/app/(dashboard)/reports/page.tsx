@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   faArrowTrendUp,
   faCalendarCheck,
@@ -6,20 +5,16 @@ import {
   faUsers
 } from "@fortawesome/free-solid-svg-icons";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { FormField } from "@/components/forms/form-field";
+import { ReportFilters } from "@/components/reports/report-filters";
 import { ReportExportPanel } from "@/components/reports/report-export-panel";
-import { Button } from "@/components/ui/button";
 import { DataTableShell } from "@/components/ui/data-table-shell";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { SectionCard } from "@/components/ui/section-card";
-import { Select } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
 import { Table } from "@/components/ui/table";
 import { requireAuth } from "@/lib/auth-guard";
 import { getReportData } from "@/lib/reports";
 import { formatAverageScore } from "@/lib/scoring";
-import { TIME_PRESET_OPTIONS } from "@/lib/time-presets";
 
 type ReportsPageProps = {
   searchParams?: Promise<{
@@ -32,7 +27,8 @@ function toDateLabel(value: Date) {
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
     month: "short",
-    year: "numeric"
+    year: "numeric",
+    timeZone: "UTC"
   }).format(value);
 }
 
@@ -51,47 +47,11 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       role={session.user.role}
     >
       <section className="space-y-6">
-        <form
-          action="/reports"
-          className="space-y-0"
-        >
-          <FilterToolbar>
-            <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-2">
-              <FormField label="Filter waktu">
-                <Select name="timePreset" defaultValue={report.filters.timePreset}>
-                  {TIME_PRESET_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
-
-              <FormField label="Filter unit">
-                <Select name="unitId" defaultValue={report.filters.unitId}>
-                  <option value="">Semua unit</option>
-                  {report.units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.name}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
-            </div>
-
-            <div className="flex items-end gap-3">
-              <Button className="flex-1" type="submit">
-                Terapkan
-              </Button>
-              <Link
-                href="/reports"
-                className="inline-flex h-11 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] px-4 text-sm font-semibold text-[var(--foreground)] shadow-[var(--shadow-sm)] transition hover:bg-[var(--surface)]"
-              >
-                Reset
-              </Link>
-            </div>
-          </FilterToolbar>
-        </form>
+        <ReportFilters
+          key={`${report.filters.timePreset}:${report.filters.unitId || "all"}`}
+          units={report.units}
+          filters={report.filters}
+        />
 
         <div className="grid gap-4 md:grid-cols-4">
           <StatCard label="Total penilaian" value={`${report.summary.totalAssessments}`} icon={faFileLines} iconTone="sky" />

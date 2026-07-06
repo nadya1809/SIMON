@@ -48,7 +48,7 @@ export function ModalDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[85] flex items-center justify-center bg-[rgba(19,39,56,0.38)] px-4 py-8 backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-[85] flex items-center justify-center bg-[rgba(19,39,56,0.52)] px-4 py-8 backdrop-blur-[3px]">
       <button
         type="button"
         aria-label="Tutup dialog"
@@ -60,11 +60,11 @@ export function ModalDialog({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative max-h-[calc(100vh-4rem)] w-full max-w-3xl overflow-y-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card-bg-strong)] shadow-[0_32px_80px_rgba(24,50,71,0.18)]",
+          "relative max-h-[calc(100vh-4rem)] w-full max-w-3xl overflow-y-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] shadow-[0_32px_80px_rgba(24,50,71,0.22)]",
           className
         )}
       >
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[var(--border)] bg-[var(--card)]/95 px-6 py-5 backdrop-blur">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[var(--border)] bg-[var(--card)] px-6 py-5">
           <div className="space-y-1">
             <h3 className="text-xl font-bold tracking-[-0.01em]">{title}</h3>
             {description ? (
@@ -84,7 +84,7 @@ export function ModalDialog({
           </button>
         </div>
 
-        <div className="px-6 py-5">{children}</div>
+        <div className="bg-[var(--card)] px-6 py-5">{children}</div>
       </div>
     </div>
   );

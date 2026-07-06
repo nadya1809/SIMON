@@ -96,7 +96,7 @@ export function ConfirmDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[rgba(19,39,56,0.42)] px-4 py-8 backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[rgba(19,39,56,0.56)] px-4 py-8 backdrop-blur-[3px]">
       <button
         type="button"
         aria-label="Tutup dialog konfirmasi"
@@ -112,7 +112,7 @@ export function ConfirmDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="relative w-full max-w-lg rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card-bg-strong)] p-6 shadow-[0_30px_80px_rgba(24,50,71,0.18)]"
+        className="relative w-full max-w-lg rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_30px_80px_rgba(24,50,71,0.22)]"
       >
         <div className="mb-5 flex items-start gap-4">
           <div

@@ -54,10 +54,18 @@ async function main() {
 
   const now = new Date();
   const uniqueKey = `qa-smoke-${Date.now()}`;
-  const presentDate = new Date(now.getFullYear(), now.getMonth(), 10);
-  const absentDate = new Date(now.getFullYear(), now.getMonth(), 11);
-  const dateFrom = formatDateInput(new Date(now.getFullYear(), now.getMonth(), 1));
-  const dateTo = formatDateInput(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+  const presentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 3);
+  const absentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
+  const rangeStartDate =
+    presentDate <= absentDate ? presentDate : absentDate;
+  const rangeEndDate =
+    presentDate >= absentDate ? presentDate : absentDate;
+  const dateFrom = formatDateInput(
+    new Date(rangeStartDate.getFullYear(), rangeStartDate.getMonth(), 1)
+  );
+  const dateTo = formatDateInput(
+    new Date(rangeEndDate.getFullYear(), rangeEndDate.getMonth() + 1, 0)
+  );
   const createdAuditIds: string[] = [];
   let createdAssessmentIds: string[] = [];
   let createdOfficerId: string | null = null;
@@ -220,7 +228,7 @@ async function main() {
 
     const presentScores = criteria.slice(0, 2).map((item, index) => ({
       criteriaId: item.id,
-      score: index === 0 ? 9 : 10
+      score: index === 0 ? 95 : 96
     }));
 
     const presentAssessment = await prisma.dailyAssessment.create({
@@ -343,8 +351,8 @@ async function main() {
       "Officer temporary harus masuk kandidat reward."
     );
     assertCondition(
-      officerCandidate?.triggerScore === 9.5,
-      "Trigger score kandidat reward harus 9.5."
+      officerCandidate?.triggerScore === 95.5,
+      "Trigger score kandidat reward harus 95.5."
     );
 
     const report = await getReportData({
