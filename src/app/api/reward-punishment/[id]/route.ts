@@ -86,7 +86,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   if (existingRecommendation.status !== "RECOMMENDED") {
     return apiValidationError(
-      "Keputusan hanya bisa dilakukan untuk status RECOMMENDED."
+      "Keputusan hanya bisa dilakukan untuk data yang masih menunggu keputusan."
     );
   }
 
@@ -120,8 +120,8 @@ export async function PATCH(request: Request, context: RouteContext) {
   return NextResponse.json({
     message:
       nextStatus === "APPROVED"
-        ? "Rekomendasi berhasil di-approve."
-        : "Rekomendasi berhasil di-reject.",
+        ? "Data berhasil disetujui."
+        : "Data berhasil ditolak.",
     data: updatedRecommendation
   });
 }

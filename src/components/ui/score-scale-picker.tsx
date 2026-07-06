@@ -46,7 +46,7 @@ export function ScoreScalePicker({
                 "flex h-11 items-center justify-center rounded-[var(--radius-control)] border text-sm font-semibold transition",
                 isActive
                   ? `${getTone(score, min, max)} shadow-[var(--shadow-sm)]`
-                  : "border-[var(--border)] bg-white text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)]"
+                  : "border-[var(--border)] bg-[var(--card)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)]"
               )}
               aria-pressed={isActive}
             >

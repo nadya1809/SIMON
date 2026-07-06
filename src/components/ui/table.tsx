@@ -11,8 +11,8 @@ export function Table({ headers, children, className }: TableProps) {
   return (
     <div className={cn("overflow-hidden", className)}>
       <div className="overflow-x-auto">
-        <table className="min-w-[760px] text-left text-sm md:min-w-full [&_tbody_td]:align-top [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-[rgba(230,242,251,0.42)]">
-          <thead className="border-b border-[var(--border)] bg-[rgba(247,250,253,0.86)] text-[var(--muted)]">
+        <table className="min-w-[760px] text-left text-sm md:min-w-full [&_tbody_td]:align-top [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-[var(--table-row-hover)]">
+          <thead className="border-b border-[var(--border)] bg-[var(--table-head-bg)] text-[var(--muted)]">
             <tr>
               {headers.map((header) => (
                 <th

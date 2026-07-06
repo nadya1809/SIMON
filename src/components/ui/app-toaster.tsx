@@ -13,7 +13,7 @@ export function AppToaster() {
         className:
           "rounded-[var(--radius-panel)] border border-[var(--border)] shadow-[var(--shadow-md)]",
         classNames: {
-          toast: "bg-white text-[var(--foreground)]",
+          toast: "bg-[var(--card)] text-[var(--foreground)]",
           title: "text-sm font-semibold",
           description: "text-[13px] leading-5 text-[var(--muted)]",
           actionButton:

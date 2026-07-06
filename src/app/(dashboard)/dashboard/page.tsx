@@ -39,8 +39,8 @@ export default async function DashboardPage({
 
   return (
     <DashboardShell
-      title="Dashboard Monitoring Kinerja"
-      description="Lihat tren performa, ranking petugas, distribusi skor kriteria, dan perbandingan antar unit berdasarkan data penilaian harian."
+      title="Dashboard"
+      description="Pantau ringkasan kinerja petugas PST, tren penilaian harian, distribusi skor kriteria, dan perbandingan performa antar unit."
       role={session.user.role}
     >
       <DashboardFilters units={data.units} filters={data.filters} />

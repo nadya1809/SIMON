@@ -3,5 +3,5 @@ export function FormError({ message }: { message?: string }) {
     return null;
   }
 
-  return <p className="text-sm text-[#a53125]">{message}</p>;
+  return <p className="text-sm text-[var(--danger-fg)]">{message}</p>;
 }

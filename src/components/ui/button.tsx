@@ -7,7 +7,7 @@ const variants = {
   primary:
     "bg-[linear-gradient(135deg,var(--accent-strong),var(--accent))] text-white shadow-[var(--shadow-sm)] hover:brightness-[1.02]",
   secondary:
-    "bg-white text-[var(--foreground)] border border-[var(--border)] shadow-[var(--shadow-sm)] hover:bg-[var(--surface)]",
+    "bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] shadow-[var(--shadow-sm)] hover:bg-[var(--surface)]",
   ghost:
     "bg-transparent text-[var(--foreground)] hover:bg-[var(--surface)] hover:text-[var(--accent-strong)]",
   danger:

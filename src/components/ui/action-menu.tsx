@@ -128,7 +128,7 @@ export function ActionMenu({
         aria-expanded={isOpen}
         aria-controls={isOpen ? menuId : undefined}
         onClick={() => setIsOpen((current) => !current)}
-        className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-white text-[var(--muted)] shadow-[var(--shadow-sm)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+        className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] text-[var(--muted)] shadow-[var(--shadow-sm)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
       >
         <FontAwesomeIcon icon={faEllipsisVertical} className="h-4 w-4" />
       </button>
@@ -138,7 +138,7 @@ export function ActionMenu({
             <div
               id={menuId}
               ref={portalMenuRef}
-              className="fixed z-[200] rounded-[var(--radius-panel)] border border-[var(--border)] bg-white p-2 shadow-[0_22px_44px_rgba(24,50,71,0.18)]"
+              className="fixed z-[200] rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--card)] p-2 shadow-[0_22px_44px_rgba(24,50,71,0.18)]"
               style={{
                 top: menuStyle.top,
                 left: menuStyle.left,

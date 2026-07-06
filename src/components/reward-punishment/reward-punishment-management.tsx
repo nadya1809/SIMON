@@ -127,14 +127,14 @@ function getStatusVariant(status: RecommendationItem["status"]) {
 
 function getStatusLabel(status: RecommendationItem["status"]) {
   if (status === "APPROVED") {
-    return "Approved";
+    return "Disetujui";
   }
 
   if (status === "REJECTED") {
-    return "Rejected";
+    return "Ditolak";
   }
 
-  return "Recommended";
+  return "Menunggu keputusan";
 }
 
 function getTypeVariant(type: RecommendationItem["type"]) {
@@ -355,7 +355,7 @@ export function RewardPunishmentManagement({
       };
 
       if (!response.ok) {
-        toast.error(result.message || "Gagal membuat rekomendasi.");
+        toast.error(result.message || "Gagal membuat data.");
         return;
       }
 
@@ -427,7 +427,7 @@ export function RewardPunishmentManagement({
       };
 
       if (!response.ok) {
-        toast.error(result.message || "Gagal menghapus rekomendasi.");
+        toast.error(result.message || "Gagal menghapus data.");
         return;
       }
 
@@ -448,7 +448,7 @@ export function RewardPunishmentManagement({
         });
       }
 
-      toast.success(result.message || "Rekomendasi berhasil dihapus.");
+      toast.success(result.message || "Data berhasil dihapus.");
     } finally {
       setDeletingRecommendationId(null);
     }
@@ -457,14 +457,14 @@ export function RewardPunishmentManagement({
   return (
     <DashboardShell
       title="Evaluasi, Reward, dan Punishment"
-      description="Generate evaluasi netral maupun rekomendasi reward dan punishment berdasarkan penilaian hadir pada periode yang dipilih, lalu putuskan approval atau reject secara manual."
+      description="Generate evaluasi netral maupun tindak lanjut reward dan punishment berdasarkan penilaian hadir pada periode yang dipilih, lalu putuskan hasilnya secara manual."
       role={role}
     >
       <section className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Total rekomendasi" value={`${summary.total}`} icon={faWandSparkles} iconTone="sky" />
-        <StatCard label="Recommended" value={`${summary.RECOMMENDED}`} icon={faTrophy} iconTone="teal" />
-        <StatCard label="Approved" value={`${summary.APPROVED}`} icon={faCheck} iconTone="blue" />
-        <StatCard label="Rejected" value={`${summary.REJECTED}`} icon={faTriangleExclamation} iconTone="soft" />
+        <StatCard label="Total data" value={`${summary.total}`} icon={faWandSparkles} iconTone="sky" />
+        <StatCard label="Menunggu keputusan" value={`${summary.RECOMMENDED}`} icon={faTrophy} iconTone="teal" />
+        <StatCard label="Disetujui" value={`${summary.APPROVED}`} icon={faCheck} iconTone="blue" />
+        <StatCard label="Ditolak" value={`${summary.REJECTED}`} icon={faTriangleExclamation} iconTone="soft" />
       </section>
 
       <section className="space-y-5">
@@ -538,9 +538,9 @@ export function RewardPunishmentManagement({
                   }}
                 >
                 <option value="all">Semua status</option>
-                <option value="RECOMMENDED">Recommended</option>
-                <option value="APPROVED">Approved</option>
-                <option value="REJECTED">Rejected</option>
+                <option value="RECOMMENDED">Menunggu keputusan</option>
+                <option value="APPROVED">Disetujui</option>
+                <option value="REJECTED">Ditolak</option>
               </Select>
             </FormField>
           </div>
@@ -567,8 +567,8 @@ export function RewardPunishmentManagement({
         </FilterToolbar>
 
         <DataTableShell
-          title="Daftar rekomendasi yang sudah ada"
-          description={`${filteredRecommendations.length} rekomendasi sesuai filter aktif.`}
+          title="Daftar hasil evaluasi dan tindak lanjut"
+          description={`${filteredRecommendations.length} data sesuai filter aktif.`}
         >
           <Table
             headers={[
@@ -631,7 +631,7 @@ export function RewardPunishmentManagement({
                           label:
                             deletingRecommendationId === item.id
                               ? "Menghapus..."
-                              : "Hapus rekomendasi",
+                              : "Hapus data",
                           icon: faTrash,
                           variant: "danger",
                           disabled: deletingRecommendationId === item.id,
@@ -648,8 +648,8 @@ export function RewardPunishmentManagement({
                   <EmptyState
                     title={
                       recommendations.length
-                        ? "Tidak ada rekomendasi untuk filter ini"
-                        : "Belum ada rekomendasi yang dibuat"
+                        ? "Tidak ada data untuk filter ini"
+                        : "Belum ada data yang dibuat"
                     }
                     description={
                       recommendations.length
@@ -685,7 +685,7 @@ export function RewardPunishmentManagement({
         open={isGenerateDialogOpen}
         onClose={() => setIsGenerateDialogOpen(false)}
         title="Generate evaluasi atau tindak lanjut"
-        description="Sistem akan menghitung rata-rata skor dari assessment PRESENT pada periode terpilih. Evaluasi bersifat netral, sedangkan reward dan punishment tetap mengikuti threshold."
+        description="Sistem akan menghitung rata-rata skor dari assessment PRESENT pada periode terpilih. Evaluasi bersifat netral, sedangkan reward dan punishment tetap mengikuti threshold yang berlaku."
       >
         <form
           className="space-y-4"
@@ -772,7 +772,7 @@ export function RewardPunishmentManagement({
 
             <FormField
               label="Catatan awal"
-              hint="Opsional. Catatan ini akan disalin ke rekomendasi yang baru dibuat."
+              hint="Opsional. Catatan ini akan disalin ke data baru yang dibuat."
               error={generateForm.formState.errors.notes?.message}
             >
               <Textarea
@@ -800,8 +800,8 @@ export function RewardPunishmentManagement({
       <ModalDialog
         open={isDetailDialogOpen}
         onClose={() => setIsDetailDialogOpen(false)}
-        title="Detail dan keputusan rekomendasi"
-        description="Tinjau data rekomendasi yang sudah ada, lalu lakukan approve atau reject bila statusnya masih RECOMMENDED."
+        title="Detail dan keputusan data"
+        description="Tinjau data yang sudah ada, lalu lakukan persetujuan atau penolakan bila statusnya masih menunggu keputusan."
         className="max-w-4xl"
       >
         {selectedRecommendation ? (
@@ -827,7 +827,7 @@ export function RewardPunishmentManagement({
                   </div>
 
                   <div className="grid gap-3 text-sm md:grid-cols-2">
-                    <div className="rounded-[var(--radius-control)] bg-white px-4 py-3">
+                    <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3">
                       <p className="text-[var(--muted)]">Periode</p>
                       <p className="mt-1 font-semibold">
                         {formatRecommendationPeriodLabel({
@@ -837,25 +837,25 @@ export function RewardPunishmentManagement({
                         })}
                       </p>
                     </div>
-                    <div className="rounded-[var(--radius-control)] bg-white px-4 py-3">
+                    <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3">
                       <p className="text-[var(--muted)]">Tanggal acuan</p>
                       <p className="mt-1 font-semibold">
                         {formatDateOnlyUtc(selectedRecommendation.referenceDate)}
                       </p>
                     </div>
-                    <div className="rounded-[var(--radius-control)] bg-white px-4 py-3">
+                    <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3">
                       <p className="text-[var(--muted)]">Skor pemicu</p>
                       <p className="mt-1 font-semibold">
                         {formatAverageScore(selectedRecommendation.triggerScore)}
                       </p>
                     </div>
-                    <div className="rounded-[var(--radius-control)] bg-white px-4 py-3">
+                    <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3">
                       <p className="text-[var(--muted)]">Kategori</p>
                       <p className="mt-1 font-semibold">
                         {selectedRecommendation.category}
                       </p>
                     </div>
-                    <div className="rounded-[var(--radius-control)] bg-white px-4 py-3">
+                    <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3">
                       <p className="text-[var(--muted)]">Jenis periode</p>
                       <p className="mt-1 font-semibold">
                         {getRewardPunishmentPeriodKindLabel(selectedRecommendation.periodKind)}
@@ -864,7 +864,7 @@ export function RewardPunishmentManagement({
                   </div>
 
                   {selectedRecommendation.decidedBy ? (
-                    <div className="rounded-[var(--radius-control)] bg-white px-4 py-3 text-sm">
+                    <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3 text-sm">
                       <p className="text-[var(--muted)]">Keputusan terakhir</p>
                       <p className="mt-1 font-semibold">
                         {selectedRecommendation.decidedBy.name ?? "Pengguna"} ·{" "}
@@ -887,7 +887,7 @@ export function RewardPunishmentManagement({
             >
               <FormSection
                 title="Keputusan akhir"
-                description="Perbarui kategori atau catatan sebelum rekomendasi di-approve atau di-reject."
+                description="Perbarui kategori atau catatan sebelum data disetujui atau ditolak."
               >
                 <FormField
                   label="Kategori final"
@@ -901,7 +901,7 @@ export function RewardPunishmentManagement({
 
                 <FormField
                   label="Catatan keputusan"
-                  hint="Opsional, tetapi disarankan untuk approval atau reject."
+                  hint="Opsional, tetapi disarankan untuk persetujuan atau penolakan."
                   error={actionForm.formState.errors.notes?.message}
                 >
                   <Textarea
@@ -918,7 +918,7 @@ export function RewardPunishmentManagement({
                     disabled={isDeciding}
                     onClick={() => actionForm.setValue("action", "APPROVE")}
                   >
-                    {isDeciding ? "Menyimpan..." : "Approve rekomendasi"}
+                    {isDeciding ? "Menyimpan..." : "Setujui data"}
                   </Button>
                   <Button
                     type="submit"
@@ -926,7 +926,7 @@ export function RewardPunishmentManagement({
                     disabled={isDeciding}
                     onClick={() => actionForm.setValue("action", "REJECT")}
                   >
-                    {isDeciding ? "Menyimpan..." : "Reject rekomendasi"}
+                    {isDeciding ? "Menyimpan..." : "Tolak data"}
                   </Button>
                   <Button
                     type="button"
@@ -939,7 +939,7 @@ export function RewardPunishmentManagement({
               ) : (
                 <div className="space-y-3">
                   <div className="rounded-[var(--radius-control)] border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
-                    Rekomendasi ini sudah diputuskan. Buat rekomendasi baru pada
+                    Data ini sudah diputuskan. Buat data baru pada
                     periode lain jika diperlukan tindak lanjut tambahan.
                   </div>
                   <div className="flex justify-end">
@@ -957,8 +957,8 @@ export function RewardPunishmentManagement({
           </>
         ) : (
           <EmptyState
-            title="Belum ada rekomendasi yang dipilih"
-            description="Pilih salah satu baris di tabel untuk melihat detail dan melakukan approve atau reject."
+            title="Belum ada data yang dipilih"
+            description="Pilih salah satu baris di tabel untuk melihat detail dan melakukan persetujuan atau penolakan."
             icon="RP"
           />
         )}
@@ -989,10 +989,10 @@ export function RewardPunishmentManagement({
         open={Boolean(pendingDecisionValues)}
         title={
           pendingDecisionValues?.action === "REJECT"
-            ? "Reject rekomendasi ini?"
-            : "Approve rekomendasi ini?"
+            ? "Tolak data ini?"
+            : "Setujui data ini?"
         }
-        description="Keputusan akan langsung tercatat sebagai status akhir rekomendasi."
+        description="Keputusan akan langsung tercatat sebagai status akhir data ini."
         variant={
           pendingDecisionValues?.action === "REJECT" ? "danger" : "success"
         }
@@ -1003,8 +1003,8 @@ export function RewardPunishmentManagement({
         }
         confirmLabel={
           pendingDecisionValues?.action === "REJECT"
-            ? "Ya, reject"
-            : "Ya, approve"
+            ? "Ya, tolak"
+            : "Ya, setujui"
         }
         isLoading={isDeciding}
         onClose={() => {
@@ -1024,10 +1024,10 @@ export function RewardPunishmentManagement({
         open={Boolean(confirmingRecommendation)}
         title={
           confirmingRecommendation
-            ? `Hapus rekomendasi ${confirmingRecommendation.officer.name}?`
-            : "Hapus rekomendasi?"
+            ? `Hapus data ${confirmingRecommendation.officer.name}?`
+            : "Hapus data?"
         }
-        description="Rekomendasi yang dihapus tidak bisa dipulihkan lagi."
+        description="Data yang dihapus tidak bisa dipulihkan lagi."
         isLoading={
           Boolean(confirmingRecommendation) &&
           deletingRecommendationId === confirmingRecommendation?.id

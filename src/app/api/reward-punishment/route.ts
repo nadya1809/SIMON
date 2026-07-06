@@ -89,7 +89,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json(
       {
-        message: "Data generate rekomendasi tidak valid.",
+        message: "Data generate tidak valid.",
         errors: parsed.error.flatten().fieldErrors
       },
       { status: 400 }
@@ -159,7 +159,7 @@ export async function POST(request: Request) {
   if (!candidatesToCreate.length) {
     return NextResponse.json({
       message:
-        "Semua rekomendasi untuk periode ini sudah pernah dibuat sebelumnya.",
+        "Semua data untuk periode ini sudah pernah dibuat sebelumnya.",
       data: [],
       meta: {
         periodKind,

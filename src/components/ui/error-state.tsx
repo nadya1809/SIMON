@@ -15,9 +15,9 @@ export function ErrorState({
   onAction
 }: ErrorStateProps) {
   return (
-    <SectionCard className="border-[#f4c7c3] bg-[linear-gradient(180deg,#fff8f7,#fff4f2)] p-8 text-center shadow-none">
-      <h3 className="text-lg font-bold text-[#8f261c]">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-[#99453d]">{description}</p>
+    <SectionCard className="border-[color:var(--danger-bg)] bg-[linear-gradient(180deg,var(--danger-bg),var(--card))] p-8 text-center shadow-none">
+      <h3 className="text-lg font-bold text-[var(--danger-fg)]">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-[var(--danger-fg)]">{description}</p>
       {actionLabel && onAction ? (
         <div className="mt-5">
           <Button variant="danger" onClick={onAction}>

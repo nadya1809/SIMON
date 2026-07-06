@@ -6,15 +6,15 @@ type SidebarBrandProps = {
   compact?: boolean;
 };
 
-function BpsLogoMark() {
+function PstLogoMark() {
   return (
-    <div className="relative flex h-14 w-14 items-center justify-center rounded-[18px] bg-white px-2 shadow-[0_14px_28px_rgba(15,23,42,0.14)]">
+    <div className="flex h-15 w-11 shrink-0 items-center justify-center">
       <Image
-        src="/logo-bps.svg"
-        alt="Logo BPS"
-        width={42}
-        height={32}
-        className="h-auto w-10 object-contain"
+        src="/logo_pst.svg"
+        alt="Logo PST"
+        width={30}
+        height={42}
+        className="h-auto w-auto object-contain"
         priority
       />
     </div>
@@ -23,21 +23,22 @@ function BpsLogoMark() {
 
 export function SidebarBrand({ compact = false }: SidebarBrandProps) {
   return (
-    <div className="rounded-[var(--radius-panel)] bg-[linear-gradient(145deg,#0f5fa8_0%,#1676c4_46%,#4aa8e8_100%)] p-4 text-white shadow-[0_22px_50px_rgba(21,93,168,0.24)]">
-      <div className="flex items-center gap-3">
-        <BpsLogoMark />
+    <div className="overflow-hidden rounded-[1.75rem] bg-[linear-gradient(135deg,var(--accent-strong)_0%,var(--accent)_62%,#1588d0_100%)] px-4 py-4 text-white shadow-[0_22px_50px_rgba(0,91,154,0.28)]">
+      <div
+        className={`flex min-w-0 items-center gap-3 ${
+          compact ? "min-h-[5rem]" : "min-h-[5.5rem]"
+        }`}
+      >
+        <PstLogoMark />
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/76">
+          <p
+            className={`truncate font-black uppercase tracking-[0.24em] text-white ${
+              compact ? "text-[1rem]" : "text-[1.15rem]"
+            }`}
+          >
             SIMON PST
           </p>
-          <h2 className="mt-1 text-lg font-bold leading-tight">
-            BPS Provinsi Sumatera Barat
-          </h2>
-          {compact ? null : (
-            <p className="mt-1 text-xs font-medium text-white/74">
-              Dashboard internal pelayanan statistik
-            </p>
-          )}
+          <div className="mt-2 h-[2px] w-[8.6rem] max-w-full rounded-full bg-white/70 shadow-[0_1px_6px_rgba(255,255,255,0.18)]" />
         </div>
       </div>
     </div>

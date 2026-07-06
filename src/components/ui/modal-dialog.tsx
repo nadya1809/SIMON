@@ -60,11 +60,11 @@ export function ModalDialog({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative max-h-[calc(100vh-4rem)] w-full max-w-3xl overflow-y-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(247,250,253,0.98))] shadow-[0_32px_80px_rgba(24,50,71,0.18)]",
+          "relative max-h-[calc(100vh-4rem)] w-full max-w-3xl overflow-y-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card-bg-strong)] shadow-[0_32px_80px_rgba(24,50,71,0.18)]",
           className
         )}
       >
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[var(--border)] bg-[rgba(255,255,255,0.95)] px-6 py-5 backdrop-blur">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[var(--border)] bg-[var(--card)]/95 px-6 py-5 backdrop-blur">
           <div className="space-y-1">
             <h3 className="text-xl font-bold tracking-[-0.01em]">{title}</h3>
             {description ? (
@@ -78,7 +78,7 @@ export function ModalDialog({
             type="button"
             aria-label="Tutup"
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-white text-[var(--muted)] transition hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
+            className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] text-[var(--muted)] transition hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
           >
             <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
           </button>

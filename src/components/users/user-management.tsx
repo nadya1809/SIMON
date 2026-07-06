@@ -388,7 +388,7 @@ export function UserManagement({
                     setValue("isActive", nextValue);
                   }}
                   disabled={editingUser?.id === currentUserId}
-                  className="flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 py-3 text-sm shadow-[var(--shadow-sm)] disabled:opacity-60"
+                  className="flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm shadow-[var(--shadow-sm)] disabled:opacity-60"
                 >
                   <span>
                     {isActiveValue

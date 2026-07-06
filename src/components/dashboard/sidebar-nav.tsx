@@ -104,7 +104,7 @@ export function SidebarNav({ onNavigate }: SidebarNavProps) {
                   className={cn(
                     "mt-0.5 flex h-9 w-9 items-center justify-center rounded-[var(--radius-control)]",
                     isActive
-                      ? "bg-white text-[var(--accent)]"
+                      ? "bg-[var(--card)] text-[var(--accent)]"
                       : "bg-[var(--surface)] text-[var(--muted)]"
                   )}
                 >

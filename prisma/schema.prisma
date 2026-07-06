@@ -71,7 +71,7 @@ model Officer {
   id        String    @id @default(cuid())
   nip       String    @unique
   name      String
-  pejabat   String?
+  jabatan   String?
   unitId    String?
   unit      Unit?     @relation(fields: [unitId], references: [id])
   isActive  Boolean   @default(true)
@@ -119,7 +119,7 @@ model AssessmentScore {
   dailyAssessment   DailyAssessment @relation(fields: [dailyAssessmentId], references: [id], onDelete: Cascade)
   criteriaId        String
   criteria          Criteria        @relation(fields: [criteriaId], references: [id])
-  score             Int
+  score             Float
 
   @@unique([dailyAssessmentId, criteriaId])
 }

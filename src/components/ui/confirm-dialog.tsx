@@ -30,28 +30,28 @@ const dialogToneMap = {
   danger: {
     badge: "text-[var(--danger-fg)]",
     iconWrap:
-      "bg-[linear-gradient(135deg,rgba(252,236,235,0.98),rgba(255,244,223,0.96))] text-[var(--danger-fg)]",
+      "bg-[linear-gradient(135deg,var(--danger-bg),var(--card))] text-[var(--danger-fg)]",
     confirmVariant: "danger" as const,
     defaultIcon: faTrashCan
   },
   primary: {
     badge: "text-[var(--accent-strong)]",
     iconWrap:
-      "bg-[linear-gradient(135deg,rgba(234,244,251,0.98),rgba(222,239,250,0.96))] text-[var(--accent-strong)]",
+      "bg-[linear-gradient(135deg,var(--accent-soft),var(--card))] text-[var(--accent-strong)]",
     confirmVariant: "primary" as const,
     defaultIcon: faFloppyDisk
   },
   success: {
-    badge: "text-[#117b5c]",
+    badge: "text-[var(--success-fg)]",
     iconWrap:
-      "bg-[linear-gradient(135deg,rgba(229,248,241,0.98),rgba(238,251,245,0.96))] text-[#117b5c]",
+      "bg-[linear-gradient(135deg,var(--success-bg),var(--card))] text-[var(--success-fg)]",
     confirmVariant: "primary" as const,
     defaultIcon: faCheck
   },
   warning: {
-    badge: "text-[#9a5b00]",
+    badge: "text-[var(--warning-fg)]",
     iconWrap:
-      "bg-[linear-gradient(135deg,rgba(255,245,221,0.98),rgba(255,250,236,0.96))] text-[#9a5b00]",
+      "bg-[linear-gradient(135deg,var(--warning-bg),var(--card))] text-[var(--warning-fg)]",
     confirmVariant: "primary" as const,
     defaultIcon: faWandSparkles
   }
@@ -112,7 +112,7 @@ export function ConfirmDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="relative w-full max-w-lg rounded-[var(--radius-card)] border border-[var(--border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(247,250,253,0.98))] p-6 shadow-[0_30px_80px_rgba(24,50,71,0.18)]"
+        className="relative w-full max-w-lg rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card-bg-strong)] p-6 shadow-[0_30px_80px_rgba(24,50,71,0.18)]"
       >
         <div className="mb-5 flex items-start gap-4">
           <div

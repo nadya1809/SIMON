@@ -25,7 +25,11 @@ import { ModalDialog } from "@/components/ui/modal-dialog";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
-import { officerSchema, type OfficerFormValues } from "@/lib/validations/officer";
+import {
+  officerJabatanOptions,
+  officerSchema,
+  type OfficerFormValues
+} from "@/lib/validations/officer";
 import { formatAverageScore } from "@/lib/scoring";
 
 type UnitOption = {
@@ -37,7 +41,7 @@ type OfficerItem = {
   id: string;
   nip: string;
   name: string;
-  pejabat: string | null;
+  jabatan: string | null;
   unitId: string | null;
   isActive: boolean;
   unit: UnitOption | null;
@@ -123,7 +127,7 @@ export function OfficerManagement({
     defaultValues: {
       nip: "",
       name: "",
-      pejabat: "",
+      jabatan: "",
       unitId: "",
       isActive: true
     }
@@ -138,7 +142,7 @@ export function OfficerManagement({
     reset({
       nip: "",
       name: "",
-      pejabat: "",
+      jabatan: "",
       unitId: "",
       isActive: true
     });
@@ -151,7 +155,11 @@ export function OfficerManagement({
     reset({
       nip: officer.nip,
       name: officer.name,
-      pejabat: officer.pejabat ?? "",
+      jabatan: officerJabatanOptions.includes(
+        officer.jabatan as (typeof officerJabatanOptions)[number]
+      )
+        ? (officer.jabatan as (typeof officerJabatanOptions)[number])
+        : "",
       unitId: officer.unitId ?? "",
       isActive: officer.isActive
     });
@@ -405,7 +413,7 @@ export function OfficerManagement({
             description={`${filteredOfficers.length} data sesuai filter aktif.`}
           >
             <Table
-              headers={["NIP", "Nama", "Unit", "Pejabat", "Status", "Aksi"]}
+              headers={["NIP", "Nama", "Unit", "Jabatan", "Status", "Aksi"]}
             >
               {displayedOfficers.length ? (
                 displayedOfficers.map((officer) => (
@@ -423,7 +431,7 @@ export function OfficerManagement({
                       {officer.unit?.name ?? "-"}
                     </td>
                     <td className="px-5 py-4 text-[var(--muted)]">
-                      {officer.pejabat || "-"}
+                      {officer.jabatan || "-"}
                     </td>
                     <td className="px-5 py-4">
                       <Badge variant={officer.isActive ? "success" : "warning"}>
@@ -530,14 +538,14 @@ export function OfficerManagement({
         {historyOfficer ? (
           <div className="space-y-4">
             <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-[var(--radius-control)] bg-white px-4 py-3 shadow-[var(--shadow-sm)]">
+              <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3 shadow-[var(--shadow-sm)]">
                 <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
                   Petugas
                 </p>
                 <p className="mt-1 font-semibold">{historyOfficer.name}</p>
                 <p className="text-sm text-[var(--muted)]">NIP: {historyOfficer.nip}</p>
               </div>
-              <div className="rounded-[var(--radius-control)] bg-white px-4 py-3 shadow-[var(--shadow-sm)]">
+              <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3 shadow-[var(--shadow-sm)]">
                 <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
                   Unit
                 </p>
@@ -545,7 +553,7 @@ export function OfficerManagement({
                   {historyOfficer.unit?.name ?? "Belum ditentukan"}
                 </p>
               </div>
-              <div className="rounded-[var(--radius-control)] bg-white px-4 py-3 shadow-[var(--shadow-sm)]">
+              <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3 shadow-[var(--shadow-sm)]">
                 <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
                   Total data
                 </p>
@@ -716,14 +724,18 @@ export function OfficerManagement({
               </FormField>
 
               <FormField
-                label="Pejabat"
-                hint="Opsional, misalnya Front Office atau Petugas Layanan."
-                error={formState.errors.pejabat?.message}
+                label="Jabatan"
+                hint="Pilih jabatan petugas dari daftar yang tersedia."
+                error={formState.errors.jabatan?.message}
               >
-                <Input
-                  placeholder="Masukkan pejabat petugas"
-                  {...register("pejabat")}
-                />
+                <Select {...register("jabatan")}>
+                  <option value="">Belum ditentukan</option>
+                  {officerJabatanOptions.map((jabatan) => (
+                    <option key={jabatan} value={jabatan}>
+                      {jabatan}
+                    </option>
+                  ))}
+                </Select>
               </FormField>
 
               <FormField
@@ -753,7 +765,7 @@ export function OfficerManagement({
                     setIsActiveValue(nextValue);
                     setValue("isActive", nextValue);
                   }}
-                  className="flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 py-3 text-sm shadow-[var(--shadow-sm)]"
+                  className="flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm shadow-[var(--shadow-sm)]"
                 >
                   <span>
                     {isActiveValue

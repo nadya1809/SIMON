@@ -85,7 +85,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               </Button>
               <Link
                 href="/reports"
-                className="inline-flex h-11 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-[var(--shadow-sm)] transition hover:bg-[var(--surface)]"
+                className="inline-flex h-11 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] px-4 text-sm font-semibold text-[var(--foreground)] shadow-[var(--shadow-sm)] transition hover:bg-[var(--surface)]"
               >
                 Reset
               </Link>

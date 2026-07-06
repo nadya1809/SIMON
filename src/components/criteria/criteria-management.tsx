@@ -366,7 +366,7 @@ export function CriteriaManagement({
                     setIsActiveValue(nextValue);
                     setValue("isActive", nextValue);
                   }}
-                  className="flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 py-3 text-sm shadow-[var(--shadow-sm)]"
+                  className="flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm shadow-[var(--shadow-sm)]"
                 >
                   <span>
                     {isActiveValue

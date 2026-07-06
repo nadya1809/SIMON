@@ -1,3 +1,5 @@
+"use client";
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowRightFromBracket,
@@ -6,6 +8,7 @@ import {
   faUserShield
 } from "@fortawesome/free-solid-svg-icons";
 import { LogoutButton } from "@/components/dashboard/logout-button";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 
 type TopbarProps = {
@@ -16,7 +19,7 @@ type TopbarProps = {
 
 export function Topbar({ userName, role, onMenuToggle }: TopbarProps) {
   return (
-    <header className="sticky top-5 z-20 mb-6 rounded-[var(--radius-card)] border border-[var(--border)] bg-white/92 px-5 py-4 shadow-[var(--shadow-sm)] backdrop-blur">
+    <header className="mb-6 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)]/96 px-5 py-4 shadow-[var(--shadow-sm)] backdrop-blur">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <button
@@ -30,6 +33,7 @@ export function Topbar({ userName, role, onMenuToggle }: TopbarProps) {
         </div>
 
         <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+          <ThemeToggle />
           <button
             type="button"
             className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"

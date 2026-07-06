@@ -65,8 +65,8 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
       </FormField>
 
       {error ? (
-        <SectionCard className="border-red-200 bg-[linear-gradient(180deg,#fff8f7,#fff4f2)] px-4 py-3 shadow-none">
-          <p className="text-sm text-red-700">{error}</p>
+        <SectionCard className="border-[color:var(--danger-bg)] bg-[linear-gradient(180deg,var(--danger-bg),var(--card))] px-4 py-3 shadow-none">
+          <p className="text-sm text-[var(--danger-fg)]">{error}</p>
         </SectionCard>
       ) : null}
 

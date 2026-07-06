@@ -1,6 +1,7 @@
 import path from "node:path";
 import ExcelJS from "exceljs";
 import { PrismaClient } from "@prisma/client";
+import { officerJabatanOptions } from "@/lib/validations/officer";
 
 const prisma = new PrismaClient();
 
@@ -47,6 +48,19 @@ function normalizeNip(raw: string) {
   return compact;
 }
 
+function normalizeJabatan(raw: string) {
+  if (!raw) {
+    return null;
+  }
+
+  const normalized = raw.trim().toLowerCase();
+  const matchedOption = officerJabatanOptions.find(
+    (option) => option.toLowerCase() === normalized
+  );
+
+  return matchedOption ?? null;
+}
+
 async function main() {
   const filePath =
     process.argv[2] ??
@@ -68,7 +82,7 @@ async function main() {
   const rowsToImport: Array<{
     nip: string;
     name: string;
-    pejabat: string | null;
+    jabatan: string | null;
     unitId: string | null;
   }> = [];
 
@@ -79,7 +93,7 @@ async function main() {
 
     const no = normalizeCell(row.getCell(1).value);
     const name = normalizeCell(row.getCell(2).value);
-    const pejabat = normalizeCell(row.getCell(4).value);
+    const jabatan = normalizeJabatan(normalizeCell(row.getCell(4).value));
     const rawNip = normalizeCell(row.getCell(5).value);
     const unitName = normalizeCell(row.getCell(6).value);
 
@@ -94,7 +108,7 @@ async function main() {
     rowsToImport.push({
       nip: normalizeNip(rawNip),
       name,
-      pejabat: pejabat || null,
+      jabatan: jabatan || null,
       unitId: unitMap.get(unitName) ?? null
     });
   });
@@ -112,7 +126,7 @@ async function main() {
         where: { id: existing.id },
         data: {
           name: item.name,
-          pejabat: item.pejabat,
+          jabatan: item.jabatan,
           unitId: item.unitId,
           isActive: true
         }
@@ -125,7 +139,7 @@ async function main() {
       data: {
         nip: item.nip,
         name: item.name,
-        pejabat: item.pejabat,
+        jabatan: item.jabatan,
         unitId: item.unitId,
         isActive: true
       }

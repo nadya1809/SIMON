@@ -17,14 +17,40 @@ import {
 } from "recharts";
 import { SectionCard } from "@/components/ui/section-card";
 
-const palette = ["#0a6fb6", "#33a9e0", "#2ba7a0", "#77c5ec", "#8fd4cd"];
-const gridStroke = "#dbe7f1";
-const axisStroke = "#90a4b5";
+const palette = [
+  "var(--accent-strong)",
+  "var(--accent-sky)",
+  "var(--accent-teal)",
+  "#77c5ec",
+  "#8fd4cd"
+];
+const gridStroke = "var(--chart-grid)";
+const axisStroke = "var(--chart-axis)";
 const tooltipStyle = {
+  backgroundColor: "var(--card)",
+  color: "var(--foreground)",
   borderRadius: "16px",
-  border: "1px solid #d8e4ef",
-  boxShadow: "0 18px 40px rgba(24, 50, 71, 0.08)"
+  border: "1px solid var(--border)",
+  boxShadow: "var(--shadow-md)"
 };
+const legendStyle = {
+  color: "var(--muted)"
+};
+const scoreDomain: [number, number] = [0, 100];
+
+function tooltipFormatter(
+  value: number | string | ReadonlyArray<number | string> | undefined,
+  name: number | string | undefined
+) {
+  const formattedValue =
+    typeof value === "number"
+      ? value.toFixed(2)
+      : Array.isArray(value)
+        ? value.join(", ")
+        : value ?? "-";
+
+  return [formattedValue, name ? String(name) : "Nilai"] as [string, string];
+}
 
 type TrendPoint = {
   label: string;
@@ -68,15 +94,15 @@ export function DailyTrendChart({ data }: { data: TrendPoint[] }) {
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="2 5" stroke={gridStroke} vertical={false} />
           <XAxis dataKey="label" fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
-          <YAxis domain={[0, 10]} fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
-          <Tooltip contentStyle={tooltipStyle} />
-          <Legend />
+          <YAxis domain={scoreDomain} fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
+          <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
+          <Legend wrapperStyle={legendStyle} />
           <Line
             type="monotone"
             dataKey="averageScore"
-            stroke="#0a6fb6"
+            stroke="var(--accent-strong)"
             strokeWidth={3}
-            dot={{ r: 3, fill: "#0a6fb6" }}
+            dot={{ r: 3, fill: "var(--accent-strong)" }}
             name="Rata-rata"
           />
         </LineChart>
@@ -117,23 +143,23 @@ export function PeriodTrendChart({
         <LineChart data={fallbackData}>
           <CartesianGrid strokeDasharray="2 5" stroke={gridStroke} vertical={false} />
           <XAxis dataKey="period" fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
-          <YAxis domain={[0, 10]} fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
-          <Tooltip contentStyle={tooltipStyle} />
-          <Legend />
+          <YAxis domain={scoreDomain} fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
+          <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
+          <Legend wrapperStyle={legendStyle} />
           <Line
             type="monotone"
             dataKey="weekly"
-            stroke="#33a9e0"
+            stroke="var(--accent-sky)"
             strokeWidth={3}
-            dot={{ r: 3, fill: "#33a9e0" }}
+            dot={{ r: 3, fill: "var(--accent-sky)" }}
             name="Mingguan"
           />
           <Line
             type="monotone"
             dataKey="monthly"
-            stroke="#2ba7a0"
+            stroke="var(--accent-teal)"
             strokeWidth={3}
-            dot={{ r: 3, fill: "#2ba7a0" }}
+            dot={{ r: 3, fill: "var(--accent-teal)" }}
             name="Bulanan"
           />
         </LineChart>
@@ -166,8 +192,8 @@ export function CriteriaDistributionChart({
               <Cell key={entry.label} fill={palette[index % palette.length]} />
             ))}
           </Pie>
-          <Tooltip contentStyle={tooltipStyle} />
-          <Legend />
+          <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
+          <Legend wrapperStyle={legendStyle} />
         </PieChart>
       </ResponsiveContainer>
     </ChartCard>
@@ -188,10 +214,10 @@ export function UnitComparisonChart({
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="2 5" stroke={gridStroke} vertical={false} />
           <XAxis dataKey="label" fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
-          <YAxis domain={[0, 10]} fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
-          <Tooltip contentStyle={tooltipStyle} />
-          <Legend />
-          <Bar dataKey="averageScore" fill="#0a6fb6" radius={[10, 10, 0, 0]} name="Rata-rata" />
+          <YAxis domain={scoreDomain} fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
+          <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
+          <Legend wrapperStyle={legendStyle} />
+          <Bar dataKey="averageScore" fill="var(--accent-strong)" radius={[10, 10, 0, 0]} name="Rata-rata" />
         </BarChart>
       </ResponsiveContainer>
     </ChartCard>

@@ -72,7 +72,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const nip = parsed.data.nip.trim();
   const name = parsed.data.name.trim();
-  const pejabat = parsed.data.pejabat?.trim() || null;
+  const jabatan = parsed.data.jabatan?.trim() || null;
   const unitId = parsed.data.unitId?.trim() || null;
   const isActive = parsed.data.isActive;
 
@@ -92,7 +92,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     data: {
       nip,
       name,
-      pejabat,
+      jabatan,
       unitId,
       isActive
     },

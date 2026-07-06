@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const officerJabatanOptions = [
+  "Statistisi ahli pertama",
+  "Statistisi ahli muda"
+] as const;
+
 export const officerSchema = z.object({
   nip: z
     .string()
@@ -12,12 +17,7 @@ export const officerSchema = z.object({
     .trim()
     .min(2, "Nama petugas minimal 2 karakter.")
     .max(120, "Nama petugas maksimal 120 karakter."),
-  pejabat: z
-    .string()
-    .trim()
-    .max(120, "Pejabat maksimal 120 karakter.")
-    .optional()
-    .or(z.literal("")),
+  jabatan: z.enum(officerJabatanOptions).optional().or(z.literal("")),
   unitId: z.string().trim().optional().or(z.literal("")),
   isActive: z.boolean()
 });
@@ -25,3 +25,4 @@ export const officerSchema = z.object({
 export const officerUpdateSchema = officerSchema;
 
 export type OfficerFormValues = z.infer<typeof officerSchema>;
+export type OfficerJabatanOption = (typeof officerJabatanOptions)[number];

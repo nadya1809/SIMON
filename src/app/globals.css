@@ -8,11 +8,20 @@
   --surface: #f7fafd;
   --surface-strong: #eaf4fb;
   --border: #d8e4ef;
+  --panel-bg: linear-gradient(180deg, #ffffff 0%, #f8fbfe 100%);
+  --card-bg: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,253,0.96));
+  --card-bg-strong: linear-gradient(180deg, rgba(255,255,255,0.99), rgba(247,250,253,0.98));
+  --table-head-bg: rgba(247, 250, 253, 0.86);
+  --table-row-hover: rgba(230, 242, 251, 0.42);
   --accent: #0a6fb6;
   --accent-strong: #005b9a;
   --accent-soft: #e6f2fb;
   --accent-sky: #33a9e0;
+  --accent-sky-soft: #ecf7fd;
   --accent-teal: #2ba7a0;
+  --accent-teal-soft: #e9f8f6;
+  --chart-grid: #dbe7f1;
+  --chart-axis: #90a4b5;
   --success-bg: #e8f8ef;
   --success-fg: #23895f;
   --warning-bg: #fff4df;
@@ -27,6 +36,38 @@
   --radius-chip: 999px;
 }
 
+[data-theme="dark"] {
+  --background: #09141f;
+  --foreground: #ecf5ff;
+  --muted: #93abc0;
+  --card: #122130;
+  --surface: #16283a;
+  --surface-strong: #1a3246;
+  --border: #27445b;
+  --panel-bg: linear-gradient(180deg, #122130 0%, #142638 100%);
+  --card-bg: linear-gradient(180deg, rgba(18,33,48,0.98), rgba(20,38,56,0.96));
+  --card-bg-strong: linear-gradient(180deg, rgba(20,36,52,0.99), rgba(18,33,48,0.98));
+  --table-head-bg: rgba(24, 43, 61, 0.88);
+  --table-row-hover: rgba(16, 109, 182, 0.16);
+  --accent: #33a9e0;
+  --accent-strong: #1588d0;
+  --accent-soft: rgba(51, 169, 224, 0.16);
+  --accent-sky: #53bff0;
+  --accent-sky-soft: rgba(83, 191, 240, 0.16);
+  --accent-teal: #45c4ba;
+  --accent-teal-soft: rgba(69, 196, 186, 0.16);
+  --chart-grid: rgba(147, 171, 192, 0.18);
+  --chart-axis: #9ab2c7;
+  --success-bg: rgba(35, 137, 95, 0.18);
+  --success-fg: #81dfb0;
+  --warning-bg: rgba(173, 115, 0, 0.18);
+  --warning-fg: #f2c36b;
+  --danger-bg: rgba(182, 64, 52, 0.18);
+  --danger-fg: #f2988f;
+  --shadow-sm: 0 16px 36px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 24px 50px rgba(0, 0, 0, 0.32);
+}
+
 body {
   background:
     radial-gradient(circle at top left, rgba(51, 169, 224, 0.11), transparent 28%),
@@ -35,6 +76,13 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   min-height: 100vh;
+}
+
+[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at top left, rgba(51, 169, 224, 0.13), transparent 26%),
+    radial-gradient(circle at top right, rgba(69, 196, 186, 0.1), transparent 22%),
+    linear-gradient(180deg, #0a1520 0%, #0e1b29 46%, #122130 100%);
 }
 
 * {
@@ -60,4 +108,8 @@ textarea {
 :focus-visible {
   outline: 2px solid rgba(10, 111, 182, 0.22);
   outline-offset: 2px;
+}
+
+[data-theme="dark"] ::selection {
+  background: rgba(83, 191, 240, 0.28);
 }

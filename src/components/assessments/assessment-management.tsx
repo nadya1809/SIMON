@@ -24,7 +24,6 @@ import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { ModalDialog } from "@/components/ui/modal-dialog";
 import { PaginationBar } from "@/components/ui/pagination-bar";
-import { ScoreScalePicker } from "@/components/ui/score-scale-picker";
 import { Select } from "@/components/ui/select";
 import { Table } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,7 +37,7 @@ import {
   TIME_PRESET_OPTIONS,
   type TimePreset
 } from "@/lib/time-presets";
-import { formatAverageScore } from "@/lib/scoring";
+import { calculateAverageScore, formatAverageScore } from "@/lib/scoring";
 import {
   assessmentSchema,
   type AssessmentFormInput,
@@ -101,33 +100,18 @@ type StatusFilter = "all" | "PRESENT" | "ABSENT";
 
 type AssessmentScoreInput = {
   criteriaId: string;
-  score: number;
+  score: number | "";
 };
 
 function createDefaultScores(criteria: CriteriaOption[]) {
   return criteria.map((item) => ({
     criteriaId: item.id,
-    score: 1
+    score: ""
   }));
 }
 
 function getOfficerDisplayLabel(officer: Pick<OfficerOption, "name" | "nip">) {
   return `${officer.name} (${officer.nip})`;
-}
-
-type ScoreFieldProps = {
-  control: ReturnType<typeof useForm<AssessmentFormInput, unknown, AssessmentFormValues>>["control"];
-  index: number;
-  onChange: (score: number) => void;
-};
-
-function ScoreField({ control, index, onChange }: ScoreFieldProps) {
-  const value = useWatch({
-    control,
-    name: `scores.${index}.score` as const
-  });
-
-  return <ScoreScalePicker value={Number(value ?? 1)} onChange={onChange} />;
 }
 
 export function AssessmentManagement({
@@ -186,6 +170,17 @@ export function AssessmentManagement({
   });
 
   const { register, handleSubmit, reset, formState, setValue, control } = form;
+  const watchedScores = useWatch({
+    control,
+    name: "scores"
+  });
+  const validLiveScores = (watchedScores ?? [])
+    .map((item) => Number(item?.score))
+    .filter((score) => Number.isFinite(score) && score >= 1 && score <= 100);
+  const liveAverageScore =
+    statusValue === "PRESENT" && validLiveScores.length === criteria.length
+      ? calculateAverageScore(validLiveScores)
+      : null;
 
   function resetForm() {
     setIsFormDialogOpen(false);
@@ -217,7 +212,7 @@ export function AssessmentManagement({
         criteriaId: item.id,
         score:
           assessment.scores.find((score) => score.criteria.id === item.id)
-            ?.score ?? 1
+            ?.score ?? ""
       }))
     });
   }
@@ -642,7 +637,7 @@ export function AssessmentManagement({
                     }}
                     placeholder="Cari nama atau NIP petugas"
                   />
-                  <div className="max-h-56 overflow-y-auto rounded-[var(--radius-control)] border border-[var(--border)] bg-white p-2 shadow-[var(--shadow-sm)]">
+                  <div className="max-h-56 overflow-y-auto rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] p-2 shadow-[var(--shadow-sm)]">
                     {displayedOfficerOptions.length ? (
                       <div className="space-y-1">
                         {displayedOfficerOptions.map((officer) => {
@@ -682,7 +677,7 @@ export function AssessmentManagement({
               </FormField>
 
               {activeOfficer ? (
-                <div className="rounded-[var(--radius-control)] bg-white px-4 py-3 text-sm text-[var(--muted)] shadow-[var(--shadow-sm)]">
+                <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3 text-sm text-[var(--muted)] shadow-[var(--shadow-sm)]">
                   Unit: <span className="font-semibold text-[var(--foreground)]">
                     {activeOfficer.unit?.name ?? "Belum ditentukan"}
                   </span>
@@ -714,7 +709,7 @@ export function AssessmentManagement({
             {statusValue === "PRESENT" ? (
               <FormSection
                 title="Skor per kriteria"
-                description="Klik langsung skor 1 sampai 10 untuk tiap kriteria agar input lebih cepat."
+                description="Masukkan nilai manual untuk tiap kriteria. Rentang nilai yang diperbolehkan adalah angka bulat 1 sampai 100."
               >
                 {criteria.map((item, index) => (
                   <div key={item.id} className="space-y-2">
@@ -725,40 +720,69 @@ export function AssessmentManagement({
                     />
                     <FormField
                       label={item.name}
-                      hint={`Urutan tampil: ${item.sortOrder}`}
+                      hint={`Urutan tampil: ${item.sortOrder} · Input angka bulat 1-100`}
                       error={formState.errors.scores?.[index]?.score?.message}
                     >
                       <>
-                        <input
-                          type="hidden"
-                          {...register(`scores.${index}.score` as const, {
-                            valueAsNumber: true
-                          })}
-                        />
-                        <ScoreField
-                          control={control}
-                          index={index}
-                          onChange={(score) => {
-                            setValue(`scores.${index}.score` as const, score, {
-                              shouldDirty: true,
-                              shouldTouch: true,
-                              shouldValidate: true
-                            });
+                        <Input
+                          type="number"
+                          min="1"
+                          max="100"
+                          step="1"
+                          inputMode="numeric"
+                          onKeyDown={(event) => {
+                            if ([".", ",", "e", "E", "+", "-"].includes(event.key)) {
+                              event.preventDefault();
+                            }
                           }}
+                          {...register(`scores.${index}.score` as const, {
+                            setValueAs: (value) =>
+                              value === "" || value === null || value === undefined
+                                ? ""
+                                : Number.parseInt(String(value), 10)
+                          })}
                         />
                       </>
                     </FormField>
                   </div>
                 ))}
+                <FormField
+                  label="Rata-rata otomatis"
+                  hint="Nilai ini dihitung otomatis setelah semua skor kriteria diisi valid oleh admin."
+                >
+                  <div className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[linear-gradient(180deg,var(--card)_0%,var(--surface)_100%)] px-4 py-3 shadow-[var(--shadow-sm)]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                      Rata-rata sementara
+                    </p>
+                    <p className="mt-2 text-2xl font-bold text-[var(--accent-strong)]">
+                      {formatAverageScore(liveAverageScore)}
+                    </p>
+                  </div>
+                </FormField>
               </FormSection>
             ) : (
               <FormSection
                 title="Status tidak hadir"
                 description="Skor kriteria tidak akan disimpan, dan rata-rata nilai akan menjadi kosong."
               >
-                <div className="rounded-[var(--radius-control)] border border-dashed border-[var(--border)] bg-white px-4 py-3 text-sm text-[var(--muted)]">
-                  Status tidak hadir dipilih. Skor kriteria tidak akan disimpan,
-                  dan rata-rata nilai akan menjadi kosong.
+                <div className="space-y-4">
+                  <div className="rounded-[var(--radius-control)] border border-dashed border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-[var(--muted)]">
+                    Status tidak hadir dipilih. Skor kriteria tidak akan disimpan,
+                    dan rata-rata nilai akan menjadi kosong.
+                  </div>
+                  <FormField
+                    label="Rata-rata otomatis"
+                    hint="Field ini tetap tampil, tetapi tidak dihitung saat status tidak hadir dipilih."
+                  >
+                    <div className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[linear-gradient(180deg,var(--card)_0%,var(--surface)_100%)] px-4 py-3 shadow-[var(--shadow-sm)]">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                        Rata-rata sementara
+                      </p>
+                      <p className="mt-2 text-2xl font-bold text-[var(--muted)]">
+                        {formatAverageScore(null)}
+                      </p>
+                    </div>
+                  </FormField>
                 </div>
               </FormSection>
             )}

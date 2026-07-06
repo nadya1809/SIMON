@@ -12,8 +12,8 @@ type StatCardProps = {
 
 const toneClasses = {
   blue: "bg-[var(--accent-soft)] text-[var(--accent)]",
-  teal: "bg-[#e9f8f6] text-[var(--accent-teal)]",
-  sky: "bg-[#ecf7fd] text-[var(--accent-sky)]",
+  teal: "bg-[var(--accent-teal-soft)] text-[var(--accent-teal)]",
+  sky: "bg-[var(--accent-sky-soft)] text-[var(--accent-sky)]",
   soft: "bg-[var(--surface)] text-[var(--muted)]"
 };
 

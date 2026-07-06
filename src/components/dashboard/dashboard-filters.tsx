@@ -51,7 +51,7 @@ export function DashboardFilters({ units, filters }: DashboardFiltersProps) {
           </Button>
           <Link
             href="/dashboard"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-[var(--shadow-sm)] transition hover:bg-[var(--surface)]"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] px-4 text-sm font-semibold text-[var(--foreground)] shadow-[var(--shadow-sm)] transition hover:bg-[var(--surface)]"
           >
             <FontAwesomeIcon icon={faRotateLeft} className="h-4 w-4" />
             Reset

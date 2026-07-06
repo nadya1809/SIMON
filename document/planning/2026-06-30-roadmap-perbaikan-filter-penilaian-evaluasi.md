@@ -21,7 +21,7 @@ Tanggal: 2026-06-30
    - search box
    - daftar hasil pencarian langsung
    - pencarian nama dan NIP
-4. Terminologi `Posisi` diubah penuh menjadi `Pejabat` tanpa sisa, termasuk UI, validasi, API, dan data/schema bila dibutuhkan.
+4. Terminologi `Posisi` diubah penuh menjadi `Jabatan` tanpa sisa, termasuk UI, validasi, API, dan data/schema bila dibutuhkan.
 5. Tipe baru menggunakan Bahasa Indonesia:
    - `EVALUASI` di data internal
    - `Evaluasi` di tampilan UI
@@ -54,7 +54,7 @@ Setelah seluruh fase selesai:
 
 - user bisa memfilter seluruh modul dengan preset waktu yang seragam
 - user bisa mencari petugas lebih cepat saat input penilaian
-- istilah `Pejabat` konsisten di semua tempat
+- istilah `Jabatan` konsisten di semua tempat
 - modul reward/punishment berevolusi menjadi modul `Evaluasi, Reward, dan Punishment`
 - generate data bisa dilakukan per hari, minggu kerja, bulan, 3 bulan, 6 bulan, dan 1 tahun
 - data evaluasi netral dan data reward/punishment berbasis threshold bisa hidup berdampingan
@@ -129,11 +129,11 @@ Mempercepat pemilihan petugas saat input penilaian baru.
 - hasil muncul langsung
 - pilih petugas tidak lagi bergantung pada scroll dropdown panjang
 
-## Milestone 3: Rename Penuh Posisi Menjadi Pejabat
+## Milestone 3: Rename Penuh Posisi Menjadi Jabatan
 
 ### Tujuan
 
-Menghilangkan seluruh istilah `Posisi` dan menggantinya secara penuh dengan `Pejabat`.
+Menghilangkan seluruh istilah `Posisi` dan menggantinya secara penuh dengan `Jabatan`.
 
 ### Cakupan
 
@@ -240,7 +240,7 @@ Menutup perubahan besar dengan stabilisasi sistem.
 
 ### Checklist Uji
 
-- tambah petugas dengan field `Pejabat`
+- tambah petugas dengan field `Jabatan`
 - edit dan hapus petugas tetap aman
 - input penilaian baru via search petugas
 - filter waktu bekerja di semua modul
@@ -263,14 +263,14 @@ Urutan ini dipilih karena:
 
 - filter waktu akan dipakai lintas modul
 - search petugas memberi dampak UX cepat dengan risiko rendah
-- rename `Pejabat` sebaiknya selesai sebelum refactor besar modul evaluasi
+- rename `Jabatan` sebaiknya selesai sebelum refactor besar modul evaluasi
 - modul evaluasi/reward/punishment adalah perubahan paling berat dan paling aman dikerjakan setelah fondasi tanggal dan istilah stabil
 
 ## Catatan Implementasi
 
 - Semua helper tanggal sebaiknya dipusatkan pada util bersama.
 - Semua filter waktu sebaiknya berbasis source of truth yang sama agar dashboard, laporan, dan rekomendasi tidak berbeda hasil.
-- Rename `Posisi` ke `Pejabat` harus full rename, bukan label-only.
+- Rename `Posisi` ke `Jabatan` harus full rename, bukan label-only.
 - Untuk schema baru modul evaluasi, sebaiknya desain data mendukung:
   - `type`
   - `periodKind`

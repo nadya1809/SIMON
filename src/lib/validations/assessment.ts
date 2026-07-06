@@ -8,7 +8,7 @@ export const assessmentScoreSchema = z.object({
     .number()
     .int("Skor harus berupa angka bulat.")
     .min(1, "Skor minimal 1.")
-    .max(10, "Skor maksimal 10.")
+    .max(100, "Skor maksimal 100.")
 });
 
 export const assessmentSchema = z.object({
