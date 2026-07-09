@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 
 type ApiSuccessOptions = {
   message?: string;
+  meta?: Record<string, unknown>;
   status?: number;
 };
 
@@ -15,6 +16,7 @@ export function apiSuccess<T>(data: T, options: ApiSuccessOptions = {}) {
   return NextResponse.json(
     {
       ...(options.message ? { message: options.message } : {}),
+      ...(options.meta ? { meta: options.meta } : {}),
       data
     },
     { status: options.status ?? 200 }
@@ -74,8 +76,11 @@ export function apiNotFound(message: string) {
   return apiMessage(message, 404);
 }
 
-export function apiConflict(message: string) {
-  return apiMessage(message, 409);
+export function apiConflict(message: string, errors?: unknown) {
+  return apiError(message, {
+    status: 409,
+    errors
+  });
 }
 
 export function mapPrismaError(

@@ -1,10 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import { parseDateOnlyUtc } from "@/lib/date-only";
+import {
+  createPaginationMeta,
+  resolvePaginationParams
+} from "@/lib/pagination";
 import { getTimePresetRange, resolveTimePreset } from "@/lib/time-presets";
 
 type ReportParams = {
   timePreset?: string;
   unitId?: string;
+  rankingPage?: string;
+  rankingRowsPerPage?: string;
+  previewPage?: string;
+  previewRowsPerPage?: string;
 };
 
 function average(values: number[]) {
@@ -19,6 +27,16 @@ function average(values: number[]) {
 export async function getReportData(params: ReportParams) {
   const timePreset = resolveTimePreset(params.timePreset);
   const presetRange = getTimePresetRange(timePreset);
+  const rankingPagination = resolvePaginationParams(
+    params.rankingPage,
+    params.rankingRowsPerPage,
+    10
+  );
+  const previewPagination = resolvePaginationParams(
+    params.previewPage,
+    params.previewRowsPerPage,
+    10
+  );
   const filters = {
     timePreset,
     from: presetRange.from,
@@ -37,10 +55,87 @@ export async function getReportData(params: ReportParams) {
         }
       : {})
   };
+  const presentWhere = {
+    ...where,
+    status: "PRESENT" as const
+  };
+  const absentWhere = {
+    ...where,
+    status: "ABSENT" as const
+  };
 
-  const [assessments, units] = await Promise.all([
+  const [
+    totalAssessments,
+    totalPresent,
+    totalAbsent,
+    distinctOfficers,
+    overallAverageResult,
+    topOfficerGroup,
+    rankingOfficerIds,
+    previewAssessments,
+    units,
+    criteria
+  ] = await Promise.all([
+    prisma.dailyAssessment.count({ where }),
+    prisma.dailyAssessment.count({ where: presentWhere }),
+    prisma.dailyAssessment.count({ where: absentWhere }),
     prisma.dailyAssessment.findMany({
       where,
+      distinct: ["officerId"],
+      select: {
+        officerId: true
+      }
+    }),
+    prisma.dailyAssessment.aggregate({
+      where: presentWhere,
+      _avg: {
+        averageScore: true
+      }
+    }),
+    prisma.dailyAssessment.groupBy({
+      by: ["officerId"],
+      where: presentWhere,
+      _avg: {
+        averageScore: true
+      },
+      _count: {
+        _all: true
+      },
+      orderBy: {
+        _avg: {
+          averageScore: "desc"
+        }
+      },
+      take: 1
+    }),
+    prisma.dailyAssessment.groupBy({
+      by: ["officerId"],
+      where: presentWhere,
+      _avg: {
+        averageScore: true
+      },
+      _count: {
+        _all: true
+      },
+      orderBy: [
+        {
+          _avg: {
+            averageScore: "desc"
+          }
+        },
+        {
+          officerId: "asc"
+        }
+      ],
+      skip:
+        (rankingPagination.page - 1) * rankingPagination.rowsPerPage,
+      take: rankingPagination.rowsPerPage
+    }),
+    prisma.dailyAssessment.findMany({
+      where,
+      skip:
+        (previewPagination.page - 1) * previewPagination.rowsPerPage,
+      take: previewPagination.rowsPerPage,
       include: {
         officer: {
           include: {
@@ -68,29 +163,63 @@ export async function getReportData(params: ReportParams) {
         id: true,
         name: true
       }
+    }),
+    prisma.criteria.findMany({
+      where: {
+        isActive: true
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        sortOrder: true
+      }
     })
   ]);
-
-  const criteriaMap = new Map<
-    string,
-    { id: string; name: string; sortOrder: number }
-  >();
-
-  assessments.forEach((assessment) => {
-    assessment.scores.forEach((score) => {
-      criteriaMap.set(score.criteriaId, {
-        id: score.criteriaId,
-        name: score.criteria.name,
-        sortOrder: score.criteria.sortOrder
-      });
-    });
-  });
-
-  const criteria = [...criteriaMap.values()].sort(
-    (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)
+  const rankingTotalItems = await prisma.dailyAssessment
+    .findMany({
+      where: presentWhere,
+      distinct: ["officerId"],
+      select: {
+        officerId: true
+      }
+    })
+    .then((items) => items.length);
+  const rankingMeta = createPaginationMeta(
+    rankingTotalItems,
+    rankingPagination.page,
+    rankingPagination.rowsPerPage
   );
+  const previewMeta = createPaginationMeta(
+    totalAssessments,
+    previewPagination.page,
+    previewPagination.rowsPerPage
+  );
+  const rankingOfficerMap = new Map(
+    (
+      await prisma.officer.findMany({
+        where: {
+          id: {
+            in: rankingOfficerIds.map((item) => item.officerId)
+          }
+        },
+        include: {
+          unit: true
+        }
+      })
+    ).map((officer) => [officer.id, officer])
+  );
+  const topOfficerId = topOfficerGroup[0]?.officerId;
+  const topOfficerRecord = topOfficerId
+    ? await prisma.officer.findUnique({
+        where: { id: topOfficerId },
+        include: {
+          unit: true
+        }
+      })
+    : null;
 
-  const rows = assessments.map((assessment) => {
+  const rows = previewAssessments.map((assessment) => {
     const scoreMap = Object.fromEntries(
       assessment.scores.map((score) => [score.criteriaId, score.score])
     );
@@ -112,68 +241,48 @@ export async function getReportData(params: ReportParams) {
     };
   });
 
-  const officerMap = new Map<
-    string,
-    {
-      officerId: string;
-      officerName: string;
-      officerNip: string;
-      unitName: string;
-      scores: number[];
-    }
-  >();
+  const ranking = rankingOfficerIds.map((item, index) => {
+    const officer = rankingOfficerMap.get(item.officerId);
 
-  rows.forEach((row) => {
-    if (row.averageScore === null) {
-      return;
-    }
-
-    const existing = officerMap.get(row.officerId) ?? {
-      officerId: row.officerId,
-      officerName: row.officerName,
-      officerNip: row.officerNip,
-      unitName: row.unitName,
-      scores: []
-    };
-
-    existing.scores.push(row.averageScore);
-    officerMap.set(row.officerId, existing);
-  });
-
-  const ranking = [...officerMap.values()]
-    .map((item) => ({
+    return {
       officerId: item.officerId,
-      officerName: item.officerName,
-      officerNip: item.officerNip,
-      unitName: item.unitName,
-      averageScore: average(item.scores),
-      totalAssessments: item.scores.length
-    }))
-    .sort((a, b) => b.averageScore - a.averageScore || a.officerName.localeCompare(b.officerName))
-    .map((item, index) => ({
-      ...item,
-      rank: index + 1
-    }));
-
-  const presentRows = rows.filter((row) => row.status === "PRESENT");
-  const absentRows = rows.filter((row) => row.status === "ABSENT");
+      officerName: officer?.name ?? "Petugas",
+      officerNip: officer?.nip ?? "-",
+      unitName: officer?.unit?.name ?? "Belum ditentukan",
+      averageScore: Number(item._avg.averageScore?.toFixed(2) ?? 0),
+      totalAssessments: item._count._all,
+      rank:
+        (rankingMeta.page - 1) * rankingMeta.rowsPerPage + index + 1
+    };
+  });
 
   return {
     filters,
     units,
     criteria,
     rows,
+    previewMeta,
     ranking,
+    rankingMeta,
     summary: {
-      totalAssessments: rows.length,
-      totalPresent: presentRows.length,
-      totalAbsent: absentRows.length,
-      totalOfficers: new Set(rows.map((row) => row.officerId)).size,
-      overallAverage: average(
-        presentRows
-          .map((row) => row.averageScore)
-          .filter((score): score is number => score !== null)
-      )
+      totalAssessments,
+      totalPresent,
+      totalAbsent,
+      totalOfficers: distinctOfficers.length,
+      overallAverage: Number(
+        (overallAverageResult._avg.averageScore ?? 0).toFixed(2)
+      ),
+      topOfficer:
+        topOfficerRecord && topOfficerGroup[0]
+          ? {
+              officerName: topOfficerRecord.name,
+              unitName: topOfficerRecord.unit?.name ?? "Belum ditentukan",
+              averageScore: Number(
+                (topOfficerGroup[0]._avg.averageScore ?? 0).toFixed(2)
+              ),
+              totalAssessments: topOfficerGroup[0]._count._all
+            }
+          : null
     }
   };
 }

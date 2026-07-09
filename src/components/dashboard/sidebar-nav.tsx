@@ -91,6 +91,7 @@ export function SidebarNav({ onNavigate }: SidebarNavProps) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               onClick={onNavigate}
               className={cn(
                 "block rounded-[var(--radius-panel)] border px-4 py-3 transition",

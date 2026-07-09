@@ -1,7 +1,17 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRoles } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
+import {
+  apiConflict,
+  apiCreated,
+  apiSuccess,
+  apiUnauthorized,
+  apiValidationError
+} from "@/lib/api-response";
+import {
+  createPaginationMeta,
+  resolvePaginationParams
+} from "@/lib/pagination";
 import { officerSchema } from "@/lib/validations/officer";
 
 export async function GET(request: Request) {
@@ -15,31 +25,48 @@ export async function GET(request: Request) {
   const search = searchParams.get("search")?.trim();
   const unitId = searchParams.get("unitId")?.trim();
   const status = searchParams.get("status")?.trim();
+  const sortBy = searchParams.get("sortBy")?.trim();
+  const { page, rowsPerPage } = resolvePaginationParams(
+    searchParams.get("page"),
+    searchParams.get("rowsPerPage")
+  );
+
+  const where = {
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { nip: { contains: search, mode: "insensitive" as const } }
+          ]
+        }
+      : {}),
+    ...(unitId ? { unitId } : {}),
+    ...(status === "active"
+      ? { isActive: true }
+      : status === "inactive"
+        ? { isActive: false }
+        : {})
+  };
+
+  const totalItems = await prisma.officer.count({ where });
+  const meta = createPaginationMeta(totalItems, page, rowsPerPage);
 
   const officers = await prisma.officer.findMany({
-    where: {
-      ...(search
-        ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { nip: { contains: search, mode: "insensitive" } }
-            ]
-          }
-        : {}),
-      ...(unitId ? { unitId } : {}),
-      ...(status === "active"
-        ? { isActive: true }
-        : status === "inactive"
-          ? { isActive: false }
-          : {})
-    },
+    where,
+    skip: (meta.page - 1) * meta.rowsPerPage,
+    take: meta.rowsPerPage,
     include: {
       unit: true
     },
-    orderBy: [{ name: "asc" }]
+    orderBy:
+      sortBy === "nip"
+        ? [{ nip: "asc" }]
+        : sortBy === "unit"
+          ? [{ unit: { name: "asc" } }, { name: "asc" }]
+          : [{ name: "asc" }]
   });
 
-  return NextResponse.json({ data: officers });
+  return apiSuccess(officers, { meta });
 }
 
 export async function POST(request: Request) {
@@ -50,22 +77,16 @@ export async function POST(request: Request) {
   }
 
   if (!session?.user) {
-    return NextResponse.json(
-      { message: "Unauthorized. Silakan login terlebih dahulu." },
-      { status: 401 }
-    );
+    return apiUnauthorized();
   }
 
   const body = await request.json();
   const parsed = officerSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: "Data petugas tidak valid.",
-        errors: parsed.error.flatten().fieldErrors
-      },
-      { status: 400 }
+    return apiValidationError(
+      "Data petugas tidak valid.",
+      parsed.error.flatten().fieldErrors
     );
   }
 
@@ -80,10 +101,9 @@ export async function POST(request: Request) {
   });
 
   if (duplicateNip) {
-    return NextResponse.json(
-      { message: "NIP sudah digunakan oleh petugas lain." },
-      { status: 409 }
-    );
+    return apiConflict("NIP sudah digunakan oleh petugas lain.", {
+      nip: ["NIP sudah digunakan oleh petugas lain."]
+    });
   }
 
   const officer = await prisma.officer.create({
@@ -107,8 +127,5 @@ export async function POST(request: Request) {
     afterData: toAuditJson(officer)
   });
 
-  return NextResponse.json(
-    { message: "Petugas berhasil ditambahkan.", data: officer },
-    { status: 201 }
-  );
+  return apiCreated(officer, "Petugas berhasil ditambahkan.");
 }

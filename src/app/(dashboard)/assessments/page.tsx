@@ -1,38 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth-guard";
 import { AssessmentManagement } from "@/components/assessments/assessment-management";
+import { getAssessmentList } from "@/lib/assessments";
 
 export default async function AssessmentsPage() {
   const session = await requireAuth();
 
-  const [assessments, officers, criteria] = await Promise.all([
-    prisma.dailyAssessment.findMany({
-      include: {
-        officer: {
-          include: {
-            unit: true
-          }
-        },
-        assessor: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true
-          }
-        },
-        scores: {
-          include: {
-            criteria: true
-          },
-          orderBy: {
-            criteria: {
-              sortOrder: "asc"
-            }
-          }
-        }
-      },
-      orderBy: [{ assessmentDate: "desc" }, { createdAt: "desc" }]
+  const [assessmentData, officers, criteria] = await Promise.all([
+    getAssessmentList({
+      page: 1,
+      rowsPerPage: 10
     }),
     prisma.officer.findMany({
       where: { isActive: true },
@@ -54,7 +31,7 @@ export default async function AssessmentsPage() {
 
   return (
     <AssessmentManagement
-      initialAssessments={assessments}
+      initialAssessmentData={assessmentData}
       officers={officers}
       criteria={criteria}
       userName={session.user.name ?? "Pengguna"}

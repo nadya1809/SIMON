@@ -2,7 +2,7 @@ import { faChevronLeft, faChevronRight } from "@fortawesome/free-solid-svg-icons
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 
-type PaginationBarProps = {
+export type PaginationBarProps = {
   page: number;
   totalPages: number;
   totalItems: number;

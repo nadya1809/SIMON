@@ -73,7 +73,24 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (duplicateName) {
-    return apiConflict("Nama kriteria sudah digunakan.");
+    return apiConflict("Nama kriteria sudah digunakan.", {
+      name: ["Nama kriteria sudah digunakan."]
+    });
+  }
+
+  const duplicateSortOrder = await prisma.criteria.findFirst({
+    where: {
+      id: { not: id },
+      sortOrder: parsed.data.sortOrder
+    }
+  });
+
+  if (duplicateSortOrder) {
+    return apiConflict("Urutan tampil sudah digunakan oleh kriteria lain.", {
+      sortOrder: [
+        `Urutan tampil ${parsed.data.sortOrder} sudah dipakai oleh "${duplicateSortOrder.name}".`
+      ]
+    });
   }
 
   const criteria = await prisma.criteria.update({

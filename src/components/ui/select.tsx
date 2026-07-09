@@ -1,21 +1,31 @@
 import { forwardRef, SelectHTMLAttributes } from "react";
+import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { cn } from "@/lib/utils";
+import { formControlClassName } from "@/components/ui/primitive-styles";
 
 export const Select = forwardRef<
   HTMLSelectElement,
   SelectHTMLAttributes<HTMLSelectElement>
 >(({ className, children, ...props }, ref) => {
   return (
-    <select
-      ref={ref}
-      className={cn(
-        "h-11 w-full rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] px-4 text-sm text-[var(--foreground)] shadow-[var(--shadow-sm)] outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[rgba(10,111,182,0.08)]",
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </select>
+    <div className="relative">
+      <select
+        ref={ref}
+        data-slot="select"
+        className={cn(
+          formControlClassName,
+          "h-11 appearance-none px-4 pr-11 [&_option]:bg-[var(--card)] [&_option]:text-[var(--foreground)]",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </select>
+      <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[var(--muted)]">
+        <FontAwesomeIcon icon={faChevronDown} className="h-3.5 w-3.5" />
+      </span>
+    </div>
   );
 });
 

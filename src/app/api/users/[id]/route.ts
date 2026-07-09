@@ -67,12 +67,17 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (duplicateEmail) {
-    return apiConflict("Email sudah digunakan oleh user lain.");
+    return apiConflict("Email sudah digunakan oleh user lain.", {
+      email: ["Email sudah digunakan oleh user lain."]
+    });
   }
 
   if (session.user.id === id && !parsed.data.isActive) {
     return apiValidationError(
-      "Anda tidak bisa menonaktifkan akun yang sedang dipakai."
+      "Anda tidak bisa menonaktifkan akun yang sedang dipakai.",
+      {
+        isActive: ["Akun yang sedang dipakai tidak boleh dinonaktifkan."]
+      }
     );
   }
 

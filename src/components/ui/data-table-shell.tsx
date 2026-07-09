@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { SectionCard } from "@/components/ui/section-card";
+import { sectionHeaderClassName } from "@/components/ui/primitive-styles";
 
 type DataTableShellProps = {
   title?: string;
@@ -8,6 +9,8 @@ type DataTableShellProps = {
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
+  headerClassName?: string;
+  bodyClassName?: string;
 };
 
 export function DataTableShell({
@@ -15,12 +18,14 @@ export function DataTableShell({
   description,
   actions,
   children,
-  className
+  className,
+  headerClassName,
+  bodyClassName
 }: DataTableShellProps) {
   return (
-    <SectionCard className={cn("overflow-hidden", className)}>
+    <SectionCard data-slot="data-table-shell" className={cn("overflow-hidden", className)}>
       {title || description || actions ? (
-        <div className="flex flex-col gap-4 border-b border-[var(--border)] px-5 py-4 md:flex-row md:items-start md:justify-between">
+        <div data-slot="data-table-header" className={cn(sectionHeaderClassName, headerClassName)}>
           <div className="space-y-1">
             {title ? <h3 className="text-lg font-bold">{title}</h3> : null}
             {description ? (
@@ -30,7 +35,9 @@ export function DataTableShell({
           {actions ? <div>{actions}</div> : null}
         </div>
       ) : null}
-      {children}
+      <div data-slot="data-table-body" className={bodyClassName}>
+        {children}
+      </div>
     </SectionCard>
   );
 }

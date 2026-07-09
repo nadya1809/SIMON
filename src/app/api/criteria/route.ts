@@ -1,17 +1,38 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRoles } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
+import {
+  apiConflict,
+  apiCreated,
+  apiSuccess,
+  apiUnauthorized,
+  apiValidationError
+} from "@/lib/api-response";
+import {
+  createPaginationMeta,
+  resolvePaginationParams
+} from "@/lib/pagination";
 import { criteriaSchema } from "@/lib/validations/criteria";
 
-export async function GET() {
+export async function GET(request: Request) {
   const { response } = await requireApiRoles(["ADMIN"]);
 
   if (response) {
     return response;
   }
 
+  const { searchParams } = new URL(request.url);
+  const { page, rowsPerPage } = resolvePaginationParams(
+    searchParams.get("page"),
+    searchParams.get("rowsPerPage")
+  );
+
+  const totalItems = await prisma.criteria.count();
+  const meta = createPaginationMeta(totalItems, page, rowsPerPage);
+
   const criteria = await prisma.criteria.findMany({
+    skip: (meta.page - 1) * meta.rowsPerPage,
+    take: meta.rowsPerPage,
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     include: {
       _count: {
@@ -22,7 +43,7 @@ export async function GET() {
     }
   });
 
-  return NextResponse.json({ data: criteria });
+  return apiSuccess(criteria, { meta });
 }
 
 export async function POST(request: Request) {
@@ -33,22 +54,16 @@ export async function POST(request: Request) {
   }
 
   if (!session?.user) {
-    return NextResponse.json(
-      { message: "Unauthorized. Silakan login terlebih dahulu." },
-      { status: 401 }
-    );
+    return apiUnauthorized();
   }
 
   const body = await request.json();
   const parsed = criteriaSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: "Data kriteria tidak valid.",
-        errors: parsed.error.flatten().fieldErrors
-      },
-      { status: 400 }
+    return apiValidationError(
+      "Data kriteria tidak valid.",
+      parsed.error.flatten().fieldErrors
     );
   }
 
@@ -65,10 +80,23 @@ export async function POST(request: Request) {
   });
 
   if (duplicateName) {
-    return NextResponse.json(
-      { message: "Nama kriteria sudah digunakan." },
-      { status: 409 }
-    );
+    return apiConflict("Nama kriteria sudah digunakan.", {
+      name: ["Nama kriteria sudah digunakan."]
+    });
+  }
+
+  const duplicateSortOrder = await prisma.criteria.findFirst({
+    where: {
+      sortOrder: parsed.data.sortOrder
+    }
+  });
+
+  if (duplicateSortOrder) {
+    return apiConflict("Urutan tampil sudah digunakan oleh kriteria lain.", {
+      sortOrder: [
+        `Urutan tampil ${parsed.data.sortOrder} sudah dipakai oleh "${duplicateSortOrder.name}".`
+      ]
+    });
   }
 
   const criteria = await prisma.criteria.create({
@@ -95,8 +123,5 @@ export async function POST(request: Request) {
     afterData: toAuditJson(criteria)
   });
 
-  return NextResponse.json(
-    { message: "Kriteria berhasil ditambahkan.", data: criteria },
-    { status: 201 }
-  );
+  return apiCreated(criteria, "Kriteria berhasil ditambahkan.");
 }

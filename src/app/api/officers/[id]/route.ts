@@ -84,7 +84,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (duplicateNip) {
-    return apiConflict("NIP sudah digunakan oleh petugas lain.");
+    return apiConflict("NIP sudah digunakan oleh petugas lain.", {
+      nip: ["NIP sudah digunakan oleh petugas lain."]
+    });
   }
 
   const officer = await prisma.officer.update({

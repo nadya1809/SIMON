@@ -3,12 +3,18 @@ import { RewardPunishmentManagement } from "@/components/reward-punishment/rewar
 import { requireAuth } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { getTodayDateInputValue } from "@/lib/date-only";
+import { createPaginationMeta } from "@/lib/pagination";
 
 export default async function RewardPunishmentPage() {
   const session = await requireAuth();
 
-  const [recommendations, units] = await Promise.all([
+  const rowsPerPage = 10;
+  const totalItems = await prisma.rewardPunishment.count();
+  const meta = createPaginationMeta(totalItems, 1, rowsPerPage);
+  const [recommendations, units, recommendedCount, approvedCount, rejectedCount] = await Promise.all([
     prisma.rewardPunishment.findMany({
+      skip: 0,
+      take: rowsPerPage,
       include: {
         officer: {
           include: {
@@ -30,12 +36,24 @@ export default async function RewardPunishmentPage() {
       orderBy: {
         name: "asc"
       }
-    })
+    }),
+    prisma.rewardPunishment.count({ where: { status: "RECOMMENDED" } }),
+    prisma.rewardPunishment.count({ where: { status: "APPROVED" } }),
+    prisma.rewardPunishment.count({ where: { status: "REJECTED" } })
   ]);
 
   return (
     <RewardPunishmentManagement
-      initialRecommendations={recommendations}
+      initialRecommendations={{
+        data: recommendations,
+        meta,
+        summary: {
+          total: totalItems,
+          RECOMMENDED: recommendedCount,
+          APPROVED: approvedCount,
+          REJECTED: rejectedCount
+        }
+      }}
       units={units}
       defaultReferenceDate={getTodayDateInputValue()}
       role={session.user.role}

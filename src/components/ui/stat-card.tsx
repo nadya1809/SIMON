@@ -1,6 +1,8 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { cn } from "@/lib/utils";
 import { SectionCard } from "@/components/ui/section-card";
+import { statLabelClassName } from "@/components/ui/primitive-styles";
 
 type StatCardProps = {
   label: string;
@@ -8,6 +10,7 @@ type StatCardProps = {
   icon: IconDefinition;
   iconTone?: "blue" | "teal" | "sky" | "soft";
   helper?: string;
+  className?: string;
 };
 
 const toneClasses = {
@@ -22,15 +25,14 @@ export function StatCard({
   value,
   icon,
   iconTone = "blue",
-  helper
+  helper,
+  className
 }: StatCardProps) {
   return (
-    <SectionCard className="p-5">
+    <SectionCard className={cn("p-5", className)}>
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-            {label}
-          </p>
+          <p className={statLabelClassName}>{label}</p>
           <div className="flex items-end gap-2">
             <p className="text-3xl font-bold tracking-[-0.03em]">{value}</p>
             {helper ? <span className="pb-1 text-sm text-[var(--muted)]">{helper}</span> : null}

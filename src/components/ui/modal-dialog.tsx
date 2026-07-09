@@ -1,10 +1,16 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogIconClose,
+  DialogTitle
+} from "@/components/ui/dialog";
 
 type ModalDialogProps = {
   open: boolean;
@@ -13,6 +19,7 @@ type ModalDialogProps = {
   children: ReactNode;
   onClose: () => void;
   className?: string;
+  bodyClassName?: string;
 };
 
 export function ModalDialog({
@@ -21,71 +28,23 @@ export function ModalDialog({
   description,
   children,
   onClose,
-  className
+  className,
+  bodyClassName
 }: ModalDialogProps) {
-  useBodyScrollLock(open);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleEscape);
-
-    return () => {
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [onClose, open]);
-
-  if (!open) {
-    return null;
-  }
-
   return (
-    <div className="fixed inset-0 z-[85] flex items-center justify-center bg-[rgba(19,39,56,0.52)] px-4 py-8 backdrop-blur-[3px]">
-      <button
-        type="button"
-        aria-label="Tutup dialog"
-        className="absolute inset-0 cursor-default"
-        onClick={onClose}
-      />
-
-      <div
-        role="dialog"
-        aria-modal="true"
-        className={cn(
-          "relative max-h-[calc(100vh-4rem)] w-full max-w-3xl overflow-y-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] shadow-[0_32px_80px_rgba(24,50,71,0.22)]",
-          className
-        )}
-      >
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[var(--border)] bg-[var(--card)] px-6 py-5">
+    <Dialog open={open} onOpenChange={(nextOpen: boolean) => !nextOpen && onClose()}>
+      <DialogContent className={cn("max-w-3xl", className)}>
+        <DialogHeader className="sticky top-0 z-10 flex-row items-start justify-between gap-4 backdrop-blur">
           <div className="space-y-1">
-            <h3 className="text-xl font-bold tracking-[-0.01em]">{title}</h3>
+            <DialogTitle>{title}</DialogTitle>
             {description ? (
-              <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
-                {description}
-              </p>
+              <DialogDescription>{description}</DialogDescription>
             ) : null}
           </div>
-
-          <button
-            type="button"
-            aria-label="Tutup"
-            onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] text-[var(--muted)] transition hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
-          >
-            <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="bg-[var(--card)] px-6 py-5">{children}</div>
-      </div>
-    </div>
+          <DialogIconClose />
+        </DialogHeader>
+        <DialogBody className={bodyClassName}>{children}</DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }

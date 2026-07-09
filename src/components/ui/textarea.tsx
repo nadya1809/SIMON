@@ -1,5 +1,6 @@
 import { forwardRef, TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
+import { formControlClassName } from "@/components/ui/primitive-styles";
 
 export const Textarea = forwardRef<
   HTMLTextAreaElement,
@@ -8,8 +9,10 @@ export const Textarea = forwardRef<
   return (
     <textarea
       ref={ref}
+      data-slot="textarea"
       className={cn(
-        "min-h-28 w-full rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-[var(--foreground)] shadow-[var(--shadow-sm)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-4 focus:ring-[rgba(10,111,182,0.08)]",
+        formControlClassName,
+        "min-h-28 px-4 py-3",
         className
       )}
       {...props}

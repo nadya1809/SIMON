@@ -1,18 +1,39 @@
 import bcrypt from "bcryptjs";
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiRoles } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
+import {
+  apiConflict,
+  apiCreated,
+  apiSuccess,
+  apiUnauthorized,
+  apiValidationError
+} from "@/lib/api-response";
+import {
+  createPaginationMeta,
+  resolvePaginationParams
+} from "@/lib/pagination";
 import { userSchema } from "@/lib/validations/user";
 
-export async function GET() {
+export async function GET(request: Request) {
   const { response } = await requireApiRoles(["ADMIN"]);
 
   if (response) {
     return response;
   }
 
+  const { searchParams } = new URL(request.url);
+  const { page, rowsPerPage } = resolvePaginationParams(
+    searchParams.get("page"),
+    searchParams.get("rowsPerPage")
+  );
+
+  const totalItems = await prisma.user.count();
+  const meta = createPaginationMeta(totalItems, page, rowsPerPage);
+
   const users = await prisma.user.findMany({
+    skip: (meta.page - 1) * meta.rowsPerPage,
+    take: meta.rowsPerPage,
     orderBy: [{ createdAt: "desc" }],
     select: {
       id: true,
@@ -25,7 +46,7 @@ export async function GET() {
     }
   });
 
-  return NextResponse.json({ data: users });
+  return apiSuccess(users, { meta });
 }
 
 export async function POST(request: Request) {
@@ -36,22 +57,16 @@ export async function POST(request: Request) {
   }
 
   if (!session?.user) {
-    return NextResponse.json(
-      { message: "Unauthorized. Silakan login terlebih dahulu." },
-      { status: 401 }
-    );
+    return apiUnauthorized();
   }
 
   const body = await request.json();
   const parsed = userSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: "Data user tidak valid.",
-        errors: parsed.error.flatten().fieldErrors
-      },
-      { status: 400 }
+    return apiValidationError(
+      "Data user tidak valid.",
+      parsed.error.flatten().fieldErrors
     );
   }
 
@@ -62,10 +77,9 @@ export async function POST(request: Request) {
   });
 
   if (existingUser) {
-    return NextResponse.json(
-      { message: "Email sudah digunakan oleh user lain." },
-      { status: 409 }
-    );
+    return apiConflict("Email sudah digunakan oleh user lain.", {
+      email: ["Email sudah digunakan oleh user lain."]
+    });
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
@@ -97,8 +111,5 @@ export async function POST(request: Request) {
     afterData: toAuditJson(user)
   });
 
-  return NextResponse.json(
-    { message: "User berhasil ditambahkan.", data: user },
-    { status: 201 }
-  );
+  return apiCreated(user, "User berhasil ditambahkan.");
 }

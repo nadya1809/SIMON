@@ -1,5 +1,3 @@
-import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
@@ -14,6 +12,7 @@ import {
 } from "@/lib/api-response";
 import { logServerError } from "@/lib/logger";
 import { parseDateOnlyUtc } from "@/lib/date-only";
+import { getAssessmentList } from "@/lib/assessments";
 import {
   assessmentSchema,
   validateAssessmentBusinessRules
@@ -33,47 +32,19 @@ export async function GET(request: Request) {
   const status = searchParams.get("status")?.trim();
   const from = searchParams.get("from")?.trim();
   const to = searchParams.get("to")?.trim();
+  const search = searchParams.get("q")?.trim();
+  const page = Number(searchParams.get("page"));
+  const rowsPerPage = Number(searchParams.get("rowsPerPage"));
 
-  const assessments = await prisma.dailyAssessment.findMany({
-    where: {
-      ...(officerId ? { officerId } : {}),
-      ...(unitId ? { officer: { unitId } } : {}),
-      ...(status === "PRESENT" || status === "ABSENT" ? { status } : {}),
-      ...(from || to
-        ? {
-            assessmentDate: {
-              ...(from ? { gte: parseDateOnlyUtc(from) } : {}),
-              ...(to ? { lte: parseDateOnlyUtc(to) } : {})
-            }
-          }
-        : {})
-    },
-    include: {
-      officer: {
-        include: {
-          unit: true
-        }
-      },
-      assessor: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true
-        }
-      },
-      scores: {
-        include: {
-          criteria: true
-        },
-        orderBy: {
-          criteria: {
-            sortOrder: "asc"
-          }
-        }
-      }
-    },
-    orderBy: [{ assessmentDate: "desc" }, { createdAt: "desc" }]
+  const assessments = await getAssessmentList({
+    officerId: officerId || undefined,
+    unitId: unitId || undefined,
+    status: status || undefined,
+    from: from || undefined,
+    to: to || undefined,
+    search: search || undefined,
+    page,
+    rowsPerPage
   });
 
   return apiSuccess(assessments);
@@ -105,7 +76,9 @@ export async function POST(request: Request) {
   });
 
   if (!officer) {
-    return apiNotFound("Petugas tidak ditemukan.");
+    return apiValidationError("Petugas tidak ditemukan.", {
+      officerId: ["Petugas yang dipilih tidak ditemukan."]
+    });
   }
 
   const activeCriteria = await prisma.criteria.findMany({
@@ -141,7 +114,11 @@ export async function POST(request: Request) {
   });
 
   if (duplicateAssessment) {
-    return apiConflict("Penilaian untuk petugas dan tanggal tersebut sudah ada.");
+    return apiConflict("Penilaian untuk petugas dan tanggal tersebut sudah ada.", {
+      assessmentDate: [
+        "Tanggal penilaian ini sudah terpakai untuk petugas yang dipilih."
+      ]
+    });
   }
 
   try {

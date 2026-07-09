@@ -61,7 +61,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (duplicateName) {
-    return apiConflict("Nama unit sudah digunakan.");
+    return apiConflict("Nama unit sudah digunakan.", {
+      name: ["Nama unit sudah digunakan."]
+    });
   }
 
   const unit = await prisma.unit.update({

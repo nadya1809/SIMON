@@ -1,14 +1,13 @@
+
+
 import type { Metadata } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+import { IBM_Plex_Sans, Geist } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AppToaster } from "@/components/ui/app-toaster";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
-const ibmPlexSans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  weight: ["400", "500", "600", "700"]
-});
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "SIMON PST | BPS Provinsi Sumatera Barat",
@@ -22,8 +21,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" suppressHydrationWarning>
-      <body className={ibmPlexSans.variable}>
+    <html lang="id" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
+      <body className={geist.variable}>
         <ThemeProvider>
           {children}
           <AppToaster />

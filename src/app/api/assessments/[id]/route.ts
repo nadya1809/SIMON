@@ -157,7 +157,11 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   if (duplicateAssessment) {
-    return apiConflict("Penilaian untuk petugas dan tanggal tersebut sudah ada.");
+    return apiConflict("Penilaian untuk petugas dan tanggal tersebut sudah ada.", {
+      assessmentDate: [
+        "Tanggal penilaian ini sudah terpakai untuk petugas yang dipilih."
+      ]
+    });
   }
 
   const assessment = await prisma.$transaction(async (tx) => {

@@ -12,10 +12,11 @@ import {
   PeriodTrendChart,
   UnitComparisonChart
 } from "@/components/charts/dashboard-charts";
+import { AccentSummaryPanel } from "@/components/ui/accent-summary-panel";
+import { EntityIdentityCell } from "@/components/ui/entity-identity-cell";
 import { EmptyState } from "@/components/ui/empty-state";
-import { SectionCard } from "@/components/ui/section-card";
+import { ModuleTableSection } from "@/components/ui/module-table-section";
 import { StatCard } from "@/components/ui/stat-card";
-import { Table } from "@/components/ui/table";
 import { requireAuth } from "@/lib/auth-guard";
 import { getDashboardSummary } from "@/lib/dashboard";
 
@@ -74,20 +75,18 @@ export default async function DashboardPage({
           icon={faCalendarCheck}
           iconTone="blue"
         />
-        <SectionCard className="bg-[linear-gradient(135deg,rgba(0,91,154,0.98),rgba(10,111,182,0.93))] p-6 text-white md:col-span-2">
-          <p className="text-sm text-white/72">Petugas Teratas</p>
-          <p className="mt-2 text-2xl font-bold">
-            {data.summaryCards.topOfficer?.officerName ?? "-"}
-          </p>
-          <p className="mt-1 text-sm text-white/80">
-            {data.summaryCards.topOfficer
+        <AccentSummaryPanel
+          className="p-6 md:col-span-2"
+          eyebrow="Petugas Teratas"
+          title={data.summaryCards.topOfficer?.officerName ?? "-"}
+          description={
+            data.summaryCards.topOfficer
               ? `${data.summaryCards.topOfficer.unitName} · ${data.summaryCards.topOfficer.averageScore.toFixed(2)}`
-              : "Belum ada data performa yang cukup untuk dihitung."}
-          </p>
-          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
-            Ringkasan eksekutif pelayanan statistik terpadu
-          </p>
-        </SectionCard>
+              : "Belum ada data performa yang cukup untuk dihitung."
+          }
+          meta="Ringkasan eksekutif pelayanan statistik terpadu"
+          contentClassName="block"
+        />
       </section>
 
       {hasDashboardData ? (
@@ -105,38 +104,33 @@ export default async function DashboardPage({
             <UnitComparisonChart data={data.unitComparison} />
           </section>
 
-          <SectionCard className="p-6">
-            <div className="mb-4">
-              <h3 className="text-lg font-bold">Ranking Petugas</h3>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Peringkat petugas berdasarkan rata-rata skor pada rentang data
-                yang dipilih.
-              </p>
-            </div>
-            <Table
-              headers={[
-                "Peringkat",
-                "Petugas",
-                "Unit",
-                "Rata-rata",
-                "Jumlah Penilaian"
-              ]}
-            >
-              {data.ranking.map((item, index) => (
-                <tr key={item.officerId} className="border-t border-[var(--border)]">
-                  <td className="px-5 py-4 font-semibold">#{index + 1}</td>
-                  <td className="px-5 py-4 font-semibold">{item.officerName}</td>
-                  <td className="px-5 py-4 text-[var(--muted)]">{item.unitName}</td>
-                  <td className="px-5 py-4 font-semibold">
-                    {item.averageScore.toFixed(2)}
-                  </td>
-                  <td className="px-5 py-4 text-[var(--muted)]">
-                    {item.totalAssessments}
-                  </td>
-                </tr>
-              ))}
-            </Table>
-          </SectionCard>
+          <ModuleTableSection
+            title="Ranking Petugas"
+            description="Peringkat petugas berdasarkan rata-rata skor pada rentang data yang dipilih."
+            headers={[
+              "Peringkat",
+              "Petugas",
+              "Unit",
+              "Rata-rata",
+              "Jumlah Penilaian"
+            ]}
+          >
+            {data.ranking.map((item, index) => (
+              <tr key={item.officerId} className="border-t border-[var(--border)]">
+                <td className="px-5 py-4 font-semibold">#{index + 1}</td>
+                <td className="px-5 py-4">
+                  <EntityIdentityCell name={item.officerName} />
+                </td>
+                <td className="px-5 py-4 text-[var(--muted)]">{item.unitName}</td>
+                <td className="px-5 py-4 font-semibold">
+                  {item.averageScore.toFixed(2)}
+                </td>
+                <td className="px-5 py-4 text-[var(--muted)]">
+                  {item.totalAssessments}
+                </td>
+              </tr>
+            ))}
+          </ModuleTableSection>
         </>
       ) : (
         <EmptyState

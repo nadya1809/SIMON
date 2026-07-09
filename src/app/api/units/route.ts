@@ -9,16 +9,31 @@ import {
   apiUnauthorized,
   apiValidationError
 } from "@/lib/api-response";
+import {
+  createPaginationMeta,
+  resolvePaginationParams
+} from "@/lib/pagination";
 import { unitSchema } from "@/lib/validations/unit";
 
-export async function GET() {
+export async function GET(request: Request) {
   const { response } = await requireApiRoles(["ADMIN"]);
 
   if (response) {
     return response;
   }
 
+  const { searchParams } = new URL(request.url);
+  const { page, rowsPerPage } = resolvePaginationParams(
+    searchParams.get("page"),
+    searchParams.get("rowsPerPage")
+  );
+
+  const totalItems = await prisma.unit.count();
+  const meta = createPaginationMeta(totalItems, page, rowsPerPage);
+
   const units = await prisma.unit.findMany({
+    skip: (meta.page - 1) * meta.rowsPerPage,
+    take: meta.rowsPerPage,
     orderBy: { name: "asc" },
     include: {
       _count: {
@@ -27,7 +42,7 @@ export async function GET() {
     }
   });
 
-  return apiSuccess(units);
+  return apiSuccess(units, { meta });
 }
 
 export async function POST(request: Request) {
@@ -64,7 +79,9 @@ export async function POST(request: Request) {
   });
 
   if (existingUnit) {
-    return apiConflict("Nama unit sudah digunakan.");
+    return apiConflict("Nama unit sudah digunakan.", {
+      name: ["Nama unit sudah digunakan."]
+    });
   }
 
   const unit = await prisma.unit.create({

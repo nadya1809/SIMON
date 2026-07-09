@@ -1,4 +1,5 @@
 import { SectionCard } from "@/components/ui/section-card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function LoadingState({
   title = "Memuat data...",
@@ -8,13 +9,13 @@ export function LoadingState({
   description?: string;
 }) {
   return (
-    <SectionCard className="overflow-hidden p-0">
+    <SectionCard data-slot="loading-state" className="overflow-hidden p-0">
       <div className="border-b border-[var(--border)] bg-[linear-gradient(135deg,var(--accent-soft),var(--card))] px-6 py-5">
         <div className="mb-4 flex items-center gap-3">
-          <div className="h-11 w-11 animate-pulse rounded-[var(--radius-control)] bg-[var(--accent-soft)]" />
+          <Skeleton className="h-11 w-11 bg-[var(--accent-soft)]" />
           <div className="space-y-2">
-            <div className="h-3 w-32 animate-pulse rounded-full bg-[var(--accent-soft)]" />
-            <div className="h-3 w-48 animate-pulse rounded-full bg-[var(--accent-sky-soft)]" />
+            <Skeleton className="h-3 w-32 rounded-full bg-[var(--accent-soft)]" />
+            <Skeleton className="h-3 w-48 rounded-full bg-[var(--accent-sky-soft)]" />
           </div>
         </div>
         <h3 className="text-lg font-bold">{title}</h3>
@@ -27,10 +28,10 @@ export function LoadingState({
             key={index}
             className="space-y-3 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--card)]/75 p-4"
           >
-            <div className="h-3 w-20 animate-pulse rounded-full bg-[var(--surface-strong)]" />
-            <div className="h-7 w-16 animate-pulse rounded-full bg-[var(--accent-soft)]" />
-            <div className="h-3 w-full animate-pulse rounded-full bg-[var(--surface-strong)]" />
-            <div className="h-3 w-2/3 animate-pulse rounded-full bg-[var(--surface-strong)]" />
+            <Skeleton className="h-3 w-20 rounded-full" />
+            <Skeleton className="h-7 w-16 rounded-full bg-[var(--accent-soft)]" />
+            <Skeleton className="h-3 w-full rounded-full" />
+            <Skeleton className="h-3 w-2/3 rounded-full" />
           </div>
         ))}
       </div>

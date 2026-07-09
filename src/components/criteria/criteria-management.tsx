@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   faPenToSquare,
   faPlus,
@@ -10,19 +10,26 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { BooleanStatusField } from "@/components/forms/boolean-status-field";
 import { FormField } from "@/components/forms/form-field";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { DataTableShell } from "@/components/ui/data-table-shell";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { FormDialogActions } from "@/components/ui/form-dialog-actions";
+import { FormDialogHeader } from "@/components/ui/form-dialog-header";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { ModalDialog } from "@/components/ui/modal-dialog";
-import { Table } from "@/components/ui/table";
+import { FilterActions, ModuleFilters } from "@/components/ui/module-filters";
+import {
+  ModulePagination,
+  ModuleTableSection
+} from "@/components/ui/module-table-section";
 import { Textarea } from "@/components/ui/textarea";
+import { applyServerFormErrors, getApiErrorMessage } from "@/lib/form-api";
+import type { PaginatedData } from "@/lib/pagination";
 import {
   type CriteriaFormInput,
   criteriaSchema,
@@ -46,7 +53,7 @@ type CriteriaItem = {
 };
 
 type CriteriaManagementProps = {
-  initialCriteria: CriteriaItem[];
+  initialCriteria: PaginatedData<CriteriaItem>;
   userName: string;
   role: string;
 };
@@ -55,7 +62,10 @@ export function CriteriaManagement({
   initialCriteria,
   role
 }: CriteriaManagementProps) {
-  const [criteria, setCriteria] = useState<CriteriaItem[]>(initialCriteria);
+  const [criteria, setCriteria] = useState<CriteriaItem[]>(initialCriteria.data);
+  const [page, setPage] = useState(initialCriteria.meta.page);
+  const [rowsPerPage, setRowsPerPage] = useState(initialCriteria.meta.rowsPerPage);
+  const [totalItems, setTotalItems] = useState(initialCriteria.meta.totalItems);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingCriteria, setEditingCriteria] = useState<CriteriaItem | null>(
     null
@@ -70,6 +80,7 @@ export function CriteriaManagement({
   );
   const [isActiveValue, setIsActiveValue] = useState(true);
   const [isPending, startTransition] = useTransition();
+  const hasMountedRef = useRef(false);
 
   const form = useForm<CriteriaFormInput, unknown, CriteriaFormValues>({
     resolver: zodResolver(criteriaSchema),
@@ -81,7 +92,40 @@ export function CriteriaManagement({
     }
   });
 
-  const { register, handleSubmit, reset, formState, setValue } = form;
+  const { register, handleSubmit, reset, formState, setValue, setError } = form;
+  const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
+
+  const loadCriteria = useCallback(async (nextPage = page, nextRowsPerPage = rowsPerPage) => {
+    const params = new URLSearchParams({
+      page: String(nextPage),
+      rowsPerPage: String(nextRowsPerPage)
+    });
+    const response = await fetch(`/api/criteria?${params.toString()}`);
+    const result = (await response.json()) as {
+      message?: string;
+      data?: CriteriaItem[];
+      meta?: PaginatedData<CriteriaItem>["meta"];
+    };
+
+    if (!response.ok || !result.data || !result.meta) {
+      toast.error(getApiErrorMessage(result, "Gagal memuat daftar kriteria."));
+      return;
+    }
+
+    setCriteria(result.data);
+    setPage(result.meta.page);
+    setRowsPerPage(result.meta.rowsPerPage);
+    setTotalItems(result.meta.totalItems);
+  }, [page, rowsPerPage]);
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
+    void loadCriteria(page, rowsPerPage);
+  }, [loadCriteria, page, rowsPerPage]);
 
   function resetForm() {
     setIsFormDialogOpen(false);
@@ -108,6 +152,21 @@ export function CriteriaManagement({
   }
 
   async function onSubmit(values: CriteriaFormValues) {
+    const duplicateSortOrder = criteria.find(
+      (item) =>
+        item.sortOrder === values.sortOrder && item.id !== editingCriteria?.id
+    );
+
+    if (duplicateSortOrder) {
+      const duplicateMessage = `Urutan tampil ${values.sortOrder} sudah dipakai oleh "${duplicateSortOrder.name}".`;
+      setError("sortOrder", {
+        type: "manual",
+        message: duplicateMessage
+      });
+      toast.error(duplicateMessage);
+      return;
+    }
+
     const endpoint = editingCriteria
       ? `/api/criteria/${editingCriteria.id}`
       : "/api/criteria";
@@ -125,31 +184,35 @@ export function CriteriaManagement({
       const result = (await response.json()) as {
         message: string;
         data?: CriteriaItem;
+        errors?: Record<string, string[] | undefined>;
       };
 
       if (!response.ok || !result.data) {
-        toast.error(result.message || "Gagal menyimpan kriteria.");
+        applyServerFormErrors(setError, result.errors);
+        toast.error(
+          getApiErrorMessage(
+            result,
+            editingCriteria
+              ? "Gagal memperbarui kriteria. Periksa kembali nama, urutan, dan status kriteria."
+              : "Gagal menambahkan kriteria. Periksa kembali nama, urutan, dan status kriteria."
+          )
+        );
         return;
       }
 
       const nextCriteria = result.data;
 
       if (editingCriteria) {
-        setCriteria((current) =>
-          current
-            .map((item) => (item.id === nextCriteria.id ? nextCriteria : item))
-            .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
+        toast.success(
+          result.message || `Kriteria "${nextCriteria.name}" berhasil diperbarui.`
         );
-        toast.success("Kriteria berhasil diperbarui.");
       } else {
-        setCriteria((current) =>
-          [...current, nextCriteria].sort(
-            (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)
-          )
+        toast.success(
+          result.message || `Kriteria "${nextCriteria.name}" berhasil ditambahkan.`
         );
-        toast.success("Kriteria baru berhasil ditambahkan.");
       }
 
+      await loadCriteria(editingCriteria ? page : 1, rowsPerPage);
       resetForm();
     });
   }
@@ -171,11 +234,12 @@ export function CriteriaManagement({
         return;
       }
 
-      setCriteria((current) => current.filter((entry) => entry.id !== item.id));
-
       if (editingCriteria?.id === item.id) {
         resetForm();
       }
+
+      const nextPage = criteria.length === 1 && page > 1 ? page - 1 : page;
+      await loadCriteria(nextPage, rowsPerPage);
 
       toast.success(result.message || "Kriteria berhasil dihapus.");
     } finally {
@@ -190,7 +254,7 @@ export function CriteriaManagement({
       role={role}
     >
       <section className="space-y-5">
-          <FilterToolbar>
+          <ModuleFilters>
             <div>
               <p className="text-sm font-semibold text-[var(--foreground)]">
                 Struktur penilaian aktif
@@ -199,6 +263,7 @@ export function CriteriaManagement({
                 Pastikan urutan dan status kriteria sesuai kebutuhan operasional harian.
               </p>
             </div>
+            <FilterActions>
             <Button
               icon={faPlus}
               onClick={() => {
@@ -208,88 +273,94 @@ export function CriteriaManagement({
             >
               Tambah Kriteria
             </Button>
-          </FilterToolbar>
+            </FilterActions>
+          </ModuleFilters>
 
-          <DataTableShell
+          <ModuleTableSection
             title="Daftar kriteria"
             description={`${criteria.length} kriteria terdaftar di sistem.`}
+            headers={[
+              "Nama Kriteria",
+              "Urutan",
+              "Status",
+              "Histori Skor",
+              "Catatan",
+              "Aksi"
+            ]}
+            isEmpty={!criteria.length}
+            emptyState={
+              <EmptyState
+                title="Belum ada kriteria"
+                description="Tambahkan kriteria penilaian agar form assessment bisa memakai struktur yang kamu tentukan."
+                icon="K"
+                actionLabel="Tambah Kriteria"
+                onAction={() => {
+                  resetForm();
+                  setIsFormDialogOpen(true);
+                }}
+              />
+            }
           >
-            <Table
-              headers={[
-                "Nama Kriteria",
-                "Urutan",
-                "Status",
-                "Histori Skor",
-                "Catatan",
-                "Aksi"
-              ]}
-            >
-              {criteria.length ? (
-                criteria.map((item) => {
-                  const isSeedDefault = defaultSeedIds.has(item.id);
+            {criteria.map((item) => {
+              const isSeedDefault = defaultSeedIds.has(item.id);
 
-                  return (
-                    <tr key={item.id} className="border-t border-[var(--border)]">
-                      <td className="px-5 py-4 font-semibold">{item.name}</td>
-                      <td className="px-5 py-4 text-[var(--muted)]">
-                        {item.sortOrder}
-                      </td>
-                      <td className="px-5 py-4">
-                        <Badge variant={item.isActive ? "success" : "warning"}>
-                          {item.isActive ? "Aktif" : "Nonaktif"}
-                        </Badge>
-                      </td>
-                      <td className="px-5 py-4 text-[var(--muted)]">
-                        {item._count.scores} skor
-                      </td>
-                      <td className="px-5 py-4 text-[var(--muted)]">
-                        {isSeedDefault
-                          ? "Kriteria default seed, jangan dihapus."
-                          : item.description || "-"}
-                      </td>
-                      <td className="px-5 py-4">
-                        <ActionMenu
-                          items={[
-                            {
-                              label: "Edit kriteria",
-                              icon: faPenToSquare,
-                              onClick: () => startEditMode(item)
-                            },
-                            {
-                              label:
-                                deletingCriteriaId === item.id
-                                  ? "Menghapus..."
-                                  : "Hapus kriteria",
-                              icon: faTrash,
-                              variant: "danger",
-                              disabled:
-                                isSeedDefault || deletingCriteriaId === item.id,
-                              onClick: () => setConfirmingCriteria(item)
-                            }
-                          ]}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-5 py-8">
-                    <EmptyState
-                      title="Belum ada kriteria"
-                      description="Tambahkan kriteria penilaian agar form assessment bisa memakai struktur yang kamu tentukan."
-                      icon="K"
-                      actionLabel="Tambah Kriteria"
-                      onAction={() => {
-                        resetForm();
-                        setIsFormDialogOpen(true);
-                      }}
+              return (
+                <tr key={item.id} className="border-t border-[var(--border)]">
+                  <td className="px-5 py-4 font-semibold">{item.name}</td>
+                  <td className="px-5 py-4 text-[var(--muted)]">
+                    {item.sortOrder}
+                  </td>
+                  <td className="px-5 py-4">
+                    <Badge variant={item.isActive ? "success" : "warning"}>
+                      {item.isActive ? "Aktif" : "Nonaktif"}
+                    </Badge>
+                  </td>
+                  <td className="px-5 py-4 text-[var(--muted)]">
+                    {item._count.scores} skor
+                  </td>
+                  <td className="px-5 py-4 text-[var(--muted)]">
+                    {isSeedDefault
+                      ? "Kriteria default seed, jangan dihapus."
+                      : item.description || "-"}
+                  </td>
+                  <td className="px-5 py-4">
+                    <ActionMenu
+                      items={[
+                        {
+                          label: "Edit kriteria",
+                          icon: faPenToSquare,
+                          onClick: () => startEditMode(item)
+                        },
+                        {
+                          label:
+                            deletingCriteriaId === item.id
+                              ? "Menghapus..."
+                              : "Hapus kriteria",
+                          icon: faTrash,
+                          variant: "danger",
+                          disabled:
+                            isSeedDefault || deletingCriteriaId === item.id,
+                          onClick: () => setConfirmingCriteria(item)
+                        }
+                      ]}
                     />
                   </td>
                 </tr>
-              )}
-            </Table>
-          </DataTableShell>
+              );
+            })}
+          </ModuleTableSection>
+
+          <ModulePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            rowsPerPage={rowsPerPage}
+            onPageChange={setPage}
+            onRowsPerPageChange={(rows) => {
+              setRowsPerPage(rows);
+              setPage(1);
+            }}
+          />
       </section>
 
       <ModalDialog
@@ -298,16 +369,7 @@ export function CriteriaManagement({
         title={editingCriteria ? "Edit kriteria" : "Tambah kriteria baru"}
         description="Kriteria aktif akan dipakai di form penilaian harian. Nonaktifkan jika ingin menghentikan pemakaian tanpa merusak histori."
       >
-          <div className="mb-4 flex items-center justify-between">
-            <Badge variant={editingCriteria ? "warning" : "success"}>
-              {editingCriteria ? "Mode edit" : "Mode tambah"}
-            </Badge>
-            {editingCriteria ? (
-              <Button variant="ghost" size="sm" onClick={resetForm}>
-                Batal edit
-              </Button>
-            ) : null}
-          </div>
+          <FormDialogHeader isEditing={Boolean(editingCriteria)} onCancelEdit={resetForm} />
 
           <form
             className="space-y-4"
@@ -358,40 +420,25 @@ export function CriteriaManagement({
               title="Status kriteria"
               description="Kriteria nonaktif tidak dipakai lagi di form baru, tetapi histori lama tetap aman."
             >
-              <FormField label="Status kriteria">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const nextValue = !isActiveValue;
-                    setIsActiveValue(nextValue);
-                    setValue("isActive", nextValue);
-                  }}
-                  className="flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm shadow-[var(--shadow-sm)]"
-                >
-                  <span>
-                    {isActiveValue
-                      ? "Kriteria aktif dan dipakai di form assessment"
-                      : "Kriteria nonaktif, histori lama tetap tersimpan"}
-                  </span>
-                  <Badge variant={isActiveValue ? "success" : "warning"}>
-                    {isActiveValue ? "Aktif" : "Nonaktif"}
-                  </Badge>
-                </button>
-              </FormField>
+              <BooleanStatusField
+                label="Status kriteria"
+                value={isActiveValue}
+                onToggle={() => {
+                  const nextValue = !isActiveValue;
+                  setIsActiveValue(nextValue);
+                  setValue("isActive", nextValue);
+                }}
+                enabledText="Kriteria aktif dan dipakai di form assessment"
+                disabledText="Kriteria nonaktif, histori lama tetap tersimpan"
+              />
             </FormSection>
 
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="secondary" onClick={resetForm}>
-                Batal
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending
-                  ? "Menyimpan..."
-                  : editingCriteria
-                    ? "Simpan perubahan"
-                    : "Tambah kriteria"}
-              </Button>
-            </div>
+            <FormDialogActions
+              isPending={isPending}
+              isEditing={Boolean(editingCriteria)}
+              createLabel="Tambah kriteria"
+              onCancel={resetForm}
+            />
           </form>
       </ModalDialog>
 

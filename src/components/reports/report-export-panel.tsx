@@ -2,24 +2,28 @@
 
 import { useState, useTransition } from "react";
 import { faFileArrowDown } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { toast } from "sonner";
 import { FormField } from "@/components/forms/form-field";
 import { Button } from "@/components/ui/button";
 import { FormSection } from "@/components/ui/form-section";
 import { ModalDialog } from "@/components/ui/modal-dialog";
-import { SectionCard } from "@/components/ui/section-card";
 import { Select } from "@/components/ui/select";
+import { SectionCard } from "@/components/ui/section-card";
+import { cn } from "@/lib/utils";
 
 type ReportExportPanelProps = {
   from: string;
   to: string;
   unitId: string;
+  className?: string;
 };
 
 export function ReportExportPanel({
   from,
   to,
-  unitId
+  unitId,
+  className
 }: ReportExportPanelProps) {
   const [format, setFormat] = useState<"pdf" | "xlsx">("xlsx");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -72,21 +76,38 @@ export function ReportExportPanel({
 
   return (
     <>
-      <SectionCard className="space-y-4 p-5">
-        <div>
-          <h3 className="text-lg font-bold">Export laporan</h3>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Buka dialog export untuk memilih format file sesuai filter aktif.
-          </p>
-        </div>
+      <SectionCard className={cn("p-5 md:p-6", className)}>
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-control)] bg-[var(--accent-soft)] text-[var(--accent)]">
+                <FontAwesomeIcon icon={faFileArrowDown} className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                  Aksi Export
+                </p>
+                <h3 className="mt-1 text-lg font-bold text-[var(--foreground)]">
+                  Unduh laporan sesuai filter aktif
+                </h3>
+              </div>
+            </div>
+            <p className="text-sm leading-7 text-[var(--muted)]">
+              Gunakan panel ini untuk menyiapkan file Excel atau PDF dengan
+              struktur data yang sama seperti ringkasan laporan pada dashboard
+              SIMON PST.
+            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+              Format export mengikuti periode dan unit yang sedang dipilih
+            </p>
+          </div>
 
-        <Button
-          className="w-full"
-          icon={faFileArrowDown}
-          onClick={() => setIsDialogOpen(true)}
-        >
-          Buka Dialog Export
-        </Button>
+          <div className="flex lg:justify-end">
+            <Button icon={faFileArrowDown} onClick={() => setIsDialogOpen(true)}>
+              Buka Dialog Export
+            </Button>
+          </div>
+        </div>
       </SectionCard>
 
       <ModalDialog

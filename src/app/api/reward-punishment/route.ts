@@ -1,3 +1,8 @@
+import {
+  Prisma,
+  RewardPunishmentStatus,
+  RewardPunishmentType
+} from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth-guard";
@@ -5,6 +10,10 @@ import { toAuditJson, writeAuditLog } from "@/lib/audit";
 import {
   getRecommendationCandidates
 } from "@/lib/reward-punishment";
+import {
+  createPaginationMeta,
+  resolvePaginationParams
+} from "@/lib/pagination";
 import { rewardPunishmentGenerationSchema } from "@/lib/validations/reward-punishment";
 
 const rewardPunishmentInclude = {
@@ -35,6 +44,20 @@ export async function GET(request: Request) {
   const unitId = searchParams.get("unitId")?.trim();
   const status = searchParams.get("status")?.trim();
   const type = searchParams.get("type")?.trim();
+  const from = searchParams.get("from")?.trim();
+  const to = searchParams.get("to")?.trim();
+  const { page, rowsPerPage } = resolvePaginationParams(
+    searchParams.get("page"),
+    searchParams.get("rowsPerPage")
+  );
+  const resolvedStatus =
+    status === "RECOMMENDED" || status === "APPROVED" || status === "REJECTED"
+      ? (status as RewardPunishmentStatus)
+      : null;
+  const resolvedType =
+    type === "REWARD" || type === "PUNISHMENT" || type === "EVALUASI"
+      ? (type as RewardPunishmentType)
+      : null;
   const officerWhere =
     search || unitId
       ? {
@@ -49,24 +72,51 @@ export async function GET(request: Request) {
             : {})
         }
       : undefined;
+  const where: Prisma.RewardPunishmentWhereInput = {
+    ...(officerWhere ? { officer: officerWhere } : {}),
+    ...(resolvedStatus ? { status: resolvedStatus } : {}),
+    ...(resolvedType ? { type: resolvedType } : {}),
+    ...((from || to)
+      ? {
+          periodStart: {
+            ...(to ? { lte: new Date(`${to}T23:59:59.999Z`) } : {})
+          },
+          periodEnd: {
+            ...(from ? { gte: new Date(`${from}T00:00:00.000Z`) } : {})
+          }
+        }
+      : {})
+  };
 
-  const recommendations = await prisma.rewardPunishment.findMany({
-    where: {
-      ...(officerWhere ? { officer: officerWhere } : {}),
-      ...(status === "RECOMMENDED" ||
-      status === "APPROVED" ||
-      status === "REJECTED"
-        ? { status }
-        : {}),
-      ...(type === "REWARD" || type === "PUNISHMENT" || type === "EVALUASI"
-        ? { type }
-        : {})
-    },
-    include: rewardPunishmentInclude,
-    orderBy: [{ referenceDate: "desc" }, { createdAt: "desc" }]
-  });
+  const [totalItems, recommendations, recommendedCount, approvedCount, rejectedCount] =
+    await Promise.all([
+    prisma.rewardPunishment.count({ where }),
+    prisma.rewardPunishment.findMany({
+      where,
+      skip: (page - 1) * rowsPerPage,
+      take: rowsPerPage,
+      include: rewardPunishmentInclude,
+      orderBy: [{ referenceDate: "desc" }, { createdAt: "desc" }]
+    }),
+    prisma.rewardPunishment.count({
+      where: { ...where, status: "RECOMMENDED" }
+    }),
+    prisma.rewardPunishment.count({
+      where: { ...where, status: "APPROVED" }
+    }),
+    prisma.rewardPunishment.count({
+      where: { ...where, status: "REJECTED" }
+    })
+  ]);
 
-  return NextResponse.json({ data: recommendations });
+  const meta = createPaginationMeta(totalItems, page, rowsPerPage);
+  const summary = {
+    RECOMMENDED: recommendedCount,
+    APPROVED: approvedCount,
+    REJECTED: rejectedCount
+  };
+
+  return NextResponse.json({ data: recommendations, meta, summary });
 }
 
 export async function POST(request: Request) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   faPenToSquare,
   faPlus,
@@ -15,14 +15,20 @@ import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { DataTableShell } from "@/components/ui/data-table-shell";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { FormDialogActions } from "@/components/ui/form-dialog-actions";
+import { FormDialogHeader } from "@/components/ui/form-dialog-header";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { ModalDialog } from "@/components/ui/modal-dialog";
-import { Table } from "@/components/ui/table";
+import { FilterActions, ModuleFilters } from "@/components/ui/module-filters";
+import {
+  ModulePagination,
+  ModuleTableSection
+} from "@/components/ui/module-table-section";
 import { Textarea } from "@/components/ui/textarea";
+import { applyServerFormErrors, getApiErrorMessage } from "@/lib/form-api";
+import type { PaginatedData } from "@/lib/pagination";
 import type { UnitFormValues } from "@/lib/validations/unit";
 import { unitSchema } from "@/lib/validations/unit";
 
@@ -36,7 +42,7 @@ type UnitItem = {
 };
 
 type UnitManagementProps = {
-  initialUnits: UnitItem[];
+  initialUnits: PaginatedData<UnitItem>;
   userName: string;
   role: string;
 };
@@ -45,7 +51,10 @@ export function UnitManagement({
   initialUnits,
   role
 }: UnitManagementProps) {
-  const [units, setUnits] = useState<UnitItem[]>(initialUnits);
+  const [units, setUnits] = useState<UnitItem[]>(initialUnits.data);
+  const [page, setPage] = useState(initialUnits.meta.page);
+  const [rowsPerPage, setRowsPerPage] = useState(initialUnits.meta.rowsPerPage);
+  const [totalItems, setTotalItems] = useState(initialUnits.meta.totalItems);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<UnitItem | null>(null);
   const [pendingSubmitValues, setPendingSubmitValues] = useState<UnitFormValues | null>(
@@ -54,6 +63,7 @@ export function UnitManagement({
   const [confirmingUnit, setConfirmingUnit] = useState<UnitItem | null>(null);
   const [deletingUnitId, setDeletingUnitId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const hasMountedRef = useRef(false);
 
   const form = useForm<UnitFormValues>({
     resolver: zodResolver(unitSchema),
@@ -63,7 +73,40 @@ export function UnitManagement({
     }
   });
 
-  const { register, handleSubmit, reset, formState } = form;
+  const { register, handleSubmit, reset, formState, setError } = form;
+  const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
+
+  const loadUnits = useCallback(async (nextPage = page, nextRowsPerPage = rowsPerPage) => {
+    const params = new URLSearchParams({
+      page: String(nextPage),
+      rowsPerPage: String(nextRowsPerPage)
+    });
+    const response = await fetch(`/api/units?${params.toString()}`);
+    const result = (await response.json()) as {
+      message?: string;
+      data?: UnitItem[];
+      meta?: PaginatedData<UnitItem>["meta"];
+    };
+
+    if (!response.ok || !result.data || !result.meta) {
+      toast.error(getApiErrorMessage(result, "Gagal memuat daftar unit."));
+      return;
+    }
+
+    setUnits(result.data);
+    setPage(result.meta.page);
+    setRowsPerPage(result.meta.rowsPerPage);
+    setTotalItems(result.meta.totalItems);
+  }, [page, rowsPerPage]);
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
+    void loadUnits(page, rowsPerPage);
+  }, [loadUnits, page, rowsPerPage]);
 
   function startCreateMode() {
     setIsFormDialogOpen(true);
@@ -98,29 +141,35 @@ export function UnitManagement({
       const result = (await response.json()) as {
         message: string;
         data?: UnitItem;
+        errors?: Record<string, string[] | undefined>;
       };
 
       if (!response.ok || !result.data) {
-        toast.error(result.message || "Gagal menyimpan unit.");
+        applyServerFormErrors(setError, result.errors);
+        toast.error(
+          getApiErrorMessage(
+            result,
+            editingUnit
+              ? "Gagal memperbarui unit. Periksa kembali nama dan deskripsi unit."
+              : "Gagal menambahkan unit. Periksa kembali nama dan deskripsi unit."
+          )
+        );
         return;
       }
 
       const nextUnit = result.data;
 
       if (editingUnit) {
-        setUnits((current) =>
-          current
-            .map((item) => (item.id === nextUnit.id ? nextUnit : item))
-            .sort((a, b) => a.name.localeCompare(b.name))
+        toast.success(
+          result.message || `Unit "${nextUnit.name}" berhasil diperbarui.`
         );
-        toast.success("Data unit berhasil diperbarui.");
       } else {
-        setUnits((current) =>
-          [...current, nextUnit].sort((a, b) => a.name.localeCompare(b.name))
+        toast.success(
+          result.message || `Unit "${nextUnit.name}" berhasil ditambahkan.`
         );
-        toast.success("Unit baru berhasil ditambahkan.");
       }
 
+      await loadUnits(editingUnit ? page : 1, rowsPerPage);
       setEditingUnit(null);
       setIsFormDialogOpen(false);
       reset({ name: "", description: "" });
@@ -144,11 +193,12 @@ export function UnitManagement({
         return;
       }
 
-      setUnits((current) => current.filter((item) => item.id !== unit.id));
-
       if (editingUnit?.id === unit.id) {
         startCreateMode();
       }
+
+      const nextPage = units.length === 1 && page > 1 ? page - 1 : page;
+      await loadUnits(nextPage, rowsPerPage);
 
       toast.success(result.message || "Unit berhasil dihapus.");
     } finally {
@@ -163,7 +213,7 @@ export function UnitManagement({
       role={role}
     >
       <section className="space-y-5">
-        <FilterToolbar>
+        <ModuleFilters>
           <div>
             <p className="text-sm font-semibold text-[var(--foreground)]">
               Direktori unit kerja
@@ -172,71 +222,80 @@ export function UnitManagement({
               Gunakan struktur unit yang rapi agar dashboard dan penilaian lebih mudah dibaca.
             </p>
           </div>
-          <Button icon={faPlus} onClick={startCreateMode}>
-            Tambah Unit
-          </Button>
-        </FilterToolbar>
+          <FilterActions>
+            <Button icon={faPlus} onClick={startCreateMode}>
+              Tambah Unit
+            </Button>
+          </FilterActions>
+        </ModuleFilters>
 
-        <DataTableShell
+        <ModuleTableSection
           title="Daftar unit"
           description={`${units.length} unit tercatat di sistem.`}
-        >
-          <Table headers={["Nama Unit", "Jumlah Petugas", "Deskripsi", "Aksi"]}>
-            {units.length ? (
-              units.map((unit) => (
-                <tr key={unit.id} className="border-t border-[var(--border)]">
-                  <td className="px-5 py-4">
-                    <div>
-                      <p className="font-semibold">{unit.name}</p>
-                      <p className="mt-1 text-xs text-[var(--muted)]">
-                        Unit kerja untuk pengelompokan petugas PST
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <Badge variant="default">{unit._count.officers} petugas</Badge>
-                  </td>
-                  <td className="px-5 py-4 text-[var(--muted)]">
-                    {unit.description || "-"}
-                  </td>
-                  <td className="px-5 py-4">
-                    <ActionMenu
-                      items={[
-                        {
-                          label: "Edit unit",
-                          icon: faPenToSquare,
-                          onClick: () => startEditMode(unit)
-                        },
-                        {
-                          label:
-                            deletingUnitId === unit.id
-                              ? "Menghapus..."
-                              : "Hapus unit",
-                          icon: faTrash,
-                          variant: "danger",
-                          disabled: deletingUnitId === unit.id,
-                          onClick: () => setConfirmingUnit(unit)
-                        }
-                      ]}
-                    />
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={4} className="px-5 py-8">
-                  <EmptyState
-                    title="Belum ada unit"
-                    description="Tambahkan unit pertama agar pengelompokan petugas PST bisa mulai digunakan."
-                    icon="U"
-                    actionLabel="Tambah Unit"
-                    onAction={startCreateMode}
-                  />
-                </td>
-              </tr>
-            )}
-          </Table>
-        </DataTableShell>
+          headers={["Nama Unit", "Jumlah Petugas", "Deskripsi", "Aksi"]}
+          isEmpty={!units.length}
+          emptyState={
+            <EmptyState
+              title="Belum ada unit"
+              description="Tambahkan unit pertama agar pengelompokan petugas PST bisa mulai digunakan."
+              icon="U"
+              actionLabel="Tambah Unit"
+              onAction={startCreateMode}
+            />
+          }
+          >
+            {units.map((unit) => (
+            <tr key={unit.id} className="border-t border-[var(--border)]">
+              <td className="px-5 py-4">
+                <div>
+                  <p className="font-semibold">{unit.name}</p>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    Unit kerja untuk pengelompokan petugas PST
+                  </p>
+                </div>
+              </td>
+              <td className="px-5 py-4">
+                <Badge variant="default">{unit._count.officers} petugas</Badge>
+              </td>
+              <td className="px-5 py-4 text-[var(--muted)]">
+                {unit.description || "-"}
+              </td>
+              <td className="px-5 py-4">
+                <ActionMenu
+                  items={[
+                    {
+                      label: "Edit unit",
+                      icon: faPenToSquare,
+                      onClick: () => startEditMode(unit)
+                    },
+                    {
+                      label:
+                        deletingUnitId === unit.id
+                          ? "Menghapus..."
+                          : "Hapus unit",
+                      icon: faTrash,
+                      variant: "danger",
+                      disabled: deletingUnitId === unit.id,
+                      onClick: () => setConfirmingUnit(unit)
+                    }
+                  ]}
+                />
+              </td>
+            </tr>
+            ))}
+          </ModuleTableSection>
+
+        <ModulePagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={(rows) => {
+            setRowsPerPage(rows);
+            setPage(1);
+          }}
+        />
       </section>
 
       <ModalDialog
@@ -249,16 +308,7 @@ export function UnitManagement({
         title={editingUnit ? "Edit unit" : "Tambah unit baru"}
         description="Unit akan dipakai di modul petugas dan dashboard per unit."
       >
-          <div className="mb-4 flex items-center justify-between">
-            <Badge variant={editingUnit ? "warning" : "success"}>
-              {editingUnit ? "Mode edit" : "Mode tambah"}
-            </Badge>
-            {editingUnit ? (
-              <Button variant="ghost" size="sm" onClick={startCreateMode}>
-                Batal edit
-              </Button>
-            ) : null}
-          </div>
+          <FormDialogHeader isEditing={Boolean(editingUnit)} onCancelEdit={startCreateMode} />
 
           <form
             className="space-y-4"
@@ -293,26 +343,16 @@ export function UnitManagement({
               </FormField>
             </FormSection>
 
-            <div className="flex justify-end gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setIsFormDialogOpen(false);
-                  setEditingUnit(null);
-                  reset({ name: "", description: "" });
-                }}
-              >
-                Batal
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending
-                  ? "Menyimpan..."
-                  : editingUnit
-                    ? "Simpan perubahan"
-                    : "Tambah unit"}
-              </Button>
-            </div>
+            <FormDialogActions
+              isPending={isPending}
+              isEditing={Boolean(editingUnit)}
+              createLabel="Tambah unit"
+              onCancel={() => {
+                setIsFormDialogOpen(false);
+                setEditingUnit(null);
+                reset({ name: "", description: "" });
+              }}
+            />
           </form>
       </ModalDialog>
 

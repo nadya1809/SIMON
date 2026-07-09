@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   faPenToSquare,
   faPlus,
@@ -10,19 +10,26 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { BooleanStatusField } from "@/components/forms/boolean-status-field";
 import { FormField } from "@/components/forms/form-field";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { DataTableShell } from "@/components/ui/data-table-shell";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { FormDialogActions } from "@/components/ui/form-dialog-actions";
+import { FormDialogHeader } from "@/components/ui/form-dialog-header";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { ModalDialog } from "@/components/ui/modal-dialog";
+import { FilterActions, ModuleFilters } from "@/components/ui/module-filters";
+import {
+  ModulePagination,
+  ModuleTableSection
+} from "@/components/ui/module-table-section";
 import { Select } from "@/components/ui/select";
-import { Table } from "@/components/ui/table";
+import { applyServerFormErrors, getApiErrorMessage } from "@/lib/form-api";
+import type { PaginatedData } from "@/lib/pagination";
 import {
   userSchema,
   userUpdateSchema,
@@ -43,7 +50,7 @@ type UserItem = {
 };
 
 type UserManagementProps = {
-  initialUsers: UserItem[];
+  initialUsers: PaginatedData<UserItem>;
   currentUserId: string;
   userName: string;
   role: string;
@@ -54,7 +61,10 @@ export function UserManagement({
   currentUserId,
   role
 }: UserManagementProps) {
-  const [users, setUsers] = useState<UserItem[]>(initialUsers);
+  const [users, setUsers] = useState<UserItem[]>(initialUsers.data);
+  const [page, setPage] = useState(initialUsers.meta.page);
+  const [rowsPerPage, setRowsPerPage] = useState(initialUsers.meta.rowsPerPage);
+  const [totalItems, setTotalItems] = useState(initialUsers.meta.totalItems);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
   const [pendingSubmit, setPendingSubmit] = useState<{
@@ -65,6 +75,7 @@ export function UserManagement({
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [isActiveValue, setIsActiveValue] = useState(true);
   const [isPending, startTransition] = useTransition();
+  const hasMountedRef = useRef(false);
 
   const createForm = useForm<UserFormInput, unknown, UserFormValues>({
     resolver: zodResolver(userSchema),
@@ -90,6 +101,39 @@ export function UserManagement({
 
   const activeForm = editingUser ? updateForm : createForm;
   const { register, handleSubmit, reset, formState, setValue } = activeForm;
+  const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
+
+  const loadUsers = useCallback(async (nextPage = page, nextRowsPerPage = rowsPerPage) => {
+    const params = new URLSearchParams({
+      page: String(nextPage),
+      rowsPerPage: String(nextRowsPerPage)
+    });
+    const response = await fetch(`/api/users?${params.toString()}`);
+    const result = (await response.json()) as {
+      message?: string;
+      data?: UserItem[];
+      meta?: PaginatedData<UserItem>["meta"];
+    };
+
+    if (!response.ok || !result.data || !result.meta) {
+      toast.error(getApiErrorMessage(result, "Gagal memuat daftar user."));
+      return;
+    }
+
+    setUsers(result.data);
+    setPage(result.meta.page);
+    setRowsPerPage(result.meta.rowsPerPage);
+    setTotalItems(result.meta.totalItems);
+  }, [page, rowsPerPage]);
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
+    void loadUsers(page, rowsPerPage);
+  }, [loadUsers, page, rowsPerPage]);
 
   function resetCreateMode() {
     setIsFormDialogOpen(false);
@@ -137,15 +181,24 @@ export function UserManagement({
       const result = (await response.json()) as {
         message: string;
         data?: UserItem;
+        errors?: Record<string, string[] | undefined>;
       };
 
       if (!response.ok || !result.data) {
-        toast.error(result.message || "Gagal menambahkan user.");
+        applyServerFormErrors(createForm.setError, result.errors);
+        toast.error(
+          getApiErrorMessage(
+            result,
+            "Gagal menambahkan user. Periksa kembali nama, email, role, dan password."
+          )
+        );
         return;
       }
 
-      setUsers((current) => [result.data!, ...current]);
-      toast.success("User baru berhasil ditambahkan.");
+      await loadUsers(1, rowsPerPage);
+      toast.success(
+        result.message || `User "${result.data.name}" berhasil ditambahkan.`
+      );
       resetCreateMode();
     });
   }
@@ -167,17 +220,24 @@ export function UserManagement({
       const result = (await response.json()) as {
         message: string;
         data?: UserItem;
+        errors?: Record<string, string[] | undefined>;
       };
 
       if (!response.ok || !result.data) {
-        toast.error(result.message || "Gagal memperbarui user.");
+        applyServerFormErrors(updateForm.setError, result.errors);
+        toast.error(
+          getApiErrorMessage(
+            result,
+            "Gagal memperbarui user. Periksa kembali data akun yang diubah."
+          )
+        );
         return;
       }
 
-      setUsers((current) =>
-        current.map((item) => (item.id === result.data!.id ? result.data! : item))
+      await loadUsers();
+      toast.success(
+        result.message || `User "${result.data.name}" berhasil diperbarui.`
       );
-      toast.success("Data user berhasil diperbarui.");
       resetCreateMode();
     });
   }
@@ -199,11 +259,12 @@ export function UserManagement({
         return;
       }
 
-      setUsers((current) => current.filter((item) => item.id !== user.id));
-
       if (editingUser?.id === user.id) {
         resetCreateMode();
       }
+
+      const nextPage = users.length === 1 && page > 1 ? page - 1 : page;
+      await loadUsers(nextPage, rowsPerPage);
 
       toast.success(result.message || "User berhasil dihapus.");
     } finally {
@@ -218,7 +279,7 @@ export function UserManagement({
       role={role}
     >
       <section className="space-y-5">
-          <FilterToolbar>
+          <ModuleFilters>
             <div>
               <p className="text-sm font-semibold text-[var(--foreground)]">
                 Akses pengguna sistem
@@ -227,6 +288,7 @@ export function UserManagement({
                 Kelola hak akses pengguna internal dengan struktur role yang jelas dan aman.
               </p>
             </div>
+            <FilterActions>
             <Button
               icon={faPlus}
               onClick={() => {
@@ -236,69 +298,77 @@ export function UserManagement({
             >
               Tambah User
             </Button>
-          </FilterToolbar>
+            </FilterActions>
+          </ModuleFilters>
 
-          <DataTableShell
+          <ModuleTableSection
             title="Daftar akun"
             description={`${users.length} user aktif dan nonaktif terdaftar.`}
+            headers={["Nama", "Email", "Role", "Status", "Aksi"]}
+            isEmpty={!users.length}
+            emptyState={
+              <EmptyState
+                title="Belum ada user tambahan"
+                description="Tambahkan akun Supervisor atau Pimpinan agar tim bisa mulai menggunakan sistem."
+                icon="U"
+                actionLabel="Tambah User"
+                onAction={() => {
+                  resetCreateMode();
+                  setIsFormDialogOpen(true);
+                }}
+              />
+            }
           >
-            <Table headers={["Nama", "Email", "Role", "Status", "Aksi"]}>
-              {users.length ? (
-                users.map((user) => (
-                  <tr key={user.id} className="border-t border-[var(--border)]">
-                    <td className="px-5 py-4 font-semibold">{user.name}</td>
-                    <td className="px-5 py-4 text-[var(--muted)]">{user.email}</td>
-                    <td className="px-5 py-4">
-                      <Badge variant="default">{user.role}</Badge>
-                    </td>
-                    <td className="px-5 py-4">
-                      <Badge variant={user.isActive ? "success" : "warning"}>
-                        {user.isActive ? "Aktif" : "Nonaktif"}
-                      </Badge>
-                    </td>
-                    <td className="px-5 py-4">
-                      <ActionMenu
-                        items={[
-                          {
-                            label: "Edit user",
-                            icon: faPenToSquare,
-                            onClick: () => startEditMode(user)
-                          },
-                          {
-                            label:
-                              deletingUserId === user.id
-                                ? "Menghapus..."
-                                : "Hapus user",
-                            icon: faTrash,
-                            variant: "danger",
-                            disabled:
-                              user.id === currentUserId ||
-                              deletingUserId === user.id,
-                            onClick: () => setConfirmingUser(user)
-                          }
-                        ]}
-                      />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-5 py-8">
-                    <EmptyState
-                      title="Belum ada user tambahan"
-                      description="Tambahkan akun Supervisor atau Pimpinan agar tim bisa mulai menggunakan sistem."
-                      icon="U"
-                      actionLabel="Tambah User"
-                      onAction={() => {
-                        resetCreateMode();
-                        setIsFormDialogOpen(true);
-                      }}
-                    />
-                  </td>
-                </tr>
-              )}
-            </Table>
-          </DataTableShell>
+            {users.map((user) => (
+              <tr key={user.id} className="border-t border-[var(--border)]">
+                <td className="px-5 py-4 font-semibold">{user.name}</td>
+                <td className="px-5 py-4 text-[var(--muted)]">{user.email}</td>
+                <td className="px-5 py-4">
+                  <Badge variant="default">{user.role}</Badge>
+                </td>
+                <td className="px-5 py-4">
+                  <Badge variant={user.isActive ? "success" : "warning"}>
+                    {user.isActive ? "Aktif" : "Nonaktif"}
+                  </Badge>
+                </td>
+                <td className="px-5 py-4">
+                  <ActionMenu
+                    items={[
+                      {
+                        label: "Edit user",
+                        icon: faPenToSquare,
+                        onClick: () => startEditMode(user)
+                      },
+                      {
+                        label:
+                          deletingUserId === user.id
+                            ? "Menghapus..."
+                            : "Hapus user",
+                        icon: faTrash,
+                        variant: "danger",
+                        disabled:
+                          user.id === currentUserId ||
+                          deletingUserId === user.id,
+                        onClick: () => setConfirmingUser(user)
+                      }
+                    ]}
+                  />
+                </td>
+              </tr>
+            ))}
+          </ModuleTableSection>
+
+          <ModulePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            rowsPerPage={rowsPerPage}
+            onPageChange={setPage}
+            onRowsPerPageChange={(rows) => {
+              setRowsPerPage(rows);
+              setPage(1);
+            }}
+          />
       </section>
 
       <ModalDialog
@@ -308,16 +378,7 @@ export function UserManagement({
         description="Email harus unik. Password bisa diisi ulang saat edit jika ingin melakukan reset."
         className="max-w-4xl"
       >
-          <div className="mb-4 flex items-center justify-between">
-            <Badge variant={editingUser ? "warning" : "success"}>
-              {editingUser ? "Mode edit" : "Mode tambah"}
-            </Badge>
-            {editingUser ? (
-              <Button variant="ghost" size="sm" onClick={resetCreateMode}>
-                Batal edit
-              </Button>
-            ) : null}
-          </div>
+          <FormDialogHeader isEditing={Boolean(editingUser)} onCancelEdit={resetCreateMode} />
 
           <form
             className="space-y-4"
@@ -379,41 +440,26 @@ export function UserManagement({
                 />
               </FormField>
 
-              <FormField label="Status akun">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const nextValue = !isActiveValue;
-                    setIsActiveValue(nextValue);
-                    setValue("isActive", nextValue);
-                  }}
-                  disabled={editingUser?.id === currentUserId}
-                  className="flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm shadow-[var(--shadow-sm)] disabled:opacity-60"
-                >
-                  <span>
-                    {isActiveValue
-                      ? "Akun aktif dan bisa login"
-                      : "Akun nonaktif dan tidak bisa login"}
-                  </span>
-                  <Badge variant={isActiveValue ? "success" : "warning"}>
-                    {isActiveValue ? "Aktif" : "Nonaktif"}
-                  </Badge>
-                </button>
-              </FormField>
+              <BooleanStatusField
+                label="Status akun"
+                value={isActiveValue}
+                onToggle={() => {
+                  const nextValue = !isActiveValue;
+                  setIsActiveValue(nextValue);
+                  setValue("isActive", nextValue);
+                }}
+                disabled={editingUser?.id === currentUserId}
+                enabledText="Akun aktif dan bisa login"
+                disabledText="Akun nonaktif dan tidak bisa login"
+              />
             </FormSection>
 
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="secondary" onClick={resetCreateMode}>
-                Batal
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending
-                  ? "Menyimpan..."
-                  : editingUser
-                    ? "Simpan perubahan"
-                    : "Tambah user"}
-              </Button>
-            </div>
+            <FormDialogActions
+              isPending={isPending}
+              isEditing={Boolean(editingUser)}
+              createLabel="Tambah user"
+              onCancel={resetCreateMode}
+            />
           </form>
       </ModalDialog>
 

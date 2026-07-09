@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useDeferredValue, useEffect, useRef, useState, useTransition } from "react";
 import {
   faCheck,
   faGavel,
@@ -14,35 +14,26 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { RecommendationDetailDialog } from "@/components/reward-punishment/recommendation-detail-dialog";
+import { RecommendationGenerateDialog } from "@/components/reward-punishment/recommendation-generate-dialog";
+import { RecommendationListSection } from "@/components/reward-punishment/recommendation-list-section";
 import { FormField } from "@/components/forms/form-field";
-import { ActionMenu } from "@/components/ui/action-menu";
+import { AccentSummaryPanel } from "@/components/ui/accent-summary-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { DataTableShell } from "@/components/ui/data-table-shell";
-import { EmptyState } from "@/components/ui/empty-state";
-import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
-import { ModalDialog } from "@/components/ui/modal-dialog";
-import { PaginationBar } from "@/components/ui/pagination-bar";
-import { SectionCard } from "@/components/ui/section-card";
 import { Select } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
-import { Table } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
-import { formatDateOnlyUtc } from "@/lib/date-only";
+import { applyServerFormErrors, getApiErrorMessage } from "@/lib/form-api";
+import type { PaginatedData } from "@/lib/pagination";
 import {
-  formatRecommendationPeriodLabel,
-  getRewardPunishmentPeriodKindLabel,
   getRewardPunishmentTypeLabel,
-  rewardPunishmentGenerationModeOptions,
-  rewardPunishmentPeriodOptions
 } from "@/lib/reward-punishment";
 import {
   getDefaultTimePreset,
   getTimePresetRange,
-  TIME_PRESET_OPTIONS,
   type TimePreset
 } from "@/lib/time-presets";
 import { formatAverageScore } from "@/lib/scoring";
@@ -95,7 +86,14 @@ type RecommendationItem = {
 };
 
 type RewardPunishmentManagementProps = {
-  initialRecommendations: RecommendationItem[];
+  initialRecommendations: PaginatedData<RecommendationItem> & {
+    summary: {
+      total: number;
+      RECOMMENDED: number;
+      APPROVED: number;
+      REJECTED: number;
+    };
+  };
   units: UnitOption[];
   defaultReferenceDate: string;
   role: string;
@@ -150,37 +148,16 @@ function getTypeLabel(type: RecommendationItem["type"]) {
   return getRewardPunishmentTypeLabel(type);
 }
 
-function mergeRecommendations(
-  current: RecommendationItem[],
-  incoming: RecommendationItem[]
-) {
-  const recommendationMap = new Map(current.map((item) => [item.id, item]));
-
-  incoming.forEach((item) => {
-    recommendationMap.set(item.id, item);
-  });
-
-  return [...recommendationMap.values()].sort((a, b) => {
-    const periodComparison =
-      new Date(b.periodStart).getTime() - new Date(a.periodStart).getTime();
-
-    if (periodComparison !== 0) {
-      return periodComparison;
-    }
-
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-}
-
 export function RewardPunishmentManagement({
   initialRecommendations,
   units,
   defaultReferenceDate,
   role
 }: RewardPunishmentManagementProps) {
-  const [recommendations, setRecommendations] = useState(initialRecommendations);
+  const [recommendations, setRecommendations] = useState(initialRecommendations.data);
+  const [summary, setSummary] = useState(initialRecommendations.summary);
   const [selectedRecommendationId, setSelectedRecommendationId] = useState(
-    initialRecommendations[0]?.id ?? ""
+    initialRecommendations.data[0]?.id ?? ""
   );
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -195,8 +172,9 @@ export function RewardPunishmentManagement({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [timePreset, setTimePreset] = useState<TimePreset>(getDefaultTimePreset());
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [page, setPage] = useState(initialRecommendations.meta.page);
+  const [rowsPerPage, setRowsPerPage] = useState(initialRecommendations.meta.rowsPerPage);
+  const [totalItems, setTotalItems] = useState(initialRecommendations.meta.totalItems);
   const [deletingRecommendationId, setDeletingRecommendationId] = useState<
     string | null
   >(null);
@@ -233,14 +211,83 @@ export function RewardPunishmentManagement({
   const [isGenerating, startGenerating] = useTransition();
   const [isDeciding, startDeciding] = useTransition();
   const deferredSearch = useDeferredValue(search);
+  const hasMountedRef = useRef(false);
   const generationMode = useWatch({
     control: generateForm.control,
     name: "generationMode"
   });
   const { from: fromDate, to: toDate } = getTimePresetRange(timePreset);
+  const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
 
   const selectedRecommendation =
     recommendations.find((item) => item.id === selectedRecommendationId) ?? null;
+
+  const loadRecommendations = useCallback(async (
+    overrides?: Partial<{
+      search: string;
+      unitFilter: string;
+      statusFilter: StatusFilter;
+      typeFilter: TypeFilter;
+      page: number;
+      rowsPerPage: number;
+      fromDate: string;
+      toDate: string;
+    }>
+  ) => {
+    const params = new URLSearchParams({
+      search: overrides?.search ?? deferredSearch,
+      unitId:
+        (overrides?.unitFilter ?? unitFilter) === "all"
+          ? ""
+          : (overrides?.unitFilter ?? unitFilter),
+      status:
+        (overrides?.statusFilter ?? statusFilter) === "all"
+          ? ""
+          : (overrides?.statusFilter ?? statusFilter),
+      type:
+        (overrides?.typeFilter ?? typeFilter) === "all"
+          ? ""
+          : (overrides?.typeFilter ?? typeFilter),
+      from: overrides?.fromDate ?? fromDate,
+      to: overrides?.toDate ?? toDate,
+      page: String(overrides?.page ?? page),
+      rowsPerPage: String(overrides?.rowsPerPage ?? rowsPerPage)
+    });
+    const response = await fetch(`/api/reward-punishment?${params.toString()}`);
+    const result = (await response.json()) as {
+      message?: string;
+      data?: RecommendationItem[];
+      meta?: PaginatedData<RecommendationItem>["meta"];
+      summary?: typeof summary;
+    };
+
+    if (!response.ok || !result.data || !result.meta || !result.summary) {
+      toast.error(getApiErrorMessage(result, "Gagal memuat daftar evaluasi."));
+      return;
+    }
+
+    const nextData = result.data;
+    const nextMeta = result.meta;
+    const nextSummary = result.summary;
+
+    setRecommendations(nextData);
+    setSummary({
+      total: nextMeta.totalItems,
+      RECOMMENDED: nextSummary.RECOMMENDED,
+      APPROVED: nextSummary.APPROVED,
+      REJECTED: nextSummary.REJECTED
+    });
+    setPage(nextMeta.page);
+    setRowsPerPage(nextMeta.rowsPerPage);
+    setTotalItems(nextMeta.totalItems);
+    setSelectedRecommendationId((currentId) => {
+      if (nextData.some((item) => item.id === currentId)) {
+        return currentId;
+      }
+
+      return nextData[0]?.id ?? "";
+    });
+  }, [deferredSearch, fromDate, page, rowsPerPage, statusFilter, toDate, typeFilter, unitFilter]);
 
   useEffect(() => {
     if (!selectedRecommendation) {
@@ -259,74 +306,14 @@ export function RewardPunishmentManagement({
     });
   }, [actionForm, recommendations, selectedRecommendation]);
 
-  const filteredRecommendations = useMemo(() => {
-    const normalizedSearch = deferredSearch.trim().toLowerCase();
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
 
-    return recommendations.filter((item) => {
-      if (
-        normalizedSearch &&
-        !`${item.officer.name} ${item.officer.nip}`
-          .toLowerCase()
-          .includes(normalizedSearch)
-      ) {
-        return false;
-      }
-
-      if (unitFilter !== "all" && item.officer.unit?.id !== unitFilter) {
-        return false;
-      }
-
-      if (statusFilter !== "all" && item.status !== statusFilter) {
-        return false;
-      }
-
-      if (typeFilter !== "all" && item.type !== typeFilter) {
-        return false;
-      }
-
-      if (
-        fromDate &&
-        formatDateOnlyUtc(item.periodEnd) < fromDate
-      ) {
-        return false;
-      }
-
-      if (
-        toDate &&
-        formatDateOnlyUtc(item.periodStart) > toDate
-      ) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [deferredSearch, fromDate, recommendations, statusFilter, toDate, typeFilter, unitFilter]);
-
-  const summary = useMemo(() => {
-    return filteredRecommendations.reduce(
-      (accumulator, item) => {
-        accumulator.total += 1;
-        accumulator[item.status] += 1;
-        return accumulator;
-      },
-      {
-        total: 0,
-        RECOMMENDED: 0,
-        APPROVED: 0,
-        REJECTED: 0
-      }
-    );
-  }, [filteredRecommendations]);
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredRecommendations.length / rowsPerPage)
-  );
-  const currentPage = Math.min(page, totalPages);
-  const displayedRecommendations = filteredRecommendations.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
+    void loadRecommendations();
+  }, [deferredSearch, fromDate, loadRecommendations, page, rowsPerPage, statusFilter, toDate, typeFilter, unitFilter]);
 
   async function onGenerate(values: RewardPunishmentGenerationValues) {
     startGenerating(async () => {
@@ -341,6 +328,7 @@ export function RewardPunishmentManagement({
       const result = (await response.json()) as {
         message: string;
         data?: RecommendationItem[];
+        errors?: Record<string, string[] | undefined>;
         meta?: {
           periodKind: RecommendationItem["periodKind"];
           referenceDate: string;
@@ -356,16 +344,19 @@ export function RewardPunishmentManagement({
       };
 
       if (!response.ok) {
-        toast.error(result.message || "Gagal membuat data.");
+        applyServerFormErrors(generateForm.setError, result.errors);
+        toast.error(
+          getApiErrorMessage(
+            result,
+            "Gagal membuat data evaluasi, reward, dan punishment. Periksa kembali parameter generate."
+          )
+        );
         return;
       }
 
       const nextRecommendations = result.data ?? [];
 
       if (nextRecommendations.length) {
-        setRecommendations((current) =>
-          mergeRecommendations(current, nextRecommendations)
-        );
         setSelectedRecommendationId(nextRecommendations[0].id);
         setIsDetailDialogOpen(true);
       }
@@ -376,6 +367,7 @@ export function RewardPunishmentManagement({
           : result.message || "Generate data berhasil."
       );
 
+      await loadRecommendations({ page: 1 });
       setIsGenerateDialogOpen(false);
     });
   }
@@ -400,16 +392,21 @@ export function RewardPunishmentManagement({
       const result = (await response.json()) as {
         message: string;
         data?: RecommendationItem;
+        errors?: Record<string, string[] | undefined>;
       };
 
       if (!response.ok || !result.data) {
-        toast.error(result.message || "Gagal menyimpan keputusan.");
+        applyServerFormErrors(actionForm.setError, result.errors);
+        toast.error(
+          getApiErrorMessage(
+            result,
+            "Gagal menyimpan keputusan. Periksa kembali kategori dan catatan keputusan."
+          )
+        );
         return;
       }
 
-      setRecommendations((current) =>
-        current.map((item) => (item.id === result.data?.id ? result.data : item))
-      );
+      await loadRecommendations();
       setSelectedRecommendationId(result.data.id);
       toast.success(result.message || "Keputusan berhasil disimpan.");
     });
@@ -432,22 +429,8 @@ export function RewardPunishmentManagement({
         return;
       }
 
-      setRecommendations((current) =>
-        current.filter((item) => item.id !== recommendation.id)
-      );
-
-      if (selectedRecommendationId === recommendation.id) {
-        setSelectedRecommendationId((currentId) => {
-          if (currentId !== recommendation.id) {
-            return currentId;
-          }
-
-          const nextRecommendation = recommendations.find(
-            (item) => item.id !== recommendation.id
-          );
-          return nextRecommendation?.id ?? "";
-        });
-      }
+      const nextPage = recommendations.length === 1 && page > 1 ? page - 1 : page;
+      await loadRecommendations({ page: nextPage });
 
       toast.success(result.message || "Data berhasil dihapus.");
     } finally {
@@ -468,502 +451,97 @@ export function RewardPunishmentManagement({
         <StatCard label="Ditolak" value={`${summary.REJECTED}`} icon={faTriangleExclamation} iconTone="soft" />
       </section>
 
-      <section className="space-y-5">
-        <FilterToolbar>
-          <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <FormField label="Cari petugas">
-                <Input
-                  value={search}
-                  onChange={(event) => {
-                    setSearch(event.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="Cari nama atau NIP"
-                />
-            </FormField>
+      <RecommendationListSection
+        summary={summary}
+        search={search}
+        unitFilter={unitFilter}
+        typeFilter={typeFilter}
+        statusFilter={statusFilter}
+        timePreset={timePreset}
+        units={units}
+        recommendations={recommendations}
+        totalItems={totalItems}
+        currentPage={page}
+        totalPages={totalPages}
+        rowsPerPage={rowsPerPage}
+        deletingRecommendationId={deletingRecommendationId}
+        hasSeedData={Boolean(search || unitFilter !== "all" || statusFilter !== "all" || typeFilter !== "all" || totalItems > 0 || timePreset !== getDefaultTimePreset())}
+        getTypeVariant={getTypeVariant}
+        getTypeLabel={getTypeLabel}
+        getStatusVariant={getStatusVariant}
+        getStatusLabel={getStatusLabel}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        onUnitChange={(value) => {
+          setUnitFilter(value);
+          setPage(1);
+        }}
+        onTypeChange={(value) => {
+          setTypeFilter(value);
+          setPage(1);
+        }}
+        onStatusChange={(value) => {
+          setStatusFilter(value);
+          setPage(1);
+        }}
+        onTimePresetChange={(value) => {
+          setTimePreset(value);
+          setPage(1);
+        }}
+        onResetFilters={() => {
+          setSearch("");
+          setUnitFilter("all");
+          setStatusFilter("all");
+          setTypeFilter("all");
+          setTimePreset(getDefaultTimePreset());
+          setPage(1);
+        }}
+        onOpenGenerate={() => setIsGenerateDialogOpen(true)}
+        onOpenDetail={(recommendationId) => {
+          setSelectedRecommendationId(recommendationId);
+          setIsDetailDialogOpen(true);
+        }}
+        onDelete={(recommendationId) => {
+          const recommendation = recommendations.find((item) => item.id === recommendationId);
+          if (recommendation) {
+            setConfirmingRecommendation(recommendation);
+          }
+        }}
+        onPageChange={setPage}
+        onRowsPerPageChange={(rows) => {
+          setRowsPerPage(rows);
+          setPage(1);
+        }}
+      />
 
-            <FormField label="Filter waktu">
-                <Select
-                  value={timePreset}
-                  onChange={(event) => {
-                    setTimePreset(event.target.value as TimePreset);
-                    setPage(1);
-                  }}
-                >
-                {TIME_PRESET_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-
-            <FormField label="Unit">
-                <Select
-                  value={unitFilter}
-                  onChange={(event) => {
-                    setUnitFilter(event.target.value);
-                    setPage(1);
-                  }}
-                >
-                <option value="all">Semua unit</option>
-                {units.map((unit) => (
-                  <option key={unit.id} value={unit.id}>
-                    {unit.name}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-
-            <FormField label="Tipe">
-                <Select
-                  value={typeFilter}
-                  onChange={(event) => {
-                    setTypeFilter(event.target.value as TypeFilter);
-                    setPage(1);
-                  }}
-                >
-                <option value="all">Semua tipe</option>
-                <option value="EVALUASI">Evaluasi</option>
-                <option value="REWARD">Reward</option>
-                <option value="PUNISHMENT">Punishment</option>
-              </Select>
-            </FormField>
-
-            <FormField label="Status">
-                <Select
-                  value={statusFilter}
-                  onChange={(event) => {
-                    setStatusFilter(event.target.value as StatusFilter);
-                    setPage(1);
-                  }}
-                >
-                <option value="all">Semua status</option>
-                <option value="RECOMMENDED">Menunggu keputusan</option>
-                <option value="APPROVED">Disetujui</option>
-                <option value="REJECTED">Ditolak</option>
-              </Select>
-            </FormField>
-          </div>
-
-          <div className="flex items-end gap-3">
-            <Button icon={faWandSparkles} onClick={() => setIsGenerateDialogOpen(true)}>
-              Generate Data
-            </Button>
-            <Button
-              icon={faRotateLeft}
-              variant="secondary"
-              onClick={() => {
-                setSearch("");
-                setUnitFilter("all");
-                setStatusFilter("all");
-                setTypeFilter("all");
-                setTimePreset(getDefaultTimePreset());
-                setPage(1);
-              }}
-            >
-              Reset Filter
-            </Button>
-          </div>
-        </FilterToolbar>
-
-        <DataTableShell
-          title="Daftar hasil evaluasi dan tindak lanjut"
-          description={`${filteredRecommendations.length} data sesuai filter aktif.`}
-        >
-          <Table
-            headers={[
-              "Periode",
-              "Petugas",
-              "Tipe",
-              "Skor",
-              "Kategori",
-              "Status",
-              "Aksi"
-            ]}
-          >
-            {displayedRecommendations.length ? (
-              displayedRecommendations.map((item) => (
-                <tr key={item.id} className="border-t border-[var(--border)]">
-                  <td className="px-5 py-4 font-medium">
-                    {formatRecommendationPeriodLabel({
-                      periodKind: item.periodKind,
-                      periodStart: item.periodStart,
-                      periodEnd: item.periodEnd
-                    })}
-                  </td>
-                  <td className="px-5 py-4">
-                    <div>
-                      <p className="font-semibold">{item.officer.name}</p>
-                      <p className="text-xs text-[var(--muted)]">
-                        {item.officer.nip} · {item.officer.unit?.name ?? "Tanpa unit"}
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <Badge variant={getTypeVariant(item.type)}>
-                      {getTypeLabel(item.type)}
-                    </Badge>
-                  </td>
-                  <td className="px-5 py-4 font-semibold">
-                    {formatAverageScore(item.triggerScore)}
-                  </td>
-                  <td className="px-5 py-4 text-[var(--muted)]">{item.category}</td>
-                  <td className="px-5 py-4">
-                    <Badge variant={getStatusVariant(item.status)}>
-                      {getStatusLabel(item.status)}
-                    </Badge>
-                  </td>
-                  <td className="px-5 py-4">
-                    <ActionMenu
-                      items={[
-                        {
-                          label:
-                            item.status === "RECOMMENDED"
-                              ? "Detail dan keputusan"
-                              : "Lihat detail",
-                          icon: faGavel,
-                          onClick: () => {
-                            setSelectedRecommendationId(item.id);
-                            setIsDetailDialogOpen(true);
-                          }
-                        },
-                        {
-                          label:
-                            deletingRecommendationId === item.id
-                              ? "Menghapus..."
-                              : "Hapus data",
-                          icon: faTrash,
-                          variant: "danger",
-                          disabled: deletingRecommendationId === item.id,
-                          onClick: () => setConfirmingRecommendation(item)
-                        }
-                      ]}
-                    />
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={7} className="px-5 py-8">
-                  <EmptyState
-                    title={
-                      recommendations.length
-                        ? "Tidak ada data untuk filter ini"
-                        : "Belum ada data yang dibuat"
-                    }
-                    description={
-                      recommendations.length
-                        ? "Ubah periode, status, tipe, atau unit agar data lain muncul."
-                        : "Generate evaluasi, reward, atau punishment baru agar daftar mulai terisi."
-                    }
-                    icon="RP"
-                    actionLabel="Generate Data"
-                    onAction={() => setIsGenerateDialogOpen(true)}
-                  />
-                </td>
-              </tr>
-            )}
-          </Table>
-        </DataTableShell>
-
-        {filteredRecommendations.length ? (
-          <PaginationBar
-            page={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredRecommendations.length}
-            rowsPerPage={rowsPerPage}
-            onPageChange={setPage}
-            onRowsPerPageChange={(rows) => {
-              setRowsPerPage(rows);
-              setPage(1);
-            }}
-          />
-        ) : null}
-      </section>
-
-      <ModalDialog
+      <RecommendationGenerateDialog
         open={isGenerateDialogOpen}
+        form={generateForm}
+        generationMode={generationMode}
+        isGenerating={isGenerating}
         onClose={() => setIsGenerateDialogOpen(false)}
-        title="Generate evaluasi atau tindak lanjut"
-        description="Sistem akan menghitung rata-rata skor dari assessment PRESENT pada periode terpilih. Evaluasi bersifat netral, sedangkan reward dan punishment tetap mengikuti threshold yang berlaku."
-      >
-        <form
-          className="space-y-4"
-          onSubmit={generateForm.handleSubmit((values) => {
-            setPendingGenerateValues(values);
-          })}
-        >
-          <FormSection
-            title="Parameter generate"
-            description="Tentukan jenis periode, tanggal acuan, jenis generate, dan label kategori yang akan dipakai pada data baru."
-          >
-            <FormField
-              label="Jenis periode"
-              error={generateForm.formState.errors.periodKind?.message}
-            >
-              <Select {...generateForm.register("periodKind")}>
-                {rewardPunishmentPeriodOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
+        onSubmit={(values) => {
+          setPendingGenerateValues(values);
+        }}
+      />
 
-            <FormField
-              label="Tanggal acuan"
-              hint="Untuk minggu kerja, sistem akan otomatis menarik ke Jumat terakhir."
-              error={generateForm.formState.errors.referenceDate?.message}
-            >
-              <Input type="date" {...generateForm.register("referenceDate")} />
-            </FormField>
-
-            <FormField
-              label="Jenis generate"
-              error={generateForm.formState.errors.generationMode?.message}
-            >
-              <Select {...generateForm.register("generationMode")}>
-                {rewardPunishmentGenerationModeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-
-            {(generationMode === "EVALUASI" ||
-              generationMode === "REWARD_PUNISHMENT") && (
-              <FormField
-                label="Kategori evaluasi"
-                error={generateForm.formState.errors.evaluationCategory?.message}
-              >
-                <Input
-                  placeholder="Contoh: Evaluasi Mingguan"
-                  {...generateForm.register("evaluationCategory")}
-                />
-              </FormField>
-            )}
-
-            {(generationMode === "REWARD" ||
-              generationMode === "REWARD_PUNISHMENT") && (
-              <FormField
-                label="Kategori reward"
-                error={generateForm.formState.errors.rewardCategory?.message}
-              >
-                <Input
-                  placeholder="Contoh: Reward Bulanan"
-                  {...generateForm.register("rewardCategory")}
-                />
-              </FormField>
-            )}
-
-            {(generationMode === "PUNISHMENT" ||
-              generationMode === "REWARD_PUNISHMENT") && (
-              <FormField
-                label="Kategori punishment"
-                error={generateForm.formState.errors.punishmentCategory?.message}
-              >
-                <Input
-                  placeholder="Contoh: Teguran Bulanan"
-                  {...generateForm.register("punishmentCategory")}
-                />
-              </FormField>
-            )}
-
-            <FormField
-              label="Catatan awal"
-              hint="Opsional. Catatan ini akan disalin ke data baru yang dibuat."
-              error={generateForm.formState.errors.notes?.message}
-            >
-              <Textarea
-                placeholder="Tulis catatan awal jika diperlukan"
-                {...generateForm.register("notes")}
-              />
-            </FormField>
-          </FormSection>
-
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsGenerateDialogOpen(false)}
-            >
-              Batal
-            </Button>
-            <Button type="submit" disabled={isGenerating} icon={faWandSparkles}>
-              {isGenerating ? "Memproses..." : "Generate Data"}
-            </Button>
-          </div>
-        </form>
-      </ModalDialog>
-
-      <ModalDialog
+      <RecommendationDetailDialog
         open={isDetailDialogOpen}
+        recommendation={selectedRecommendation}
+        form={actionForm}
+        isDeciding={isDeciding}
+        getTypeVariant={getTypeVariant}
+        getTypeLabel={getTypeLabel}
+        getStatusVariant={getStatusVariant}
+        getStatusLabel={getStatusLabel}
+        toDateLabel={toDateLabel}
         onClose={() => setIsDetailDialogOpen(false)}
-        title="Detail dan keputusan data"
-        description="Tinjau data yang sudah ada, lalu lakukan persetujuan atau penolakan bila statusnya masih menunggu keputusan."
-        className="max-w-4xl"
-      >
-        {selectedRecommendation ? (
-          <>
-            <SectionCard className="mb-4 space-y-4 border-none bg-[var(--surface)] p-4 shadow-none">
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant={getTypeVariant(selectedRecommendation.type)}>
-                      {getTypeLabel(selectedRecommendation.type)}
-                    </Badge>
-                    <Badge variant={getStatusVariant(selectedRecommendation.status)}>
-                      {getStatusLabel(selectedRecommendation.status)}
-                    </Badge>
-                  </div>
-
-                  <div>
-                    <p className="text-lg font-bold">
-                      {selectedRecommendation.officer.name}
-                    </p>
-                    <p className="text-sm text-[var(--muted)]">
-                      NIP {selectedRecommendation.officer.nip} ·{" "}
-                      {selectedRecommendation.officer.unit?.name ?? "Tanpa unit"}
-                    </p>
-                  </div>
-
-                  <div className="grid gap-3 text-sm md:grid-cols-2">
-                    <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3">
-                      <p className="text-[var(--muted)]">Periode</p>
-                      <p className="mt-1 font-semibold">
-                        {formatRecommendationPeriodLabel({
-                          periodKind: selectedRecommendation.periodKind,
-                          periodStart: selectedRecommendation.periodStart,
-                          periodEnd: selectedRecommendation.periodEnd
-                        })}
-                      </p>
-                    </div>
-                    <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3">
-                      <p className="text-[var(--muted)]">Tanggal acuan</p>
-                      <p className="mt-1 font-semibold">
-                        {formatDateOnlyUtc(selectedRecommendation.referenceDate)}
-                      </p>
-                    </div>
-                    <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3">
-                      <p className="text-[var(--muted)]">Skor pemicu</p>
-                      <p className="mt-1 font-semibold">
-                        {formatAverageScore(selectedRecommendation.triggerScore)}
-                      </p>
-                    </div>
-                    <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3">
-                      <p className="text-[var(--muted)]">Kategori</p>
-                      <p className="mt-1 font-semibold">
-                        {selectedRecommendation.category}
-                      </p>
-                    </div>
-                    <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3">
-                      <p className="text-[var(--muted)]">Jenis periode</p>
-                      <p className="mt-1 font-semibold">
-                        {getRewardPunishmentPeriodKindLabel(selectedRecommendation.periodKind)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {selectedRecommendation.decidedBy ? (
-                    <div className="rounded-[var(--radius-control)] bg-[var(--card)] px-4 py-3 text-sm">
-                      <p className="text-[var(--muted)]">Keputusan terakhir</p>
-                      <p className="mt-1 font-semibold">
-                        {selectedRecommendation.decidedBy.name ?? "Pengguna"} ·{" "}
-                        {selectedRecommendation.decidedBy.role}
-                      </p>
-                      <p className="mt-1 text-[var(--muted)]">
-                        {selectedRecommendation.decidedAt
-                          ? toDateLabel(selectedRecommendation.decidedAt)
-                          : "-"}
-                      </p>
-                    </div>
-                  ) : null}
-            </SectionCard>
-
-            <form
-              className="space-y-4"
-              onSubmit={actionForm.handleSubmit((values) => {
-                setPendingDecisionValues(values);
-              })}
-            >
-              <FormSection
-                title="Keputusan akhir"
-                description="Perbarui kategori atau catatan sebelum data disetujui atau ditolak."
-              >
-                <FormField
-                  label="Kategori final"
-                  error={actionForm.formState.errors.category?.message}
-                >
-                  <Input
-                    placeholder="Perbarui kategori jika diperlukan"
-                    {...actionForm.register("category")}
-                  />
-                </FormField>
-
-                <FormField
-                  label="Catatan keputusan"
-                  hint="Opsional, tetapi disarankan untuk persetujuan atau penolakan."
-                  error={actionForm.formState.errors.notes?.message}
-                >
-                  <Textarea
-                    placeholder="Tulis alasan atau detail keputusan"
-                    {...actionForm.register("notes")}
-                  />
-                </FormField>
-              </FormSection>
-
-              {selectedRecommendation.status === "RECOMMENDED" ? (
-                <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-                  <Button
-                    type="submit"
-                    disabled={isDeciding}
-                    onClick={() => actionForm.setValue("action", "APPROVE")}
-                  >
-                    {isDeciding ? "Menyimpan..." : "Setujui data"}
-                  </Button>
-                  <Button
-                    type="submit"
-                    variant="danger"
-                    disabled={isDeciding}
-                    onClick={() => actionForm.setValue("action", "REJECT")}
-                  >
-                    {isDeciding ? "Menyimpan..." : "Tolak data"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setIsDetailDialogOpen(false)}
-                  >
-                    Tutup
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="rounded-[var(--radius-control)] border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
-                    Data ini sudah diputuskan. Buat data baru pada
-                    periode lain jika diperlukan tindak lanjut tambahan.
-                  </div>
-                  <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => setIsDetailDialogOpen(false)}
-                    >
-                      Tutup
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </form>
-          </>
-        ) : (
-          <EmptyState
-            title="Belum ada data yang dipilih"
-            description="Pilih salah satu baris di tabel untuk melihat detail dan melakukan persetujuan atau penolakan."
-            icon="RP"
-          />
-        )}
-      </ModalDialog>
+        onSubmit={(values) => {
+          setPendingDecisionValues(values);
+        }}
+      />
 
       <ConfirmDialog
         open={Boolean(pendingGenerateValues)}
