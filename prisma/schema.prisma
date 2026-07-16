@@ -45,6 +45,14 @@ enum AuditAction {
   DELETE
 }
 
+enum NotificationType {
+  RECOMMENDATION_GENERATED
+  RECOMMENDATION_PENDING_APPROVAL
+  RECOMMENDATION_APPROVED
+  RECOMMENDATION_REJECTED
+  REMINDER_ASSESSMENT_DAILY
+}
+
 model User {
   id           String    @id @default(cuid())
   name         String
@@ -58,6 +66,7 @@ model User {
   assessments  DailyAssessment[]  @relation("Assessor")
   decisions    RewardPunishment[] @relation("DecidedBy")
   auditLogs    AuditLog[]
+  notifications Notification[]
 }
 
 model Unit {
@@ -159,5 +168,25 @@ model AuditLog {
   afterData  Json?
   createdAt  DateTime    @default(now())
 
+  @@index([entity, entityId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  href      String?
+  entity    String?
+  entityId  String?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead, createdAt])
+  @@index([type, createdAt])
   @@index([entity, entityId])
 }

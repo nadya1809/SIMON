@@ -19,9 +19,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const parsed = reportExportSchema.safeParse({
       format: searchParams.get("format")?.trim(),
+      search: searchParams.get("search")?.trim() || "",
       from: searchParams.get("from")?.trim() || "",
       to: searchParams.get("to")?.trim() || "",
-      unitId: searchParams.get("unitId")?.trim() || ""
+      unitId: searchParams.get("unitId")?.trim() || "",
+      officerId: searchParams.get("officerId")?.trim() || ""
     });
 
     if (!parsed.success) {
@@ -31,7 +33,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const { format, from, to, unitId } = parsed.data;
+    const { format, search, from, to, unitId, officerId } = parsed.data;
     const resolvedFrom = from || "";
     const resolvedTo = to || "";
     const fileBaseName = buildReportFileBaseName(
@@ -41,14 +43,18 @@ export async function GET(request: Request) {
     const buffer =
       format === "xlsx"
         ? await buildExcelReportBuffer({
+            search,
             from: resolvedFrom,
             to: resolvedTo,
-            unitId
+            unitId,
+            officerId
           })
         : await buildPdfReportBuffer({
+            search,
             from: resolvedFrom,
             to: resolvedTo,
-            unitId
+            unitId,
+            officerId
           });
     const contentType =
       format === "xlsx"

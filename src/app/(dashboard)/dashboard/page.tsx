@@ -24,6 +24,7 @@ type DashboardPageProps = {
   searchParams?: Promise<{
     timePreset?: string;
     unitId?: string;
+    officerId?: string;
   }>;
 };
 
@@ -34,7 +35,8 @@ export default async function DashboardPage({
   const resolvedSearchParams = await searchParams;
   const data = await getDashboardSummary({
     timePreset: resolvedSearchParams?.timePreset,
-    unitId: resolvedSearchParams?.unitId
+    unitId: resolvedSearchParams?.unitId,
+    officerId: resolvedSearchParams?.officerId
   });
   const hasDashboardData = data.summaryCards.totalAssessments > 0;
 
@@ -45,8 +47,9 @@ export default async function DashboardPage({
       role={session.user.role}
     >
       <DashboardFilters
-        key={`${data.filters.timePreset}:${data.filters.unitId || "all"}`}
+        key={`${data.filters.timePreset}:${data.filters.unitId || "all"}:${data.filters.officerId || "all"}`}
         units={data.units}
+        officers={data.officers}
         filters={data.filters}
       />
 

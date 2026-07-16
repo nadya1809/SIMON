@@ -1,11 +1,16 @@
 import { z } from "zod";
+import {
+  LETTERS_ONLY_MESSAGE,
+  lettersOnlyPattern
+} from "@/lib/input-rules";
 
 export const userSchema = z.object({
   name: z
     .string()
     .trim()
     .min(2, "Nama minimal 2 karakter.")
-    .max(120, "Nama maksimal 120 karakter."),
+    .max(120, "Nama maksimal 120 karakter.")
+    .regex(lettersOnlyPattern, LETTERS_ONLY_MESSAGE),
   email: z
     .string()
     .trim()
@@ -24,7 +29,8 @@ export const userUpdateSchema = z.object({
     .string()
     .trim()
     .min(2, "Nama minimal 2 karakter.")
-    .max(120, "Nama maksimal 120 karakter."),
+    .max(120, "Nama maksimal 120 karakter.")
+    .regex(lettersOnlyPattern, LETTERS_ONLY_MESSAGE),
   email: z
     .string()
     .trim()
@@ -34,6 +40,10 @@ export const userUpdateSchema = z.object({
   password: z
     .string()
     .trim()
+    .refine(
+      (value) => !value || value.length >= 8,
+      "Password minimal 8 karakter."
+    )
     .max(100, "Password maksimal 100 karakter.")
     .optional()
     .or(z.literal("")),

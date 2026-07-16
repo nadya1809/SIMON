@@ -1,9 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { requireApiRoles } from "@/lib/auth-guard";
 import {
+  apiValidationError,
   apiNotFound,
   apiSuccess
 } from "@/lib/api-response";
+import { parseDateOnlyUtc } from "@/lib/date-only";
+import { officerHistoryFilterSchema } from "@/lib/validations/officer-history";
 
 type RouteContext = {
   params: Promise<{
@@ -20,8 +23,19 @@ export async function GET(request: Request, context: RouteContext) {
 
   const { id } = await context.params;
   const { searchParams } = new URL(request.url);
-  const from = searchParams.get("from");
-  const to = searchParams.get("to");
+  const parsedFilters = officerHistoryFilterSchema.safeParse({
+    from: searchParams.get("from")?.trim() || "",
+    to: searchParams.get("to")?.trim() || ""
+  });
+
+  if (!parsedFilters.success) {
+    return apiValidationError(
+      "Filter riwayat penilaian tidak valid.",
+      parsedFilters.error.flatten().fieldErrors
+    );
+  }
+
+  const { from, to } = parsedFilters.data;
 
   const officer = await prisma.officer.findUnique({
     where: { id },
@@ -48,11 +62,11 @@ export async function GET(request: Request, context: RouteContext) {
   } = {};
 
   if (from) {
-    dateFilter.gte = new Date(`${from}T00:00:00.000Z`);
+    dateFilter.gte = parseDateOnlyUtc(from);
   }
 
   if (to) {
-    dateFilter.lte = new Date(`${to}T00:00:00.000Z`);
+    dateFilter.lte = parseDateOnlyUtc(to);
   }
 
   const assessments = await prisma.dailyAssessment.findMany({

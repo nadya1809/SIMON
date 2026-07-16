@@ -1,7 +1,12 @@
+import { NotificationType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
+import {
+  buildNotificationMetadata,
+  createNotificationsByRoles
+} from "@/lib/notifications";
 import {
   apiMessage,
   apiNotFound,
@@ -117,6 +122,37 @@ export async function PATCH(request: Request, context: RouteContext) {
     afterData: toAuditJson(updatedRecommendation)
   });
 
+  await createNotificationsByRoles({
+    roles: ["ADMIN", "SUPERVISOR"],
+    type:
+      nextStatus === "APPROVED"
+        ? NotificationType.RECOMMENDATION_APPROVED
+        : NotificationType.RECOMMENDATION_REJECTED,
+    title:
+      nextStatus === "APPROVED"
+        ? "Rekomendasi telah disetujui"
+        : "Rekomendasi telah ditolak",
+    message:
+      `${getTypeLabel(updatedRecommendation.type)} untuk ${updatedRecommendation.officer.name} ` +
+      (nextStatus === "APPROVED" ? "telah disetujui." : "telah ditolak."),
+    href: "/reward-punishment",
+    entity: "RewardPunishment",
+    entityId: updatedRecommendation.id,
+    metadata: buildNotificationMetadata(
+      {
+        module: "reward-punishment",
+        view: "detail",
+        recommendationId: updatedRecommendation.id
+      },
+      {
+        status: nextStatus,
+        type: updatedRecommendation.type,
+        officerId: updatedRecommendation.officerId
+      }
+    ),
+    excludeUserIds: [session.user.id]
+  });
+
   return NextResponse.json({
     message:
       nextStatus === "APPROVED"
@@ -124,6 +160,18 @@ export async function PATCH(request: Request, context: RouteContext) {
         : "Data berhasil ditolak.",
     data: updatedRecommendation
   });
+}
+
+function getTypeLabel(type: "EVALUASI" | "REWARD" | "PUNISHMENT") {
+  if (type === "EVALUASI") {
+    return "Evaluasi";
+  }
+
+  if (type === "REWARD") {
+    return "Reward";
+  }
+
+  return "Punishment";
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {

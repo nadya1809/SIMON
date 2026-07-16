@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  dateInputString,
+  optionalTrimmedText
+} from "@/lib/validations/shared";
 
 export const assessmentStatusSchema = z.enum(["PRESENT", "ABSENT"]);
 
@@ -13,14 +17,12 @@ export const assessmentScoreSchema = z.object({
 
 export const assessmentSchema = z.object({
   officerId: z.string().trim().min(1, "Petugas wajib dipilih."),
-  assessmentDate: z.string().trim().min(1, "Tanggal penilaian wajib diisi."),
+  assessmentDate: dateInputString(
+    "Tanggal penilaian wajib diisi.",
+    "Tanggal penilaian wajib memakai tanggal yang valid."
+  ),
   status: assessmentStatusSchema,
-  notes: z
-    .string()
-    .trim()
-    .max(255, "Catatan maksimal 255 karakter.")
-    .optional()
-    .or(z.literal("")),
+  notes: optionalTrimmedText(255, "Catatan maksimal 255 karakter."),
   scores: z.array(assessmentScoreSchema).default([])
 });
 

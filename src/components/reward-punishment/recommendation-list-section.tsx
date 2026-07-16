@@ -6,7 +6,6 @@ import {
   faWandSparkles
 } from "@fortawesome/free-solid-svg-icons";
 import { ActionMenu } from "@/components/ui/action-menu";
-import { AccentSummaryPanel } from "@/components/ui/accent-summary-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EntityIdentityCell } from "@/components/ui/entity-identity-cell";
@@ -30,10 +29,12 @@ import { TIME_PRESET_OPTIONS, type TimePreset } from "@/lib/time-presets";
 type RecommendationListSectionProps = {
   summary: Record<"RECOMMENDED" | "APPROVED" | "REJECTED", number>;
   search: string;
+  officerFilter: string;
   unitFilter: string;
   typeFilter: "all" | "EVALUASI" | "REWARD" | "PUNISHMENT";
   statusFilter: "all" | "RECOMMENDED" | "APPROVED" | "REJECTED";
   timePreset: TimePreset;
+  officers: Array<{ id: string; name: string; nip: string; unitName: string }>;
   units: Array<{ id: string; name: string }>;
   recommendations: Array<{
     id: string;
@@ -66,6 +67,7 @@ type RecommendationListSectionProps = {
   getStatusVariant: (status: "RECOMMENDED" | "APPROVED" | "REJECTED") => "warning" | "success" | "danger";
   getStatusLabel: (status: "RECOMMENDED" | "APPROVED" | "REJECTED") => string;
   onSearchChange: (value: string) => void;
+  onOfficerChange: (value: string) => void;
   onUnitChange: (value: string) => void;
   onTypeChange: (value: "all" | "EVALUASI" | "REWARD" | "PUNISHMENT") => void;
   onStatusChange: (value: "all" | "RECOMMENDED" | "APPROVED" | "REJECTED") => void;
@@ -77,15 +79,18 @@ type RecommendationListSectionProps = {
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rows: number) => void;
   hasSeedData: boolean;
+  showControls?: boolean;
 };
 
 export function RecommendationListSection({
   summary,
   search,
+  officerFilter,
   unitFilter,
   typeFilter,
   statusFilter,
   timePreset,
+  officers,
   units,
   recommendations,
   totalItems,
@@ -98,6 +103,7 @@ export function RecommendationListSection({
   getStatusVariant,
   getStatusLabel,
   onSearchChange,
+  onOfficerChange,
   onUnitChange,
   onTypeChange,
   onStatusChange,
@@ -108,99 +114,88 @@ export function RecommendationListSection({
   onDelete,
   onPageChange,
   onRowsPerPageChange,
-  hasSeedData
+  hasSeedData,
+  showControls = true
 }: RecommendationListSectionProps) {
   return (
     <section className="space-y-5">
-      <AccentSummaryPanel
-        className="p-5"
-        eyebrow="Ringkasan Tindak Lanjut"
-        contentClassName="block"
-      >
-        <div className="grid gap-3 md:grid-cols-3">
-          <div>
-            <p className="text-2xl font-bold">{summary.RECOMMENDED}</p>
-            <p className="mt-1 text-sm text-white/78">
-              data masih menunggu keputusan akhir.
-            </p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold">{summary.APPROVED}</p>
-            <p className="mt-1 text-sm text-white/78">
-              data sudah disetujui sebagai tindak lanjut resmi.
-            </p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold">{summary.REJECTED}</p>
-            <p className="mt-1 text-sm text-white/78">
-              data ditolak dan perlu evaluasi ulang bila diperlukan.
-            </p>
-          </div>
-        </div>
-      </AccentSummaryPanel>
+      {showControls ? (
+        <ModuleFilters>
+          <FilterFields columnsClassName="md:grid-cols-2 xl:grid-cols-6">
+            <FilterSearchField
+              label="Cari petugas"
+              value={search}
+              onChange={onSearchChange}
+              placeholder="Cari nama atau NIP"
+            />
 
-      <ModuleFilters>
-        <FilterFields columnsClassName="md:grid-cols-2 xl:grid-cols-5">
-          <FilterSearchField
-            label="Cari petugas"
-            value={search}
-            onChange={onSearchChange}
-            placeholder="Cari nama atau NIP"
-          />
+            <FilterSelectField
+              label="Filter waktu"
+              value={timePreset}
+              onChange={(value) => onTimePresetChange(value as TimePreset)}
+            >
+              {TIME_PRESET_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </FilterSelectField>
 
-          <FilterSelectField
-            label="Filter waktu"
-            value={timePreset}
-            onChange={(value) => onTimePresetChange(value as TimePreset)}
-          >
-            {TIME_PRESET_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </FilterSelectField>
+            <FilterSelectField
+              label="Petugas"
+              value={officerFilter}
+              onChange={onOfficerChange}
+            >
+              <option value="all">Semua petugas</option>
+              {officers.map((officer) => (
+                <option key={officer.id} value={officer.id}>
+                  {officer.name} - {officer.nip} - {officer.unitName}
+                </option>
+              ))}
+            </FilterSelectField>
 
-          <FilterSelectField label="Unit" value={unitFilter} onChange={onUnitChange}>
-            <option value="all">Semua unit</option>
-            {units.map((unit) => (
-              <option key={unit.id} value={unit.id}>
-                {unit.name}
-              </option>
-            ))}
-          </FilterSelectField>
+            <FilterSelectField label="Unit" value={unitFilter} onChange={onUnitChange}>
+              <option value="all">Semua unit</option>
+              {units.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.name}
+                </option>
+              ))}
+            </FilterSelectField>
 
-          <FilterSelectField
-            label="Tipe"
-            value={typeFilter}
-            onChange={(value) => onTypeChange(value as typeof typeFilter)}
-          >
-            <option value="all">Semua tipe</option>
-            <option value="EVALUASI">Evaluasi</option>
-            <option value="REWARD">Reward</option>
-            <option value="PUNISHMENT">Punishment</option>
-          </FilterSelectField>
+            <FilterSelectField
+              label="Tipe"
+              value={typeFilter}
+              onChange={(value) => onTypeChange(value as typeof typeFilter)}
+            >
+              <option value="all">Semua tipe</option>
+              <option value="EVALUASI">Evaluasi</option>
+              <option value="REWARD">Reward</option>
+              <option value="PUNISHMENT">Punishment</option>
+            </FilterSelectField>
 
-          <FilterSelectField
-            label="Status"
-            value={statusFilter}
-            onChange={(value) => onStatusChange(value as typeof statusFilter)}
-          >
-            <option value="all">Semua status</option>
-            <option value="RECOMMENDED">Menunggu keputusan</option>
-            <option value="APPROVED">Disetujui</option>
-            <option value="REJECTED">Ditolak</option>
-          </FilterSelectField>
-        </FilterFields>
+            <FilterSelectField
+              label="Status"
+              value={statusFilter}
+              onChange={(value) => onStatusChange(value as typeof statusFilter)}
+            >
+              <option value="all">Semua status</option>
+              <option value="RECOMMENDED">Menunggu keputusan</option>
+              <option value="APPROVED">Disetujui</option>
+              <option value="REJECTED">Ditolak</option>
+            </FilterSelectField>
+          </FilterFields>
 
-        <FilterActions className="flex-wrap">
-          <Button icon={faWandSparkles} onClick={onOpenGenerate}>
-            Generate Data
-          </Button>
-          <FilterResetButton onClick={onResetFilters}>
-            Reset Filter
-          </FilterResetButton>
-        </FilterActions>
-      </ModuleFilters>
+          <FilterActions className="flex-wrap">
+            <Button icon={faWandSparkles} onClick={onOpenGenerate}>
+              Generate Data
+            </Button>
+            <FilterResetButton onClick={onResetFilters}>
+              Reset Filter
+            </FilterResetButton>
+          </FilterActions>
+        </ModuleFilters>
+      ) : null}
 
       <ModuleTableSection
         title="Daftar hasil evaluasi dan tindak lanjut"
@@ -224,7 +219,7 @@ export function RecommendationListSection({
             }
             description={
               hasSeedData
-                ? "Ubah periode, status, tipe, atau unit agar data lain muncul."
+                ? "Ubah periode, petugas, status, tipe, atau unit agar data lain muncul."
                 : "Generate evaluasi, reward, atau punishment baru agar daftar mulai terisi."
             }
             icon="RP"

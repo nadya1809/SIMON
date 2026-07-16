@@ -14,6 +14,15 @@ export default async function UnitsPage() {
     take: rowsPerPage,
     orderBy: { name: "asc" },
     include: {
+      officers: {
+        select: {
+          id: true,
+          name: true
+        },
+        orderBy: {
+          name: "asc"
+        }
+      },
       _count: {
         select: {
           officers: true

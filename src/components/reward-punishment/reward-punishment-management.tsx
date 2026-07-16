@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useDeferredValue, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   faCheck,
   faGavel,
@@ -15,6 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { RecommendationDetailDialog } from "@/components/reward-punishment/recommendation-detail-dialog";
+import { RewardPunishmentExportPanel } from "@/components/reward-punishment/reward-punishment-export-panel";
 import { RecommendationGenerateDialog } from "@/components/reward-punishment/recommendation-generate-dialog";
 import { RecommendationListSection } from "@/components/reward-punishment/recommendation-list-section";
 import { FormField } from "@/components/forms/form-field";
@@ -24,8 +25,8 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
+import { SectionCard } from "@/components/ui/section-card";
 import { Select } from "@/components/ui/select";
-import { StatCard } from "@/components/ui/stat-card";
 import { applyServerFormErrors, getApiErrorMessage } from "@/lib/form-api";
 import type { PaginatedData } from "@/lib/pagination";
 import {
@@ -95,8 +96,26 @@ type RewardPunishmentManagementProps = {
     };
   };
   units: UnitOption[];
+  officers: Array<{ id: string; name: string; nip: string; unitName: string }>;
   defaultReferenceDate: string;
   role: string;
+  embedded?: boolean;
+  showExportPanel?: boolean;
+  showListSection?: boolean;
+  showListControls?: boolean;
+  initialInfoMessage?: string;
+  initialFocusedRecommendation?: RecommendationItem | null;
+  initialNavigationState?: {
+    focusRecommendationId?: string;
+    openDetail?: boolean;
+    statusFilter?: StatusFilter;
+    typeFilter?: TypeFilter;
+    officerFilter?: string;
+    unitFilter?: string;
+    timePreset?: TimePreset;
+    from?: string;
+    to?: string;
+  };
 };
 
 type StatusFilter = "all" | "RECOMMENDED" | "APPROVED" | "REJECTED";
@@ -151,16 +170,33 @@ function getTypeLabel(type: RecommendationItem["type"]) {
 export function RewardPunishmentManagement({
   initialRecommendations,
   units,
+  officers,
   defaultReferenceDate,
-  role
+  role,
+  embedded = false,
+  showExportPanel = false,
+  showListSection = true,
+  showListControls = true,
+  initialInfoMessage,
+  initialFocusedRecommendation,
+  initialNavigationState
 }: RewardPunishmentManagementProps) {
   const [recommendations, setRecommendations] = useState(initialRecommendations.data);
   const [summary, setSummary] = useState(initialRecommendations.summary);
   const [selectedRecommendationId, setSelectedRecommendationId] = useState(
-    initialRecommendations.data[0]?.id ?? ""
+    initialNavigationState?.focusRecommendationId ??
+      initialFocusedRecommendation?.id ??
+      initialRecommendations.data[0]?.id ??
+      ""
   );
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(
+    Boolean(
+      initialNavigationState?.openDetail &&
+        (initialNavigationState.focusRecommendationId ||
+          initialFocusedRecommendation?.id)
+    )
+  );
   const [confirmingRecommendation, setConfirmingRecommendation] =
     useState<RecommendationItem | null>(null);
   const [pendingGenerateValues, setPendingGenerateValues] =
@@ -168,13 +204,38 @@ export function RewardPunishmentManagement({
   const [pendingDecisionValues, setPendingDecisionValues] =
     useState<RewardPunishmentActionValues | null>(null);
   const [search, setSearch] = useState("");
-  const [unitFilter, setUnitFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-  const [timePreset, setTimePreset] = useState<TimePreset>(getDefaultTimePreset());
+  const [officerFilter, setOfficerFilter] = useState(
+    initialNavigationState?.officerFilter || "all"
+  );
+  const [unitFilter, setUnitFilter] = useState(
+    initialNavigationState?.unitFilter || "all"
+  );
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
+    initialNavigationState?.statusFilter ?? "all"
+  );
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>(
+    initialNavigationState?.typeFilter ?? "all"
+  );
+  const [timePreset, setTimePreset] = useState<TimePreset>(
+    initialNavigationState?.timePreset ?? getDefaultTimePreset()
+  );
+  const [dateRangeOverride, setDateRangeOverride] = useState<{
+    from: string;
+    to: string;
+  } | null>(
+    initialNavigationState?.from || initialNavigationState?.to
+      ? {
+          from: initialNavigationState?.from ?? "",
+          to: initialNavigationState?.to ?? ""
+        }
+      : null
+  );
   const [page, setPage] = useState(initialRecommendations.meta.page);
   const [rowsPerPage, setRowsPerPage] = useState(initialRecommendations.meta.rowsPerPage);
   const [totalItems, setTotalItems] = useState(initialRecommendations.meta.totalItems);
+  const [focusedRecommendation, setFocusedRecommendation] = useState<
+    RecommendationItem | null
+  >(initialFocusedRecommendation ?? null);
   const [deletingRecommendationId, setDeletingRecommendationId] = useState<
     string | null
   >(null);
@@ -212,19 +273,40 @@ export function RewardPunishmentManagement({
   const [isDeciding, startDeciding] = useTransition();
   const deferredSearch = useDeferredValue(search);
   const hasMountedRef = useRef(false);
+  const filterOfficerOptions = useMemo(
+    () =>
+      officers.filter((officer) =>
+        unitFilter === "all"
+          ? true
+          : units.find((unit) => unit.id === unitFilter)?.name === officer.unitName
+      ),
+    [officers, unitFilter, units]
+  );
   const generationMode = useWatch({
     control: generateForm.control,
     name: "generationMode"
   });
-  const { from: fromDate, to: toDate } = getTimePresetRange(timePreset);
+  const presetRange = getTimePresetRange(timePreset);
+  const fromDate = dateRangeOverride?.from ?? presetRange.from;
+  const toDate = dateRangeOverride?.to ?? presetRange.to;
+  const shouldLoadNavigationContextOnMount =
+    (initialNavigationState?.officerFilter ?? "all") !== "all" ||
+    (initialNavigationState?.unitFilter ?? "all") !== "all" ||
+    (initialNavigationState?.statusFilter ?? "all") !== "all" ||
+    (initialNavigationState?.typeFilter ?? "all") !== "all" ||
+    Boolean(initialNavigationState?.from || initialNavigationState?.to);
   const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
 
   const selectedRecommendation =
-    recommendations.find((item) => item.id === selectedRecommendationId) ?? null;
+    recommendations.find((item) => item.id === selectedRecommendationId) ??
+    (focusedRecommendation?.id === selectedRecommendationId
+      ? focusedRecommendation
+      : null);
 
   const loadRecommendations = useCallback(async (
     overrides?: Partial<{
       search: string;
+      officerFilter: string;
       unitFilter: string;
       statusFilter: StatusFilter;
       typeFilter: TypeFilter;
@@ -236,6 +318,10 @@ export function RewardPunishmentManagement({
   ) => {
     const params = new URLSearchParams({
       search: overrides?.search ?? deferredSearch,
+      officerId:
+        (overrides?.officerFilter ?? officerFilter) === "all"
+          ? ""
+          : (overrides?.officerFilter ?? officerFilter),
       unitId:
         (overrides?.unitFilter ?? unitFilter) === "all"
           ? ""
@@ -271,6 +357,13 @@ export function RewardPunishmentManagement({
     const nextSummary = result.summary;
 
     setRecommendations(nextData);
+    setFocusedRecommendation((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return nextData.find((item) => item.id === current.id) ?? current;
+    });
     setSummary({
       total: nextMeta.totalItems,
       RECOMMENDED: nextSummary.RECOMMENDED,
@@ -287,7 +380,7 @@ export function RewardPunishmentManagement({
 
       return nextData[0]?.id ?? "";
     });
-  }, [deferredSearch, fromDate, page, rowsPerPage, statusFilter, toDate, typeFilter, unitFilter]);
+  }, [deferredSearch, fromDate, officerFilter, page, rowsPerPage, statusFilter, toDate, typeFilter, unitFilter]);
 
   useEffect(() => {
     if (!selectedRecommendation) {
@@ -309,11 +402,31 @@ export function RewardPunishmentManagement({
   useEffect(() => {
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
-      return;
+      if (!shouldLoadNavigationContextOnMount) {
+        return;
+      }
     }
 
     void loadRecommendations();
-  }, [deferredSearch, fromDate, loadRecommendations, page, rowsPerPage, statusFilter, toDate, typeFilter, unitFilter]);
+  }, [
+    deferredSearch,
+    fromDate,
+    initialNavigationState?.from,
+    initialNavigationState?.officerFilter,
+    initialNavigationState?.statusFilter,
+    initialNavigationState?.to,
+    initialNavigationState?.typeFilter,
+    initialNavigationState?.unitFilter,
+    loadRecommendations,
+    officerFilter,
+    page,
+    rowsPerPage,
+    statusFilter,
+    shouldLoadNavigationContextOnMount,
+    toDate,
+    typeFilter,
+    unitFilter
+  ]);
 
   async function onGenerate(values: RewardPunishmentGenerationValues) {
     startGenerating(async () => {
@@ -345,6 +458,7 @@ export function RewardPunishmentManagement({
 
       if (!response.ok) {
         applyServerFormErrors(generateForm.setError, result.errors);
+        setIsGenerateDialogOpen(true);
         toast.error(
           getApiErrorMessage(
             result,
@@ -397,6 +511,7 @@ export function RewardPunishmentManagement({
 
       if (!response.ok || !result.data) {
         applyServerFormErrors(actionForm.setError, result.errors);
+        setIsDetailDialogOpen(true);
         toast.error(
           getApiErrorMessage(
             result,
@@ -438,83 +553,130 @@ export function RewardPunishmentManagement({
     }
   }
 
-  return (
-    <DashboardShell
-      title="Evaluasi, Reward, dan Punishment"
-      description="Generate evaluasi netral maupun tindak lanjut reward dan punishment berdasarkan penilaian hadir pada periode yang dipilih, lalu putuskan hasilnya secara manual."
-      role={role}
-    >
-      <section className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Total data" value={`${summary.total}`} icon={faWandSparkles} iconTone="sky" />
-        <StatCard label="Menunggu keputusan" value={`${summary.RECOMMENDED}`} icon={faTrophy} iconTone="teal" />
-        <StatCard label="Disetujui" value={`${summary.APPROVED}`} icon={faCheck} iconTone="blue" />
-        <StatCard label="Ditolak" value={`${summary.REJECTED}`} icon={faTriangleExclamation} iconTone="soft" />
-      </section>
+  const content = (
+    <>
+      {initialInfoMessage ? (
+        <SectionCard className="border-[var(--accent)]/20 bg-[var(--accent-soft)]/45 p-4 text-sm text-[var(--foreground)]">
+          {initialInfoMessage}
+        </SectionCard>
+      ) : null}
 
-      <RecommendationListSection
-        summary={summary}
-        search={search}
-        unitFilter={unitFilter}
-        typeFilter={typeFilter}
-        statusFilter={statusFilter}
-        timePreset={timePreset}
-        units={units}
-        recommendations={recommendations}
-        totalItems={totalItems}
-        currentPage={page}
-        totalPages={totalPages}
-        rowsPerPage={rowsPerPage}
-        deletingRecommendationId={deletingRecommendationId}
-        hasSeedData={Boolean(search || unitFilter !== "all" || statusFilter !== "all" || typeFilter !== "all" || totalItems > 0 || timePreset !== getDefaultTimePreset())}
-        getTypeVariant={getTypeVariant}
-        getTypeLabel={getTypeLabel}
-        getStatusVariant={getStatusVariant}
-        getStatusLabel={getStatusLabel}
-        onSearchChange={(value) => {
-          setSearch(value);
-          setPage(1);
-        }}
-        onUnitChange={(value) => {
-          setUnitFilter(value);
-          setPage(1);
-        }}
-        onTypeChange={(value) => {
-          setTypeFilter(value);
-          setPage(1);
-        }}
-        onStatusChange={(value) => {
-          setStatusFilter(value);
-          setPage(1);
-        }}
-        onTimePresetChange={(value) => {
-          setTimePreset(value);
-          setPage(1);
-        }}
-        onResetFilters={() => {
-          setSearch("");
-          setUnitFilter("all");
-          setStatusFilter("all");
-          setTypeFilter("all");
-          setTimePreset(getDefaultTimePreset());
-          setPage(1);
-        }}
-        onOpenGenerate={() => setIsGenerateDialogOpen(true)}
-        onOpenDetail={(recommendationId) => {
-          setSelectedRecommendationId(recommendationId);
-          setIsDetailDialogOpen(true);
-        }}
-        onDelete={(recommendationId) => {
-          const recommendation = recommendations.find((item) => item.id === recommendationId);
-          if (recommendation) {
-            setConfirmingRecommendation(recommendation);
-          }
-        }}
-        onPageChange={setPage}
-        onRowsPerPageChange={(rows) => {
-          setRowsPerPage(rows);
-          setPage(1);
-        }}
-      />
+      {showExportPanel ? (
+        <RewardPunishmentExportPanel
+          search={search}
+          officerId={officerFilter === "all" ? "" : officerFilter}
+          unitId={unitFilter === "all" ? "" : unitFilter}
+          type={typeFilter === "all" ? "" : typeFilter}
+          status={statusFilter === "all" ? "" : statusFilter}
+          from={fromDate}
+          to={toDate}
+          timePreset={timePreset}
+          units={units}
+          officers={filterOfficerOptions}
+        />
+      ) : null}
+
+      {showListSection ? (
+        <RecommendationListSection
+          summary={summary}
+          search={search}
+          officerFilter={officerFilter}
+          unitFilter={unitFilter}
+          typeFilter={typeFilter}
+          statusFilter={statusFilter}
+          timePreset={timePreset}
+          officers={filterOfficerOptions}
+          units={units}
+          recommendations={recommendations}
+          totalItems={totalItems}
+          currentPage={page}
+          totalPages={totalPages}
+          rowsPerPage={rowsPerPage}
+          deletingRecommendationId={deletingRecommendationId}
+          hasSeedData={Boolean(
+            search ||
+              officerFilter !== "all" ||
+              unitFilter !== "all" ||
+              statusFilter !== "all" ||
+              typeFilter !== "all" ||
+              totalItems > 0 ||
+              timePreset !== getDefaultTimePreset() ||
+              dateRangeOverride?.from ||
+              dateRangeOverride?.to
+          )}
+          getTypeVariant={getTypeVariant}
+          getTypeLabel={getTypeLabel}
+          getStatusVariant={getStatusVariant}
+          getStatusLabel={getStatusLabel}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          onUnitChange={(value) => {
+            if (
+              officerFilter !== "all" &&
+              !officers.some(
+                (officer) =>
+                  officer.id === officerFilter &&
+                  (value === "all"
+                    ? true
+                    : units.find((unit) => unit.id === value)?.name ===
+                      officer.unitName)
+              )
+            ) {
+              setOfficerFilter("all");
+            }
+            setUnitFilter(value);
+            setPage(1);
+          }}
+          onOfficerChange={(value) => {
+            setOfficerFilter(value);
+            setPage(1);
+          }}
+          onTypeChange={(value) => {
+            setDateRangeOverride(null);
+            setTypeFilter(value);
+            setPage(1);
+          }}
+          onStatusChange={(value) => {
+            setDateRangeOverride(null);
+            setStatusFilter(value);
+            setPage(1);
+          }}
+          onTimePresetChange={(value) => {
+            setDateRangeOverride(null);
+            setTimePreset(value);
+            setPage(1);
+          }}
+          onResetFilters={() => {
+            setSearch("");
+            setOfficerFilter("all");
+            setUnitFilter("all");
+            setStatusFilter("all");
+            setTypeFilter("all");
+            setTimePreset(getDefaultTimePreset());
+            setDateRangeOverride(null);
+            setPage(1);
+          }}
+          onOpenGenerate={() => setIsGenerateDialogOpen(true)}
+          onOpenDetail={(recommendationId) => {
+            setSelectedRecommendationId(recommendationId);
+            setIsDetailDialogOpen(true);
+          }}
+          onDelete={(recommendationId) => {
+            const recommendation = recommendations.find((item) => item.id === recommendationId);
+            if (recommendation) {
+              setConfirmingRecommendation(recommendation);
+            }
+          }}
+          onPageChange={setPage}
+          onRowsPerPageChange={(rows) => {
+            setRowsPerPage(rows);
+            setPage(1);
+          }}
+          showControls={showListControls}
+        />
+      ) : null}
 
       <RecommendationGenerateDialog
         open={isGenerateDialogOpen}
@@ -523,6 +685,7 @@ export function RewardPunishmentManagement({
         isGenerating={isGenerating}
         onClose={() => setIsGenerateDialogOpen(false)}
         onSubmit={(values) => {
+          setIsGenerateDialogOpen(false);
           setPendingGenerateValues(values);
         }}
       />
@@ -539,6 +702,7 @@ export function RewardPunishmentManagement({
         toDateLabel={toDateLabel}
         onClose={() => setIsDetailDialogOpen(false)}
         onSubmit={(values) => {
+          setIsDetailDialogOpen(false);
           setPendingDecisionValues(values);
         }}
       />
@@ -554,6 +718,7 @@ export function RewardPunishmentManagement({
         onClose={() => {
           if (!isGenerating) {
             setPendingGenerateValues(null);
+            setIsGenerateDialogOpen(true);
           }
         }}
         onConfirm={() => {
@@ -589,6 +754,7 @@ export function RewardPunishmentManagement({
         onClose={() => {
           if (!isDeciding) {
             setPendingDecisionValues(null);
+            setIsDetailDialogOpen(true);
           }
         }}
         onConfirm={() => {
@@ -624,6 +790,20 @@ export function RewardPunishmentManagement({
           }
         }}
       />
+    </>
+  );
+
+  if (embedded) {
+    return <section className="space-y-6">{content}</section>;
+  }
+
+  return (
+    <DashboardShell
+      title="Evaluasi, Reward, dan Punishment"
+      description="Generate evaluasi netral maupun tindak lanjut reward dan punishment berdasarkan penilaian hadir pada periode yang dipilih, lalu putuskan hasilnya secara manual."
+      role={role}
+    >
+      {content}
     </DashboardShell>
   );
 }

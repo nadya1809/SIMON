@@ -26,6 +26,8 @@ export async function GET(request: Request) {
   const unitId = searchParams.get("unitId")?.trim();
   const status = searchParams.get("status")?.trim();
   const sortBy = searchParams.get("sortBy")?.trim();
+  const sortDirection =
+    searchParams.get("sortDirection")?.trim() === "desc" ? "desc" : "asc";
   const { page, rowsPerPage } = resolvePaginationParams(
     searchParams.get("page"),
     searchParams.get("rowsPerPage")
@@ -60,10 +62,10 @@ export async function GET(request: Request) {
     },
     orderBy:
       sortBy === "nip"
-        ? [{ nip: "asc" }]
+        ? [{ nip: sortDirection }]
         : sortBy === "unit"
-          ? [{ unit: { name: "asc" } }, { name: "asc" }]
-          : [{ name: "asc" }]
+          ? [{ unit: { name: sortDirection } }, { name: "asc" }]
+          : [{ name: sortDirection }]
   });
 
   return apiSuccess(officers, { meta });

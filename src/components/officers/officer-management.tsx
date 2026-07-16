@@ -17,6 +17,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OfficerFormDialog } from "@/components/officers/officer-form-dialog";
 import { OfficerHistoryDialog } from "@/components/officers/officer-history-dialog";
 import { OfficerListSection } from "@/components/officers/officer-list-section";
+import { formatDateOnlyDisplay } from "@/lib/date-only";
 import { applyServerFormErrors, getApiErrorMessage } from "@/lib/form-api";
 import type { PaginatedData } from "@/lib/pagination";
 import {
@@ -109,6 +110,7 @@ export function OfficerManagement({
   const [unitFilter, setUnitFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(initialOfficers.meta.page);
   const [rowsPerPage, setRowsPerPage] = useState(initialOfficers.meta.rowsPerPage);
   const [totalItems, setTotalItems] = useState(initialOfficers.meta.totalItems);
@@ -119,6 +121,7 @@ export function OfficerManagement({
 
   const form = useForm<OfficerFormValues>({
     resolver: zodResolver(officerSchema),
+    mode: "onChange",
     defaultValues: {
       nip: "",
       name: "",
@@ -130,6 +133,12 @@ export function OfficerManagement({
 
   const { register, handleSubmit, reset, formState, setValue, setError } = form;
   const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
+
+  const pendingUnitName = pendingSubmitValues?.unitId
+    ? units.find((unit) => unit.id === pendingSubmitValues.unitId)?.name ??
+      "Belum ditentukan"
+    : "Belum ditentukan";
+  const pendingStatusLabel = pendingSubmitValues?.isActive ? "Aktif" : "Nonaktif";
 
   const loadOfficers = useCallback(async (
     overrides?: Partial<{
@@ -152,6 +161,7 @@ export function OfficerManagement({
           ? ""
           : (overrides?.statusFilter ?? statusFilter),
       sortBy: overrides?.sortBy ?? sortBy,
+      sortDirection,
       page: String(overrides?.page ?? page),
       rowsPerPage: String(overrides?.rowsPerPage ?? rowsPerPage)
     });
@@ -171,7 +181,17 @@ export function OfficerManagement({
     setPage(result.meta.page);
     setRowsPerPage(result.meta.rowsPerPage);
     setTotalItems(result.meta.totalItems);
-  }, [deferredSearch, page, rowsPerPage, sortBy, statusFilter, unitFilter]);
+  }, [deferredSearch, page, rowsPerPage, sortBy, sortDirection, statusFilter, unitFilter]);
+
+  function toggleSort(nextSortBy: SortOption) {
+    if (sortBy === nextSortBy) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortBy(nextSortBy);
+    setSortDirection("asc");
+  }
 
   function resetForm() {
     setIsFormDialogOpen(false);
@@ -210,7 +230,7 @@ export function OfficerManagement({
     }
 
     void loadOfficers();
-  }, [deferredSearch, loadOfficers, page, rowsPerPage, sortBy, statusFilter, unitFilter]);
+  }, [deferredSearch, loadOfficers, page, rowsPerPage, sortBy, sortDirection, statusFilter, unitFilter]);
 
   async function onSubmit(values: OfficerFormValues) {
     const endpoint = editingOfficer
@@ -235,6 +255,7 @@ export function OfficerManagement({
 
       if (!response.ok || !result.data) {
         applyServerFormErrors(setError, result.errors);
+        setIsFormDialogOpen(true);
         toast.error(
           getApiErrorMessage(
             result,
@@ -344,13 +365,7 @@ export function OfficerManagement({
   }
 
   function formatDateLabel(value: string) {
-    return new Intl.DateTimeFormat("id-ID", {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      timeZone: "UTC"
-    }).format(new Date(value));
+    return formatDateOnlyDisplay(value);
   }
 
   return (
@@ -364,6 +379,7 @@ export function OfficerManagement({
         unitFilter={unitFilter}
         statusFilter={statusFilter}
         sortBy={sortBy}
+        sortDirection={sortDirection}
         units={units}
         officers={officers}
         totalItems={totalItems}
@@ -385,7 +401,7 @@ export function OfficerManagement({
           setPage(1);
         }}
         onSortChange={(value) => {
-          setSortBy(value);
+          toggleSort(value);
           setPage(1);
         }}
         onOpenCreate={() => {
@@ -473,6 +489,7 @@ export function OfficerManagement({
         isPending={isPending}
         onClose={resetForm}
         onSubmit={(values) => {
+          setIsFormDialogOpen(false);
           setPendingSubmitValues(values);
         }}
         onToggleActive={() => {
@@ -489,16 +506,43 @@ export function OfficerManagement({
         }
         description={
           editingOfficer
-            ? "Perubahan data petugas akan langsung diperbarui di sistem."
-            : "Petugas baru akan langsung tersedia di modul penilaian."
+            ? (
+                <div className="space-y-3">
+                  <p>Perubahan data petugas berikut akan langsung diperbarui di sistem.</p>
+                  {pendingSubmitValues ? (
+                    <div className="grid gap-2 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card-bg-strong)] p-3 text-sm text-[var(--foreground)]">
+                      <p><span className="font-semibold">NIP:</span> {pendingSubmitValues.nip}</p>
+                      <p><span className="font-semibold">Nama:</span> {pendingSubmitValues.name}</p>
+                      <p><span className="font-semibold">Jabatan:</span> {pendingSubmitValues.jabatan || "Belum ditentukan"}</p>
+                      <p><span className="font-semibold">Unit:</span> {pendingUnitName}</p>
+                      <p><span className="font-semibold">Status:</span> {pendingStatusLabel}</p>
+                    </div>
+                  ) : null}
+                </div>
+              )
+            : (
+                <div className="space-y-3">
+                  <p>Petugas baru berikut akan langsung tersedia di modul penilaian.</p>
+                  {pendingSubmitValues ? (
+                    <div className="grid gap-2 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card-bg-strong)] p-3 text-sm text-[var(--foreground)]">
+                      <p><span className="font-semibold">NIP:</span> {pendingSubmitValues.nip}</p>
+                      <p><span className="font-semibold">Nama:</span> {pendingSubmitValues.name}</p>
+                      <p><span className="font-semibold">Jabatan:</span> {pendingSubmitValues.jabatan || "Belum ditentukan"}</p>
+                      <p><span className="font-semibold">Unit:</span> {pendingUnitName}</p>
+                      <p><span className="font-semibold">Status:</span> {pendingStatusLabel}</p>
+                    </div>
+                  ) : null}
+                </div>
+              )
         }
         variant="primary"
         icon={editingOfficer ? faPenToSquare : faPlus}
-        confirmLabel={editingOfficer ? "Ya, simpan" : "Ya, tambah"}
+        confirmLabel={editingOfficer ? "Ya, simpan perubahan" : "Ya, tambah petugas"}
         isLoading={isPending}
         onClose={() => {
           if (!isPending) {
             setPendingSubmitValues(null);
+            setIsFormDialogOpen(true);
           }
         }}
         onConfirm={() => {

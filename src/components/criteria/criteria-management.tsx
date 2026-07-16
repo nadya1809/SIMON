@@ -29,6 +29,10 @@ import {
 } from "@/components/ui/module-table-section";
 import { Textarea } from "@/components/ui/textarea";
 import { applyServerFormErrors, getApiErrorMessage } from "@/lib/form-api";
+import {
+  LETTERS_ONLY_MESSAGE,
+  SORT_ORDER_NUMERIC_ONLY_MESSAGE
+} from "@/lib/input-rules";
 import type { PaginatedData } from "@/lib/pagination";
 import {
   type CriteriaFormInput,
@@ -62,6 +66,8 @@ export function CriteriaManagement({
   initialCriteria,
   role
 }: CriteriaManagementProps) {
+  const [sortBy, setSortBy] = useState<"name" | "sortOrder" | "status" | "scores">("sortOrder");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [criteria, setCriteria] = useState<CriteriaItem[]>(initialCriteria.data);
   const [page, setPage] = useState(initialCriteria.meta.page);
   const [rowsPerPage, setRowsPerPage] = useState(initialCriteria.meta.rowsPerPage);
@@ -84,6 +90,7 @@ export function CriteriaManagement({
 
   const form = useForm<CriteriaFormInput, unknown, CriteriaFormValues>({
     resolver: zodResolver(criteriaSchema),
+    mode: "onChange",
     defaultValues: {
       name: "",
       description: "",
@@ -92,13 +99,23 @@ export function CriteriaManagement({
     }
   });
 
-  const { register, handleSubmit, reset, formState, setValue, setError } = form;
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState,
+    setValue,
+    setError,
+    trigger
+  } = form;
   const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
 
   const loadCriteria = useCallback(async (nextPage = page, nextRowsPerPage = rowsPerPage) => {
     const params = new URLSearchParams({
       page: String(nextPage),
-      rowsPerPage: String(nextRowsPerPage)
+      rowsPerPage: String(nextRowsPerPage),
+      sortBy,
+      sortDirection
     });
     const response = await fetch(`/api/criteria?${params.toString()}`);
     const result = (await response.json()) as {
@@ -116,7 +133,7 @@ export function CriteriaManagement({
     setPage(result.meta.page);
     setRowsPerPage(result.meta.rowsPerPage);
     setTotalItems(result.meta.totalItems);
-  }, [page, rowsPerPage]);
+  }, [page, rowsPerPage, sortBy, sortDirection]);
 
   useEffect(() => {
     if (!hasMountedRef.current) {
@@ -126,6 +143,16 @@ export function CriteriaManagement({
 
     void loadCriteria(page, rowsPerPage);
   }, [loadCriteria, page, rowsPerPage]);
+
+  function toggleSort(nextSortBy: "name" | "sortOrder" | "status" | "scores") {
+    if (sortBy === nextSortBy) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortBy(nextSortBy);
+    setSortDirection("asc");
+  }
 
   function resetForm() {
     setIsFormDialogOpen(false);
@@ -158,6 +185,7 @@ export function CriteriaManagement({
     );
 
     if (duplicateSortOrder) {
+      setIsFormDialogOpen(true);
       const duplicateMessage = `Urutan tampil ${values.sortOrder} sudah dipakai oleh "${duplicateSortOrder.name}".`;
       setError("sortOrder", {
         type: "manual",
@@ -189,6 +217,7 @@ export function CriteriaManagement({
 
       if (!response.ok || !result.data) {
         applyServerFormErrors(setError, result.errors);
+        setIsFormDialogOpen(true);
         toast.error(
           getApiErrorMessage(
             result,
@@ -280,10 +309,34 @@ export function CriteriaManagement({
             title="Daftar kriteria"
             description={`${criteria.length} kriteria terdaftar di sistem.`}
             headers={[
-              "Nama Kriteria",
-              "Urutan",
-              "Status",
-              "Histori Skor",
+              {
+                key: "name",
+                label: "Nama Kriteria",
+                sortable: true,
+                sortDirection: sortBy === "name" ? sortDirection : null,
+                onSort: () => toggleSort("name")
+              },
+              {
+                key: "sortOrder",
+                label: "Urutan",
+                sortable: true,
+                sortDirection: sortBy === "sortOrder" ? sortDirection : null,
+                onSort: () => toggleSort("sortOrder")
+              },
+              {
+                key: "status",
+                label: "Status",
+                sortable: true,
+                sortDirection: sortBy === "status" ? sortDirection : null,
+                onSort: () => toggleSort("status")
+              },
+              {
+                key: "scores",
+                label: "Histori Skor",
+                sortable: true,
+                sortDirection: sortBy === "scores" ? sortDirection : null,
+                onSort: () => toggleSort("scores")
+              },
               "Catatan",
               "Aksi"
             ]}
@@ -374,6 +427,7 @@ export function CriteriaManagement({
           <form
             className="space-y-4"
             onSubmit={handleSubmit((values) => {
+              setIsFormDialogOpen(false);
               setPendingSubmitValues(values);
             })}
           >
@@ -387,6 +441,25 @@ export function CriteriaManagement({
               >
                 <Input
                   placeholder="Masukkan nama kriteria"
+                  maxLength={100}
+                  autoCapitalize="sentences"
+                  onInput={(event) => {
+                    const sanitizedValue = event.currentTarget.value.replace(
+                      /[^\p{L}\s.'-]+/gu,
+                      ""
+                    );
+
+                    if (sanitizedValue !== event.currentTarget.value) {
+                      event.currentTarget.value = sanitizedValue;
+                      setError("name", {
+                        type: "manual",
+                        message: LETTERS_ONLY_MESSAGE
+                      });
+                      return;
+                    }
+
+                    void trigger("name");
+                  }}
                   {...register("name")}
                 />
               </FormField>
@@ -398,6 +471,7 @@ export function CriteriaManagement({
               >
                 <Textarea
                   placeholder="Tulis deskripsi singkat"
+                  maxLength={255}
                   {...register("description")}
                 />
               </FormField>
@@ -410,6 +484,35 @@ export function CriteriaManagement({
                 <Input
                   type="number"
                   min={0}
+                  max={999}
+                  step={1}
+                  inputMode="numeric"
+                  onInput={(event) => {
+                    const sanitizedValue = event.currentTarget.value.replace(
+                      /\D+/g,
+                      ""
+                    );
+
+                    if (sanitizedValue !== event.currentTarget.value) {
+                      event.currentTarget.value = sanitizedValue;
+                      setError("sortOrder", {
+                        type: "manual",
+                        message: SORT_ORDER_NUMERIC_ONLY_MESSAGE
+                      });
+                      return;
+                    }
+
+                    if (sanitizedValue && Number(sanitizedValue) > 999) {
+                      event.currentTarget.value = "999";
+                    }
+
+                    void trigger("sortOrder");
+                  }}
+                  onKeyDown={(event) => {
+                    if ([".", ",", "e", "E", "+", "-"].includes(event.key)) {
+                      event.preventDefault();
+                    }
+                  }}
                   placeholder="0"
                   {...register("sortOrder")}
                 />
@@ -459,6 +562,7 @@ export function CriteriaManagement({
         onClose={() => {
           if (!isPending) {
             setPendingSubmitValues(null);
+            setIsFormDialogOpen(true);
           }
         }}
         onConfirm={() => {

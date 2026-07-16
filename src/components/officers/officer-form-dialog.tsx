@@ -10,6 +10,10 @@ import { Input } from "@/components/ui/input";
 import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Select } from "@/components/ui/select";
 import {
+  LETTERS_ONLY_MESSAGE,
+  NUMERIC_ONLY_MESSAGE
+} from "@/lib/input-rules";
+import {
   officerJabatanOptions,
   type OfficerFormValues
 } from "@/lib/validations/officer";
@@ -37,7 +41,7 @@ export function OfficerFormDialog({
   onSubmit,
   onToggleActive
 }: OfficerFormDialogProps) {
-  const { register, handleSubmit, formState } = form;
+  const { register, handleSubmit, formState, setError, trigger } = form;
 
   return (
     <ModalDialog
@@ -66,6 +70,22 @@ export function OfficerFormDialog({
               placeholder="Masukkan NIP petugas"
               inputMode="numeric"
               pattern="[0-9]*"
+              minLength={5}
+              maxLength={30}
+              onInput={(event) => {
+                const sanitizedValue = event.currentTarget.value.replace(/\D+/g, "");
+
+                if (sanitizedValue !== event.currentTarget.value) {
+                  event.currentTarget.value = sanitizedValue;
+                  setError("nip", {
+                    type: "manual",
+                    message: NUMERIC_ONLY_MESSAGE
+                  });
+                  return;
+                }
+
+                void trigger("nip");
+              }}
               {...register("nip")}
             />
           </FormField>
@@ -76,6 +96,25 @@ export function OfficerFormDialog({
           >
             <Input
               placeholder="Masukkan nama lengkap petugas"
+              autoCapitalize="words"
+              maxLength={120}
+              onInput={(event) => {
+                const sanitizedValue = event.currentTarget.value.replace(
+                  /[^\p{L}\s.'-]+/gu,
+                  ""
+                );
+
+                if (sanitizedValue !== event.currentTarget.value) {
+                  event.currentTarget.value = sanitizedValue;
+                  setError("name", {
+                    type: "manual",
+                    message: LETTERS_ONLY_MESSAGE
+                  });
+                  return;
+                }
+
+                void trigger("name");
+              }}
               {...register("name")}
             />
           </FormField>

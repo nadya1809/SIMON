@@ -35,7 +35,7 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-[85] flex max-h-[calc(100vh-4rem)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card-bg-strong)] shadow-[var(--modal-shadow)]",
+        "fixed left-1/2 top-1/2 z-[85] flex max-h-[calc(100vh-4rem)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] shadow-[var(--modal-shadow)]",
         className
       )}
       {...props}
@@ -53,7 +53,7 @@ function DialogHeader({
   return (
     <div
       className={cn(
-        "flex flex-col gap-1 border-b border-[var(--border)] bg-[var(--card-bg-strong)] px-6 py-5",
+        "flex flex-col gap-1 border-b border-[var(--border)] bg-[var(--card)] px-6 py-5",
         className
       )}
       {...props}
@@ -104,7 +104,7 @@ function DialogBody({
   return (
     <div
       className={cn(
-        "overflow-y-auto bg-[var(--card-bg-strong)] px-6 py-5",
+        "overflow-y-auto bg-[var(--card)] px-6 py-5",
         className
       )}
       {...props}

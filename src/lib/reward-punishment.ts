@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { formatDateOnlyUtc, parseDateOnlyUtc } from "@/lib/date-only";
 
@@ -45,6 +46,16 @@ export type RecommendationPeriod = {
   referenceDate: Date;
   periodStart: Date;
   periodEnd: Date;
+};
+
+export type RewardPunishmentListFilterParams = {
+  search?: string;
+  officerId?: string;
+  unitId?: string;
+  status?: string;
+  type?: string;
+  from?: string;
+  to?: string;
 };
 
 function addDays(date: Date, days: number) {
@@ -167,6 +178,57 @@ export function formatRecommendationPeriodLabel(params: {
   }
 
   return `${periodLabel} · ${periodStart} s.d. ${periodEnd}`;
+}
+
+export function buildRewardPunishmentWhere(
+  params: RewardPunishmentListFilterParams
+): Prisma.RewardPunishmentWhereInput {
+  const search = params.search?.trim();
+  const officerId = params.officerId?.trim();
+  const unitId = params.unitId?.trim();
+  const status = params.status?.trim();
+  const type = params.type?.trim();
+  const from = params.from?.trim();
+  const to = params.to?.trim();
+  const resolvedStatus =
+    status === "RECOMMENDED" || status === "APPROVED" || status === "REJECTED"
+      ? status
+      : null;
+  const resolvedType =
+    type === "REWARD" || type === "PUNISHMENT" || type === "EVALUASI"
+      ? type
+      : null;
+  const officerWhere =
+    search || unitId || officerId
+      ? {
+          ...(officerId ? { id: officerId } : {}),
+          ...(unitId ? { unitId } : {}),
+          ...(search
+            ? {
+                OR: [
+                  { name: { contains: search, mode: "insensitive" as const } },
+                  { nip: { contains: search, mode: "insensitive" as const } }
+                ]
+              }
+            : {})
+        }
+      : undefined;
+
+  return {
+    ...(officerWhere ? { officer: officerWhere } : {}),
+    ...(resolvedStatus ? { status: resolvedStatus } : {}),
+    ...(resolvedType ? { type: resolvedType } : {}),
+    ...(from || to
+      ? {
+          periodStart: {
+            ...(to ? { lte: new Date(`${to}T23:59:59.999Z`) } : {})
+          },
+          periodEnd: {
+            ...(from ? { gte: new Date(`${from}T00:00:00.000Z`) } : {})
+          }
+        }
+      : {})
+  };
 }
 
 export async function getRecommendationCandidates(params: {

@@ -7,7 +7,12 @@ import {
   View,
   renderToBuffer
 } from "@react-pdf/renderer";
-import { getReportData } from "@/lib/reports";
+import {
+  buildCriteriaAverages,
+  buildGroupedReport,
+  getReportData,
+  type ReportRow
+} from "@/lib/reports";
 import { formatAverageScore } from "@/lib/scoring";
 
 function toDateLabel(value: Date) {
@@ -18,26 +23,55 @@ function toDateLabel(value: Date) {
   }).format(value);
 }
 
+function toCriteriaSummary(row: ReportRow) {
+  if (row.status !== "PRESENT") {
+    return "Skor kriteria: tidak ada karena status tidak hadir.";
+  }
+
+  const criteriaSummary = row.criteriaScores
+    .map(
+      (score) => `${score.criteriaName}: ${score.score === null ? "-" : score.score}`
+    )
+    .join(" | ");
+
+  return `Skor kriteria: ${criteriaSummary || "-"}`;
+}
+
+function toCriteriaAverageSummary(
+  rows: ReportRow[],
+  criteria: Awaited<ReturnType<typeof getReportData>>["criteria"]
+) {
+  return buildCriteriaAverages(rows, criteria)
+    .map(
+      (item) =>
+        `${item.criteriaName}: ${formatAverageScore(item.averageScore)}`
+    )
+    .join(" | ");
+}
+
 export function buildReportFileBaseName(from: string, to: string) {
   return `laporan-simon-${from}-sampai-${to}`;
 }
 
 export async function buildExcelReportBuffer(params: {
+  search?: string;
   from: string;
   to: string;
   unitId?: string;
+  officerId?: string;
 }) {
-  const report = await getReportData(params);
+  const report = await getReportData({
+    ...params,
+    includeAllRows: true
+  });
+  const groupedReport = buildGroupedReport(report.rows);
   const workbook = new ExcelJS.Workbook();
   const detailSheet = workbook.addWorksheet("Laporan");
   const rankingSheet = workbook.addWorksheet("Ranking");
   const criteriaHeaders = report.criteria.map((item) => item.name);
 
-  detailSheet.columns = [
+  const detailColumns = [
     { header: "Tanggal", key: "assessmentDate", width: 16 },
-    { header: "Petugas", key: "officerName", width: 28 },
-    { header: "NIP", key: "officerNip", width: 18 },
-    { header: "Unit", key: "unitName", width: 24 },
     { header: "Status", key: "status", width: 14 },
     ...criteriaHeaders.map((header, index) => ({
       header,
@@ -46,29 +80,201 @@ export async function buildExcelReportBuffer(params: {
     })),
     { header: "Rata-rata", key: "averageScore", width: 14 }
   ];
+  const detailColumnCount = detailColumns.length;
 
-  detailSheet.getRow(1).font = { bold: true };
-  detailSheet.getRow(1).fill = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "E9F3EA" }
-  };
+  detailSheet.columns = detailColumns;
 
-  report.rows.forEach((row) => {
-    detailSheet.addRow({
-      assessmentDate: toDateLabel(row.assessmentDate),
-      officerName: row.officerName,
-      officerNip: row.officerNip,
-      unitName: row.unitName,
-      status: row.status === "PRESENT" ? "Hadir" : "Tidak Hadir",
-      ...Object.fromEntries(
-        row.criteriaScores.map((score, index) => [
-          `criteria_${index}`,
-          score.score ?? "-"
-        ])
-      ),
-      averageScore: formatAverageScore(row.averageScore)
+  function mergeAcrossColumns(rowNumber: number) {
+    detailSheet.mergeCells(rowNumber, 1, rowNumber, detailColumnCount);
+  }
+
+  function styleMergedLabelRow(
+    rowNumber: number,
+    options: {
+      fill: string;
+      fontColor?: string;
+      bold?: boolean;
+      size?: number;
+      italic?: boolean;
+    }
+  ) {
+    const cell = detailSheet.getCell(rowNumber, 1);
+    cell.font = {
+      bold: options.bold ?? true,
+      color: options.fontColor ? { argb: options.fontColor } : undefined,
+      size: options.size,
+      italic: options.italic
+    };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: options.fill }
+    };
+    cell.alignment = {
+      vertical: "middle",
+      horizontal: "left"
+    };
+  }
+
+  const infoRows = [
+    ["Laporan Penilaian Kinerja SIMON PST"],
+    [`Periode filter: ${report.filters.from || "-"} sampai ${report.filters.to || "-"}`],
+    [`Unit filter: ${report.units.find((unit) => unit.id === report.filters.unitId)?.name ?? "Semua unit"}`],
+    [`Petugas filter: ${report.officers.find((officer) => officer.id === report.filters.officerId)?.name ?? "Semua petugas"}`],
+    [`Total penilaian: ${report.summary.totalAssessments} | Petugas tercakup: ${report.summary.totalOfficers} | Rata-rata keseluruhan: ${report.summary.overallAverage.toFixed(2)}`],
+    [`Rata-rata per kriteria: ${report.criteriaAverages.map((item) => `${item.criteriaName} ${formatAverageScore(item.averageScore)}`).join(" | ")}`]
+  ];
+
+  infoRows.forEach((value) => {
+    const row = detailSheet.addRow(value);
+    mergeAcrossColumns(row.number);
+    styleMergedLabelRow(row.number, {
+      fill: row.number === 1 ? "D9EEF9" : "F7FBFD",
+      fontColor: "17324D",
+      bold: row.number !== 4 && row.number !== 6,
+      size: row.number === 1 ? 14 : 11,
+      italic: row.number === 4 || row.number === 6
     });
+  });
+
+  detailSheet.addRow([]);
+
+  groupedReport.forEach((officer) => {
+    const officerRow = detailSheet.addRow([
+      `Petugas: ${officer.officerName} | NIP: ${officer.officerNip} | Unit: ${officer.unitName}`
+    ]);
+    mergeAcrossColumns(officerRow.number);
+    styleMergedLabelRow(officerRow.number, {
+      fill: "DBEAFE",
+      fontColor: "1D4ED8",
+      bold: true,
+      size: 12
+    });
+
+    officer.years.forEach((year) => {
+      const yearRow = detailSheet.addRow([
+        `Tahun ${year.yearLabel} | Total tugas: ${year.totalTasks} | Rata-rata tahunan: ${formatAverageScore(year.averageScore)}`
+      ]);
+      mergeAcrossColumns(yearRow.number);
+      styleMergedLabelRow(yearRow.number, {
+        fill: "E0F2FE",
+        fontColor: "075985",
+        bold: true
+      });
+
+      year.months.forEach((month) => {
+        const monthRow = detailSheet.addRow([
+          `Periode ${month.monthLabel}`
+        ]);
+        mergeAcrossColumns(monthRow.number);
+        styleMergedLabelRow(monthRow.number, {
+          fill: "ECFDF5",
+          fontColor: "065F46",
+          bold: true
+        });
+
+        const headerRow = detailSheet.addRow(
+          detailColumns.map((column) => column.header)
+        );
+        headerRow.font = { bold: true };
+        headerRow.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "E9F3EA" }
+        };
+        headerRow.alignment = { vertical: "middle", horizontal: "center" };
+
+        month.details.forEach((row) => {
+          detailSheet.addRow({
+            assessmentDate: toDateLabel(row.assessmentDate),
+            status: row.status === "PRESENT" ? "Hadir" : "Tidak Hadir",
+            ...Object.fromEntries(
+              row.criteriaScores.map((score, index) => [
+                `criteria_${index}`,
+                score.score ?? "-"
+              ])
+            ),
+            averageScore: formatAverageScore(row.averageScore)
+          });
+        });
+
+        const criteriaAverageRow = detailSheet.addRow({
+          assessmentDate: "Rata-rata kriteria",
+          status: "",
+          ...Object.fromEntries(
+            buildCriteriaAverages(month.details, report.criteria).map(
+              (item, index) => [
+                `criteria_${index}`,
+                formatAverageScore(item.averageScore)
+              ]
+            )
+          ),
+          averageScore: formatAverageScore(month.averageScore)
+        });
+        criteriaAverageRow.font = { bold: true, color: { argb: "0F172A" } };
+        criteriaAverageRow.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "E0F2FE" }
+        };
+
+        const summaryRow = detailSheet.addRow([
+          `Jumlah tugas: ${month.totalTasks} kali | Penilaian hadir: ${month.presentTaskCount} | Rata-rata nilai ${month.monthLabel}: ${formatAverageScore(month.averageScore)}`
+        ]);
+        mergeAcrossColumns(summaryRow.number);
+        styleMergedLabelRow(summaryRow.number, {
+          fill: "FEF3C7",
+          fontColor: "92400E",
+          bold: true
+        });
+      });
+
+      if (year.months.length > 1) {
+        const recapHeaderRow = detailSheet.addRow([
+          `Rekap bulanan ${year.yearLabel}`
+        ]);
+        mergeAcrossColumns(recapHeaderRow.number);
+        styleMergedLabelRow(recapHeaderRow.number, {
+          fill: "F3E8FF",
+          fontColor: "6B21A8",
+          bold: true
+        });
+
+        const recapTableHeader = detailSheet.addRow([
+          "Bulan",
+          "Jumlah Tugas",
+          "Penilaian Hadir",
+          "Rata-rata Bulanan"
+        ]);
+        recapTableHeader.font = { bold: true };
+        recapTableHeader.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "F5F3FF" }
+        };
+
+        year.months.forEach((month) => {
+          detailSheet.addRow([
+            month.monthLabel,
+            month.totalTasks,
+            month.presentTaskCount,
+            formatAverageScore(month.averageScore)
+          ]);
+        });
+
+        const annualSummaryRow = detailSheet.addRow([
+          `Rata-rata tahunan ${year.yearLabel}: ${formatAverageScore(year.averageScore)} | Total tugas: ${year.totalTasks} kali`
+        ]);
+        mergeAcrossColumns(annualSummaryRow.number);
+        styleMergedLabelRow(annualSummaryRow.number, {
+          fill: "FDE68A",
+          fontColor: "78350F",
+          bold: true
+        });
+      }
+    });
+
+    detailSheet.addRow([]);
   });
 
   rankingSheet.columns = [
@@ -160,15 +366,30 @@ const pdfStyles = StyleSheet.create({
   },
   muted: {
     color: "#6b7280"
+  },
+  assessmentBlock: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    paddingVertical: 4
+  },
+  assessmentSummary: {
+    marginTop: 2,
+    fontSize: 9,
+    color: "#4b5563"
   }
 });
 
 export async function buildPdfReportBuffer(params: {
+  search?: string;
   from: string;
   to: string;
   unitId?: string;
+  officerId?: string;
 }) {
-  const report = await getReportData(params);
+  const report = await getReportData({
+    ...params,
+    includeAllRows: true
+  });
 
   const document = (
     <Document>
@@ -176,6 +397,17 @@ export async function buildPdfReportBuffer(params: {
         <Text style={pdfStyles.title}>Laporan SIMON PST</Text>
         <Text style={pdfStyles.description}>
           Periode {report.filters.from} sampai {report.filters.to}
+        </Text>
+        <Text style={pdfStyles.description}>
+          Petugas {report.officers.find((officer) => officer.id === report.filters.officerId)?.name ?? "Semua petugas"} | Unit {report.units.find((unit) => unit.id === report.filters.unitId)?.name ?? "Semua unit"}
+        </Text>
+        <Text style={pdfStyles.description}>
+          Rata-rata per kriteria: {report.criteriaAverages
+            .map(
+              (item) =>
+                `${item.criteriaName} ${formatAverageScore(item.averageScore)}`
+            )
+            .join(" | ")}
         </Text>
 
         <View style={pdfStyles.section}>
@@ -226,30 +458,87 @@ export async function buildPdfReportBuffer(params: {
         </View>
 
         <View style={pdfStyles.section}>
-          <Text style={pdfStyles.sectionTitle}>Detail penilaian</Text>
-          <View style={[pdfStyles.row, pdfStyles.headerRow]}>
-            <Text style={pdfStyles.cellMd}>Tanggal</Text>
-            <Text style={pdfStyles.cellXl}>Petugas</Text>
-            <Text style={pdfStyles.cellLg}>Status</Text>
-            <Text style={pdfStyles.cellMd}>Rata-rata</Text>
-          </View>
-          {report.rows.slice(0, 20).map((row) => (
-            <View key={row.id} style={pdfStyles.row}>
-              <Text style={pdfStyles.cellMd}>{toDateLabel(row.assessmentDate)}</Text>
-              <Text style={pdfStyles.cellXl}>{row.officerName}</Text>
-              <Text style={pdfStyles.cellLg}>
-                {row.status === "PRESENT" ? "Hadir" : "Tidak Hadir"}
+          <Text style={pdfStyles.sectionTitle}>Detail penilaian per petugas</Text>
+          {buildGroupedReport(report.rows).map((officer) => (
+            <View key={officer.officerId} style={pdfStyles.section}>
+              <Text style={pdfStyles.sectionTitle}>
+                {officer.officerName} | {officer.officerNip} | {officer.unitName}
               </Text>
-              <Text style={pdfStyles.cellMd}>
-                {formatAverageScore(row.averageScore)}
-              </Text>
+              {officer.years.map((year) => (
+                <View key={`${officer.officerId}-${year.yearKey}`} style={pdfStyles.section}>
+                  <Text style={pdfStyles.description}>
+                    Tahun {year.yearLabel} | Total tugas {year.totalTasks} | Rata-rata tahunan {formatAverageScore(year.averageScore)}
+                  </Text>
+                  {year.months.map((month) => (
+                    <View
+                      key={`${officer.officerId}-${month.monthKey}`}
+                      style={pdfStyles.section}
+                    >
+                      <Text style={pdfStyles.sectionTitle}>{month.monthLabel}</Text>
+                      <View style={[pdfStyles.row, pdfStyles.headerRow]}>
+                        <Text style={pdfStyles.cellMd}>Tanggal</Text>
+                        <Text style={pdfStyles.cellLg}>Status</Text>
+                        <Text style={pdfStyles.cellMd}>Rata-rata</Text>
+                      </View>
+                      {month.details.map((row) => (
+                        <View key={row.id} style={pdfStyles.assessmentBlock}>
+                          <View style={pdfStyles.row}>
+                            <Text style={pdfStyles.cellMd}>
+                              {toDateLabel(row.assessmentDate)}
+                            </Text>
+                            <Text style={pdfStyles.cellLg}>
+                              {row.status === "PRESENT" ? "Hadir" : "Tidak Hadir"}
+                            </Text>
+                            <Text style={pdfStyles.cellMd}>
+                              {formatAverageScore(row.averageScore)}
+                            </Text>
+                          </View>
+                          <Text style={pdfStyles.assessmentSummary}>
+                            {toCriteriaSummary(row)}
+                          </Text>
+                        </View>
+                      ))}
+                      <Text style={pdfStyles.description}>
+                        {toCriteriaAverageSummary(month.details, report.criteria)}
+                      </Text>
+                      <Text style={pdfStyles.description}>
+                        Jumlah tugas: {month.totalTasks} kali | Penilaian hadir: {month.presentTaskCount} | Rata-rata nilai {month.monthLabel}: {formatAverageScore(month.averageScore)}
+                      </Text>
+                    </View>
+                  ))}
+                  {year.months.length > 1 ? (
+                    <View style={pdfStyles.section}>
+                      <Text style={pdfStyles.sectionTitle}>
+                        Rekap bulanan {year.yearLabel}
+                      </Text>
+                      <View style={[pdfStyles.row, pdfStyles.headerRow]}>
+                        <Text style={pdfStyles.cellLg}>Bulan</Text>
+                        <Text style={pdfStyles.cellMd}>Tugas</Text>
+                        <Text style={pdfStyles.cellMd}>Hadir</Text>
+                        <Text style={pdfStyles.cellMd}>Rata-rata</Text>
+                      </View>
+                      {year.months.map((month) => (
+                        <View
+                          key={`${officer.officerId}-${year.yearKey}-${month.monthKey}-recap`}
+                          style={pdfStyles.row}
+                        >
+                          <Text style={pdfStyles.cellLg}>{month.monthLabel}</Text>
+                          <Text style={pdfStyles.cellMd}>{month.totalTasks}</Text>
+                          <Text style={pdfStyles.cellMd}>{month.presentTaskCount}</Text>
+                          <Text style={pdfStyles.cellMd}>
+                            {formatAverageScore(month.averageScore)}
+                          </Text>
+                        </View>
+                      ))}
+                      <Text style={pdfStyles.description}>
+                        Rata-rata tahunan {year.yearLabel}: {formatAverageScore(year.averageScore)}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              ))}
             </View>
           ))}
-          {report.rows.length > 20 ? (
-            <Text style={pdfStyles.muted}>
-              Ringkasan PDF dibatasi 20 baris detail pertama agar tetap ringkas.
-            </Text>
-          ) : null}
           {!report.rows.length ? (
             <Text style={pdfStyles.muted}>
               Tidak ada data penilaian pada periode ini.

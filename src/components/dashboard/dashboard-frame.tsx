@@ -18,6 +18,7 @@ export function DashboardFrame({
   userName
 }: DashboardFrameProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   useBodyScrollLock(isSidebarOpen);
 
   return (
@@ -32,10 +33,17 @@ export function DashboardFrame({
           />
         ) : null}
 
-        <aside className="sticky top-5 hidden max-h-[calc(100vh-2.5rem)] w-72 self-start overflow-y-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--panel-bg)] p-5 shadow-[var(--shadow-md)] lg:block">
-          <SidebarBrand />
+        <aside
+          className={`sticky top-5 hidden max-h-[calc(100vh-2.5rem)] self-start overflow-y-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--panel-bg)] p-5 shadow-[var(--shadow-md)] transition-[width,padding] duration-300 lg:block ${
+            isSidebarCollapsed ? "w-28 px-3" : "w-72"
+          }`}
+        >
+          <SidebarBrand collapsed={isSidebarCollapsed} />
           <div className="my-6 h-px bg-[var(--border)]" />
-          <SidebarNav onNavigate={() => setIsSidebarOpen(false)} />
+          <SidebarNav
+            collapsed={isSidebarCollapsed}
+            onNavigate={() => setIsSidebarOpen(false)}
+          />
         </aside>
 
         <aside
@@ -55,6 +63,10 @@ export function DashboardFrame({
             userName={userName}
             role={role}
             onMenuToggle={() => setIsSidebarOpen((current) => !current)}
+            isSidebarCollapsed={isSidebarCollapsed}
+            onSidebarCollapseToggle={() =>
+              setIsSidebarCollapsed((current) => !current)
+            }
           />
           {children}
         </div>

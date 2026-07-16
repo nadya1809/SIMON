@@ -1,8 +1,23 @@
 import { HTMLAttributes, ReactNode, TdHTMLAttributes, ThHTMLAttributes } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faArrowDown,
+  faArrowUp,
+  faArrowsUpDown
+} from "@fortawesome/free-solid-svg-icons";
 import { cn } from "@/lib/utils";
 
+export type TableHeaderItem = {
+  key: string;
+  label: string;
+  sortable?: boolean;
+  sortDirection?: "asc" | "desc" | null;
+  onSort?: () => void;
+  className?: string;
+};
+
 type TableProps = {
-  headers: string[];
+  headers: Array<string | TableHeaderItem>;
   children: ReactNode;
   className?: string;
 };
@@ -119,7 +134,33 @@ export function Table({ headers, children, className }: TableProps) {
         <TableHead>
           <TableRow>
             {headers.map((header) => (
-              <TableHeaderCell key={header}>{header}</TableHeaderCell>
+              typeof header === "string" ? (
+                <TableHeaderCell key={header}>{header}</TableHeaderCell>
+              ) : (
+                <TableHeaderCell key={header.key} className={header.className}>
+                  {header.sortable && header.onSort ? (
+                    <button
+                      type="button"
+                      onClick={header.onSort}
+                      className="inline-flex items-center gap-2 text-left text-inherit transition hover:text-[var(--foreground)]"
+                    >
+                      <span>{header.label}</span>
+                      <FontAwesomeIcon
+                        icon={
+                          header.sortDirection === "asc"
+                            ? faArrowUp
+                            : header.sortDirection === "desc"
+                              ? faArrowDown
+                              : faArrowsUpDown
+                        }
+                        className="h-3 w-3"
+                      />
+                    </button>
+                  ) : (
+                    header.label
+                  )}
+                </TableHeaderCell>
+              )
             ))}
           </TableRow>
         </TableHead>

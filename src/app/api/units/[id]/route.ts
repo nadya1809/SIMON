@@ -73,6 +73,15 @@ export async function PATCH(request: Request, context: RouteContext) {
       description
     },
     include: {
+      officers: {
+        select: {
+          id: true,
+          name: true
+        },
+        orderBy: {
+          name: "asc"
+        }
+      },
       _count: {
         select: { officers: true }
       }

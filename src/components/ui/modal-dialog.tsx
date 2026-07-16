@@ -34,7 +34,7 @@ export function ModalDialog({
   return (
     <Dialog open={open} onOpenChange={(nextOpen: boolean) => !nextOpen && onClose()}>
       <DialogContent className={cn("max-w-3xl", className)}>
-        <DialogHeader className="sticky top-0 z-10 flex-row items-start justify-between gap-4 backdrop-blur">
+        <DialogHeader className="sticky top-0 z-10 flex-row items-start justify-between gap-4">
           <div className="space-y-1">
             <DialogTitle>{title}</DialogTitle>
             {description ? (

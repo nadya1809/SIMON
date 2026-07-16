@@ -23,6 +23,9 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
+  const sortBy = searchParams.get("sortBy")?.trim();
+  const sortDirection =
+    searchParams.get("sortDirection")?.trim() === "asc" ? "asc" : "desc";
   const { page, rowsPerPage } = resolvePaginationParams(
     searchParams.get("page"),
     searchParams.get("rowsPerPage")
@@ -34,7 +37,14 @@ export async function GET(request: Request) {
   const users = await prisma.user.findMany({
     skip: (meta.page - 1) * meta.rowsPerPage,
     take: meta.rowsPerPage,
-    orderBy: [{ createdAt: "desc" }],
+    orderBy:
+      sortBy === "email"
+        ? [{ email: sortDirection }]
+        : sortBy === "role"
+          ? [{ role: sortDirection }, { name: "asc" }]
+          : sortBy === "status"
+            ? [{ isActive: sortDirection }, { name: "asc" }]
+            : [{ name: sortDirection }],
     select: {
       id: true,
       name: true,

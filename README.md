@@ -1,4 +1,6 @@
-# SIMON PST
+# SIo
+
+ON PST
 
 SIMON PST adalah aplikasi internal untuk monitoring kinerja harian petugas Pelayanan Statistik Terpadu. Stack utama proyek ini memakai Next.js App Router, TypeScript, Prisma, PostgreSQL, NextAuth, dan `pnpm`.
 
@@ -37,7 +39,10 @@ pnpm prisma:seed
 pnpm dev
 ```
 
-Setelah server jalan, buka `http://localhost:3000`.
+Setelah server jalan:
+
+- di PC server, buka `http://localhost:3000`
+- di PC lain satu jaringan, buka `http://10.13.20.119:3000`
 
 ## Konfigurasi Environment
 
@@ -46,7 +51,7 @@ Variabel minimum yang perlu diisi:
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/simon_pst"
 NEXTAUTH_SECRET="ganti-dengan-secret-yang-aman"
-NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_URL="http://10.13.20.119:3000"
 SEED_ADMIN_NAME="Admin SIMON"
 SEED_ADMIN_EMAIL="admin@simon.local"
 SEED_ADMIN_PASSWORD="ChangeMe123!"

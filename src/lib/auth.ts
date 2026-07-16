@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import type { Role } from "@prisma/client";
+import { normalizeCallbackPath } from "@/lib/auth-callback";
 import { prisma } from "@/lib/prisma";
 
 export const authOptions: NextAuthOptions = {
@@ -67,6 +68,10 @@ export const authOptions: NextAuthOptions = {
       }
 
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      const nextPath = normalizeCallbackPath(url, "/dashboard");
+      return new URL(nextPath, baseUrl).toString();
     }
   }
 };

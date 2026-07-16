@@ -14,15 +14,18 @@ import { TIME_PRESET_OPTIONS, type TimePreset } from "@/lib/time-presets";
 
 type TimeUnitFiltersProps = {
   units: Array<{ id: string; name: string }>;
+  officers: Array<{ id: string; name: string; nip: string; unitName: string }>;
   filters: {
     timePreset: TimePreset;
     unitId: string;
+    officerId: string;
   };
   resetHref: string;
 };
 
 export function TimeUnitFilters({
   units,
+  officers,
   filters,
   resetHref
 }: TimeUnitFiltersProps) {
@@ -32,8 +35,16 @@ export function TimeUnitFilters({
   const [isPending, startTransition] = useTransition();
   const [timePreset, setTimePreset] = useState<TimePreset>(filters.timePreset);
   const [unitId, setUnitId] = useState(filters.unitId);
+  const [officerId, setOfficerId] = useState(filters.officerId);
+  const filteredOfficers = officers.filter((officer) =>
+    unitId ? officer.unitName === units.find((unit) => unit.id === unitId)?.name : true
+  );
 
-  function applyFilters(nextTimePreset: TimePreset, nextUnitId: string) {
+  function applyFilters(
+    nextTimePreset: TimePreset,
+    nextUnitId: string,
+    nextOfficerId: string
+  ) {
     const params = new URLSearchParams(searchParams.toString());
     const paginationKeys = [
       "page",
@@ -54,6 +65,12 @@ export function TimeUnitFilters({
       params.delete("unitId");
     }
 
+    if (nextOfficerId) {
+      params.set("officerId", nextOfficerId);
+    } else {
+      params.delete("officerId");
+    }
+
     const query = params.toString();
 
     startTransition(() => {
@@ -64,7 +81,7 @@ export function TimeUnitFilters({
   return (
     <div className="space-y-0" aria-busy={isPending}>
       <ModuleFilters>
-        <FilterFields columnsClassName="md:grid-cols-2 xl:grid-cols-2">
+        <FilterFields columnsClassName="md:grid-cols-2 xl:grid-cols-3">
           <FilterSelectField
             label="Filter waktu"
             value={timePreset}
@@ -72,7 +89,7 @@ export function TimeUnitFilters({
             onChange={(value) => {
               const nextTimePreset = value as TimePreset;
               setTimePreset(nextTimePreset);
-              applyFilters(nextTimePreset, unitId);
+              applyFilters(nextTimePreset, unitId, officerId);
             }}
           >
             {TIME_PRESET_OPTIONS.map((option) => (
@@ -88,13 +105,39 @@ export function TimeUnitFilters({
             disabled={isPending}
             onChange={(value) => {
               setUnitId(value);
-              applyFilters(timePreset, value);
+              const selectedOfficerStillVisible = officers.some(
+                (officer) =>
+                  officer.id === officerId &&
+                  (!value ||
+                    officer.unitName ===
+                      units.find((unit) => unit.id === value)?.name)
+              );
+              const nextOfficerId = selectedOfficerStillVisible ? officerId : "";
+              setOfficerId(nextOfficerId);
+              applyFilters(timePreset, value, nextOfficerId);
             }}
           >
             <option value="">Semua unit</option>
             {units.map((unit) => (
               <option key={unit.id} value={unit.id}>
                 {unit.name}
+              </option>
+            ))}
+          </FilterSelectField>
+
+          <FilterSelectField
+            label="Filter petugas"
+            value={officerId}
+            disabled={isPending}
+            onChange={(value) => {
+              setOfficerId(value);
+              applyFilters(timePreset, unitId, value);
+            }}
+          >
+            <option value="">Semua petugas</option>
+            {filteredOfficers.map((officer) => (
+              <option key={officer.id} value={officer.id}>
+                {officer.name} - {officer.nip} - {officer.unitName}
               </option>
             ))}
           </FilterSelectField>

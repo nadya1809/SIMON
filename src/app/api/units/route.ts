@@ -23,6 +23,10 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
+  const sortBy = searchParams.get("sortBy")?.trim();
+  const sortDirection = searchParams.get("sortDirection")?.trim() === "desc"
+    ? "desc"
+    : "asc";
   const { page, rowsPerPage } = resolvePaginationParams(
     searchParams.get("page"),
     searchParams.get("rowsPerPage")
@@ -34,8 +38,22 @@ export async function GET(request: Request) {
   const units = await prisma.unit.findMany({
     skip: (meta.page - 1) * meta.rowsPerPage,
     take: meta.rowsPerPage,
-    orderBy: { name: "asc" },
+    orderBy:
+      sortBy === "officers"
+        ? [{ officers: { _count: sortDirection } }, { name: "asc" }]
+        : sortBy === "description"
+          ? [{ description: sortDirection }, { name: "asc" }]
+          : [{ name: sortDirection }],
     include: {
+      officers: {
+        select: {
+          id: true,
+          name: true
+        },
+        orderBy: {
+          name: "asc"
+        }
+      },
       _count: {
         select: { officers: true }
       }
@@ -90,6 +108,15 @@ export async function POST(request: Request) {
       description
     },
     include: {
+      officers: {
+        select: {
+          id: true,
+          name: true
+        },
+        orderBy: {
+          name: "asc"
+        }
+      },
       _count: {
         select: { officers: true }
       }

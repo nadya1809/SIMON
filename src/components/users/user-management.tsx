@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/module-table-section";
 import { Select } from "@/components/ui/select";
 import { applyServerFormErrors, getApiErrorMessage } from "@/lib/form-api";
+import { LETTERS_ONLY_MESSAGE } from "@/lib/input-rules";
 import type { PaginatedData } from "@/lib/pagination";
 import {
   userSchema,
@@ -65,6 +66,8 @@ export function UserManagement({
   const [page, setPage] = useState(initialUsers.meta.page);
   const [rowsPerPage, setRowsPerPage] = useState(initialUsers.meta.rowsPerPage);
   const [totalItems, setTotalItems] = useState(initialUsers.meta.totalItems);
+  const [sortBy, setSortBy] = useState<"name" | "email" | "role" | "status">("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
   const [pendingSubmit, setPendingSubmit] = useState<{
@@ -79,6 +82,7 @@ export function UserManagement({
 
   const createForm = useForm<UserFormInput, unknown, UserFormValues>({
     resolver: zodResolver(userSchema),
+    mode: "onChange",
     defaultValues: {
       name: "",
       email: "",
@@ -90,6 +94,7 @@ export function UserManagement({
 
   const updateForm = useForm<UserUpdateFormInput, unknown, UserUpdateFormValues>({
     resolver: zodResolver(userUpdateSchema),
+    mode: "onChange",
     defaultValues: {
       name: "",
       email: "",
@@ -100,13 +105,15 @@ export function UserManagement({
   });
 
   const activeForm = editingUser ? updateForm : createForm;
-  const { register, handleSubmit, reset, formState, setValue } = activeForm;
+  const { register, handleSubmit, reset, formState, setValue, setError, trigger } = activeForm;
   const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
 
   const loadUsers = useCallback(async (nextPage = page, nextRowsPerPage = rowsPerPage) => {
     const params = new URLSearchParams({
       page: String(nextPage),
-      rowsPerPage: String(nextRowsPerPage)
+      rowsPerPage: String(nextRowsPerPage),
+      sortBy,
+      sortDirection
     });
     const response = await fetch(`/api/users?${params.toString()}`);
     const result = (await response.json()) as {
@@ -124,7 +131,7 @@ export function UserManagement({
     setPage(result.meta.page);
     setRowsPerPage(result.meta.rowsPerPage);
     setTotalItems(result.meta.totalItems);
-  }, [page, rowsPerPage]);
+  }, [page, rowsPerPage, sortBy, sortDirection]);
 
   useEffect(() => {
     if (!hasMountedRef.current) {
@@ -134,6 +141,16 @@ export function UserManagement({
 
     void loadUsers(page, rowsPerPage);
   }, [loadUsers, page, rowsPerPage]);
+
+  function toggleSort(nextSortBy: "name" | "email" | "role" | "status") {
+    if (sortBy === nextSortBy) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortBy(nextSortBy);
+    setSortDirection("asc");
+  }
 
   function resetCreateMode() {
     setIsFormDialogOpen(false);
@@ -186,6 +203,7 @@ export function UserManagement({
 
       if (!response.ok || !result.data) {
         applyServerFormErrors(createForm.setError, result.errors);
+        setIsFormDialogOpen(true);
         toast.error(
           getApiErrorMessage(
             result,
@@ -225,6 +243,7 @@ export function UserManagement({
 
       if (!response.ok || !result.data) {
         applyServerFormErrors(updateForm.setError, result.errors);
+        setIsFormDialogOpen(true);
         toast.error(
           getApiErrorMessage(
             result,
@@ -304,7 +323,37 @@ export function UserManagement({
           <ModuleTableSection
             title="Daftar akun"
             description={`${users.length} user aktif dan nonaktif terdaftar.`}
-            headers={["Nama", "Email", "Role", "Status", "Aksi"]}
+            headers={[
+              {
+                key: "name",
+                label: "Nama",
+                sortable: true,
+                sortDirection: sortBy === "name" ? sortDirection : null,
+                onSort: () => toggleSort("name")
+              },
+              {
+                key: "email",
+                label: "Email",
+                sortable: true,
+                sortDirection: sortBy === "email" ? sortDirection : null,
+                onSort: () => toggleSort("email")
+              },
+              {
+                key: "role",
+                label: "Role",
+                sortable: true,
+                sortDirection: sortBy === "role" ? sortDirection : null,
+                onSort: () => toggleSort("role")
+              },
+              {
+                key: "status",
+                label: "Status",
+                sortable: true,
+                sortDirection: sortBy === "status" ? sortDirection : null,
+                onSort: () => toggleSort("status")
+              },
+              "Aksi"
+            ]}
             isEmpty={!users.length}
             emptyState={
               <EmptyState
@@ -383,6 +432,7 @@ export function UserManagement({
           <form
             className="space-y-4"
             onSubmit={handleSubmit(async (values) => {
+              setIsFormDialogOpen(false);
               if (editingUser) {
                 setPendingSubmit({
                   mode: "update",
@@ -402,11 +452,42 @@ export function UserManagement({
               description="Isi data identitas dasar dan tentukan role yang sesuai untuk penggunaan internal."
             >
               <FormField label="Nama" error={formState.errors.name?.message}>
-                <Input placeholder="Masukkan nama user" {...register("name")} />
+                <Input
+                  placeholder="Masukkan nama user"
+                  autoCapitalize="words"
+                  maxLength={120}
+                  onInput={(event) => {
+                    const sanitizedValue = event.currentTarget.value.replace(
+                      /[^\p{L}\s.'-]+/gu,
+                      ""
+                    );
+
+                    if (sanitizedValue !== event.currentTarget.value) {
+                      event.currentTarget.value = sanitizedValue;
+                      setError("name", {
+                        type: "manual",
+                        message: LETTERS_ONLY_MESSAGE
+                      });
+                      return;
+                    }
+
+                    void trigger("name");
+                  }}
+                  {...register("name")}
+                />
               </FormField>
 
               <FormField label="Email" error={formState.errors.email?.message}>
-                <Input placeholder="Masukkan email user" {...register("email")} />
+                <Input
+                  type="email"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="Masukkan email user"
+                  maxLength={120}
+                  {...register("email")}
+                />
               </FormField>
 
               <FormField label="Role" error={formState.errors.role?.message}>
@@ -436,6 +517,8 @@ export function UserManagement({
                   placeholder={
                     editingUser ? "Opsional saat edit" : "Masukkan password"
                   }
+                  minLength={editingUser ? 0 : 8}
+                  maxLength={100}
                   {...register("password")}
                 />
               </FormField>
@@ -484,6 +567,7 @@ export function UserManagement({
         onClose={() => {
           if (!isPending) {
             setPendingSubmit(null);
+            setIsFormDialogOpen(true);
           }
         }}
         onConfirm={() => {

@@ -2,7 +2,7 @@
 
 import type { Metadata } from "next";
 import { IBM_Plex_Sans, Geist } from "next/font/google";
-import { ThemeProvider } from "@/components/theme/theme-provider";
+import { AppProviders } from "@/components/app/app-providers";
 import { AppToaster } from "@/components/ui/app-toaster";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -23,10 +23,10 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body className={geist.variable}>
-        <ThemeProvider>
+        <AppProviders>
           {children}
           <AppToaster />
-        </ThemeProvider>
+        </AppProviders>
       </body>
     </html>
   );

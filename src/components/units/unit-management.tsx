@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
+  faAddressBook,
   faPenToSquare,
   faPlus,
   faTrash
@@ -36,6 +37,10 @@ type UnitItem = {
   id: string;
   name: string;
   description: string | null;
+  officers: Array<{
+    id: string;
+    name: string;
+  }>;
   _count: {
     officers: number;
   };
@@ -51,6 +56,8 @@ export function UnitManagement({
   initialUnits,
   role
 }: UnitManagementProps) {
+  const [sortBy, setSortBy] = useState<"name" | "officers" | "description">("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [units, setUnits] = useState<UnitItem[]>(initialUnits.data);
   const [page, setPage] = useState(initialUnits.meta.page);
   const [rowsPerPage, setRowsPerPage] = useState(initialUnits.meta.rowsPerPage);
@@ -61,6 +68,7 @@ export function UnitManagement({
     null
   );
   const [confirmingUnit, setConfirmingUnit] = useState<UnitItem | null>(null);
+  const [viewingUnit, setViewingUnit] = useState<UnitItem | null>(null);
   const [deletingUnitId, setDeletingUnitId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const hasMountedRef = useRef(false);
@@ -79,7 +87,9 @@ export function UnitManagement({
   const loadUnits = useCallback(async (nextPage = page, nextRowsPerPage = rowsPerPage) => {
     const params = new URLSearchParams({
       page: String(nextPage),
-      rowsPerPage: String(nextRowsPerPage)
+      rowsPerPage: String(nextRowsPerPage),
+      sortBy,
+      sortDirection
     });
     const response = await fetch(`/api/units?${params.toString()}`);
     const result = (await response.json()) as {
@@ -97,7 +107,7 @@ export function UnitManagement({
     setPage(result.meta.page);
     setRowsPerPage(result.meta.rowsPerPage);
     setTotalItems(result.meta.totalItems);
-  }, [page, rowsPerPage]);
+  }, [page, rowsPerPage, sortBy, sortDirection]);
 
   useEffect(() => {
     if (!hasMountedRef.current) {
@@ -107,6 +117,16 @@ export function UnitManagement({
 
     void loadUnits(page, rowsPerPage);
   }, [loadUnits, page, rowsPerPage]);
+
+  function toggleSort(nextSortBy: "name" | "officers" | "description") {
+    if (sortBy === nextSortBy) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortBy(nextSortBy);
+    setSortDirection("asc");
+  }
 
   function startCreateMode() {
     setIsFormDialogOpen(true);
@@ -146,6 +166,7 @@ export function UnitManagement({
 
       if (!response.ok || !result.data) {
         applyServerFormErrors(setError, result.errors);
+        setIsFormDialogOpen(true);
         toast.error(
           getApiErrorMessage(
             result,
@@ -232,7 +253,30 @@ export function UnitManagement({
         <ModuleTableSection
           title="Daftar unit"
           description={`${units.length} unit tercatat di sistem.`}
-          headers={["Nama Unit", "Jumlah Petugas", "Deskripsi", "Aksi"]}
+          headers={[
+            {
+              key: "name",
+              label: "Nama Unit",
+              sortable: true,
+              sortDirection: sortBy === "name" ? sortDirection : null,
+              onSort: () => toggleSort("name")
+            },
+            {
+              key: "officers",
+              label: "Petugas",
+              sortable: true,
+              sortDirection: sortBy === "officers" ? sortDirection : null,
+              onSort: () => toggleSort("officers")
+            },
+            {
+              key: "description",
+              label: "Deskripsi",
+              sortable: true,
+              sortDirection: sortBy === "description" ? sortDirection : null,
+              onSort: () => toggleSort("description")
+            },
+            "Aksi"
+          ]}
           isEmpty={!units.length}
           emptyState={
             <EmptyState
@@ -243,46 +287,61 @@ export function UnitManagement({
               onAction={startCreateMode}
             />
           }
-          >
-            {units.map((unit) => (
-            <tr key={unit.id} className="border-t border-[var(--border)]">
-              <td className="px-5 py-4">
-                <div>
-                  <p className="font-semibold">{unit.name}</p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    Unit kerja untuk pengelompokan petugas PST
-                  </p>
-                </div>
-              </td>
-              <td className="px-5 py-4">
-                <Badge variant="default">{unit._count.officers} petugas</Badge>
-              </td>
-              <td className="px-5 py-4 text-[var(--muted)]">
-                {unit.description || "-"}
-              </td>
-              <td className="px-5 py-4">
-                <ActionMenu
-                  items={[
-                    {
-                      label: "Edit unit",
-                      icon: faPenToSquare,
-                      onClick: () => startEditMode(unit)
-                    },
-                    {
-                      label:
-                        deletingUnitId === unit.id
-                          ? "Menghapus..."
-                          : "Hapus unit",
-                      icon: faTrash,
-                      variant: "danger",
-                      disabled: deletingUnitId === unit.id,
-                      onClick: () => setConfirmingUnit(unit)
+        >
+          {units.map((unit) => {
+            const officerNames = unit.officers.map((officer) => officer.name);
+            return (
+              <tr key={unit.id} className="border-t border-[var(--border)]">
+                <td className="px-5 py-4">
+                  <div>
+                    <p className="font-semibold">{unit.name}</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      Unit kerja untuk pengelompokan petugas PST
+                    </p>
+                  </div>
+                </td>
+                <td className="px-5 py-4">
+                  <div className="space-y-2">
+                    <Badge variant="default">{unit._count.officers} petugas</Badge>
+                  </div>
+                </td>
+                <td className="px-5 py-4 text-[var(--muted)]">
+                  {unit.description || "-"}
+                </td>
+                <td className="px-5 py-4">
+                  <ActionMenu
+                    triggerLabel={
+                      officerNames.length
+                        ? `Aksi unit ${unit.name} untuk petugas ${officerNames.join(", ")}`
+                        : `Aksi unit ${unit.name}`
                     }
-                  ]}
-                />
-              </td>
-            </tr>
-            ))}
+                    items={[
+                      {
+                        label: "Lihat petugas bertugas",
+                        icon: faAddressBook,
+                        onClick: () => setViewingUnit(unit)
+                      },
+                      {
+                        label: "Edit unit",
+                        icon: faPenToSquare,
+                        onClick: () => startEditMode(unit)
+                      },
+                      {
+                        label:
+                          deletingUnitId === unit.id
+                            ? "Menghapus..."
+                            : "Hapus unit",
+                        icon: faTrash,
+                        variant: "danger",
+                        disabled: deletingUnitId === unit.id,
+                        onClick: () => setConfirmingUnit(unit)
+                      }
+                    ]}
+                  />
+                </td>
+              </tr>
+            );
+          })}
           </ModuleTableSection>
 
         <ModulePagination
@@ -313,6 +372,7 @@ export function UnitManagement({
           <form
             className="space-y-4"
             onSubmit={handleSubmit((values) => {
+              setIsFormDialogOpen(false);
               setPendingSubmitValues(values);
             })}
           >
@@ -327,6 +387,8 @@ export function UnitManagement({
               >
                 <Input
                   placeholder="Masukkan nama unit"
+                  maxLength={100}
+                  autoCapitalize="words"
                   {...register("name")}
                 />
               </FormField>
@@ -338,6 +400,7 @@ export function UnitManagement({
               >
                 <Textarea
                   placeholder="Tulis deskripsi singkat unit"
+                  maxLength={255}
                   {...register("description")}
                 />
               </FormField>
@@ -356,6 +419,39 @@ export function UnitManagement({
           </form>
       </ModalDialog>
 
+      <ModalDialog
+        open={Boolean(viewingUnit)}
+        onClose={() => setViewingUnit(null)}
+        title={
+          viewingUnit
+            ? `Petugas bertugas di ${viewingUnit.name}`
+            : "Petugas bertugas"
+        }
+        description="Daftar ini menampilkan seluruh petugas yang saat ini terhubung ke unit terpilih."
+      >
+        <div className="space-y-3">
+          {viewingUnit?.officers.length ? (
+            viewingUnit.officers.map((officer, index) => (
+              <div
+                key={officer.id}
+                className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3"
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Petugas {index + 1}
+                </p>
+                <p className="mt-1 font-semibold text-[var(--foreground)]">
+                  {officer.name}
+                </p>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-center text-sm text-[var(--muted)]">
+              Belum ada petugas yang bertugas pada unit ini.
+            </div>
+          )}
+        </div>
+      </ModalDialog>
+
       <ConfirmDialog
         open={Boolean(pendingSubmitValues)}
         title={editingUnit ? "Simpan perubahan unit?" : "Tambah unit baru?"}
@@ -371,6 +467,7 @@ export function UnitManagement({
         onClose={() => {
           if (!isPending) {
             setPendingSubmitValues(null);
+            setIsFormDialogOpen(true);
           }
         }}
         onConfirm={() => {

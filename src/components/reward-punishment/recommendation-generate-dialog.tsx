@@ -4,6 +4,7 @@ import { faWandSparkles } from "@fortawesome/free-solid-svg-icons";
 import { UseFormReturn } from "react-hook-form";
 import { FormField } from "@/components/forms/form-field";
 import { Button } from "@/components/ui/button";
+import { DateInput } from "@/components/ui/date-input";
 import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { ModalDialog } from "@/components/ui/modal-dialog";
@@ -72,7 +73,7 @@ export function RecommendationGenerateDialog({
             hint="Untuk minggu kerja, sistem akan otomatis menarik ke Jumat terakhir."
             error={form.formState.errors.referenceDate?.message}
           >
-            <Input type="date" {...form.register("referenceDate")} />
+            <DateInput {...form.register("referenceDate")} />
           </FormField>
 
           <FormField
@@ -94,10 +95,12 @@ export function RecommendationGenerateDialog({
               label="Kategori evaluasi"
               error={form.formState.errors.evaluationCategory?.message}
             >
-              <Input
-                placeholder="Contoh: Evaluasi Mingguan"
-                {...form.register("evaluationCategory")}
-              />
+            <Input
+              placeholder="Contoh: Evaluasi Mingguan"
+              maxLength={100}
+              autoCapitalize="sentences"
+              {...form.register("evaluationCategory")}
+            />
             </FormField>
           )}
 
@@ -107,10 +110,12 @@ export function RecommendationGenerateDialog({
               label="Kategori reward"
               error={form.formState.errors.rewardCategory?.message}
             >
-              <Input
-                placeholder="Contoh: Reward Bulanan"
-                {...form.register("rewardCategory")}
-              />
+            <Input
+              placeholder="Contoh: Reward Bulanan"
+              maxLength={100}
+              autoCapitalize="sentences"
+              {...form.register("rewardCategory")}
+            />
             </FormField>
           )}
 
@@ -120,10 +125,12 @@ export function RecommendationGenerateDialog({
               label="Kategori punishment"
               error={form.formState.errors.punishmentCategory?.message}
             >
-              <Input
-                placeholder="Contoh: Teguran Bulanan"
-                {...form.register("punishmentCategory")}
-              />
+            <Input
+              placeholder="Contoh: Teguran Bulanan"
+              maxLength={100}
+              autoCapitalize="sentences"
+              {...form.register("punishmentCategory")}
+            />
             </FormField>
           )}
 
@@ -134,6 +141,7 @@ export function RecommendationGenerateDialog({
           >
             <Textarea
               placeholder="Tulis catatan awal jika diperlukan"
+              maxLength={255}
               {...form.register("notes")}
             />
           </FormField>

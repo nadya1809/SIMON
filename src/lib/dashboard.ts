@@ -8,11 +8,20 @@ import {
 type DashboardParams = {
   timePreset?: string;
   unitId?: string;
+  officerId?: string;
 };
 
-type AssessmentWithRelations = Awaited<
-  ReturnType<typeof prisma.dailyAssessment.findMany>
->[number];
+type PresentAssessmentPoint = {
+  assessmentDate: Date;
+  averageScore: number | null;
+  officerId: string;
+  officer: {
+    unit: {
+      id: string;
+      name: string;
+    } | null;
+  };
+};
 
 function formatDay(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -41,7 +50,7 @@ function average(values: number[]) {
 }
 
 function buildTrendMap(
-  assessments: AssessmentWithRelations[],
+  assessments: PresentAssessmentPoint[],
   mode: "daily" | "weekly" | "monthly"
 ) {
   const map = new Map<string, number[]>();
@@ -75,8 +84,15 @@ function buildTrendMap(
 export async function getDashboardSummary(params: DashboardParams) {
   const timePreset = resolveTimePreset(params.timePreset);
   const range = getTimePresetRange(timePreset);
+  const officerWhere =
+    params.unitId || params.officerId
+      ? {
+          ...(params.unitId ? { unitId: params.unitId } : {}),
+          ...(params.officerId ? { id: params.officerId } : {})
+        }
+      : null;
   const filters = {
-    ...(params.unitId ? { officer: { unitId: params.unitId } } : {}),
+    ...(officerWhere ? { officer: officerWhere } : {}),
     ...(range.from || range.to
       ? {
           assessmentDate: {
@@ -86,42 +102,80 @@ export async function getDashboardSummary(params: DashboardParams) {
         }
       : {})
   };
+  const presentFilters = {
+    ...filters,
+    status: "PRESENT" as const
+  };
+  const absentFilters = {
+    ...filters,
+    status: "ABSENT" as const
+  };
 
-  const [allAssessments, presentAssessments, units] = await Promise.all([
+  const [
+    totalAssessments,
+    totalPresent,
+    totalAbsent,
+    overallAverageResult,
+    presentAssessments,
+    rankingGroups,
+    units,
+    officers,
+    criteriaScores
+  ] = await Promise.all([
+    prisma.dailyAssessment.count({
+      where: filters
+    }),
+    prisma.dailyAssessment.count({
+      where: presentFilters
+    }),
+    prisma.dailyAssessment.count({
+      where: absentFilters
+    }),
+    prisma.dailyAssessment.aggregate({
+      where: presentFilters,
+      _avg: {
+        averageScore: true
+      }
+    }),
     prisma.dailyAssessment.findMany({
-      where: filters,
-      include: {
+      where: presentFilters,
+      select: {
+        officerId: true,
+        assessmentDate: true,
+        averageScore: true,
         officer: {
-          include: {
-            unit: true
-          }
-        },
-        scores: {
-          include: {
-            criteria: true
+          select: {
+            unit: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
           }
         }
       },
       orderBy: [{ assessmentDate: "asc" }]
     }),
-    prisma.dailyAssessment.findMany({
-      where: {
-        ...filters,
-        status: "PRESENT"
+    prisma.dailyAssessment.groupBy({
+      by: ["officerId"],
+      where: presentFilters,
+      _avg: {
+        averageScore: true
       },
-      include: {
-        officer: {
-          include: {
-            unit: true
+      _count: {
+        _all: true
+      },
+      orderBy: [
+        {
+          _avg: {
+            averageScore: "desc"
           }
         },
-        scores: {
-          include: {
-            criteria: true
-          }
+        {
+          officerId: "asc"
         }
-      },
-      orderBy: [{ assessmentDate: "asc" }]
+      ],
+      take: 10
     }),
     prisma.unit.findMany({
       orderBy: { name: "asc" },
@@ -129,57 +183,77 @@ export async function getDashboardSummary(params: DashboardParams) {
         id: true,
         name: true
       }
+    }),
+    prisma.officer.findMany({
+      orderBy: [{ name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        nip: true,
+        unit: {
+          select: {
+            name: true
+          }
+        }
+      }
+    }),
+    prisma.assessmentScore.findMany({
+      where: {
+        dailyAssessment: presentFilters
+      },
+      select: {
+        criteriaId: true,
+        score: true,
+        criteria: {
+          select: {
+            name: true
+          }
+        }
+      }
     })
   ]);
 
-  const officerMap = new Map<
-    string,
-    {
-      officerId: string;
-      officerName: string;
-      unitName: string;
-      scores: number[];
-    }
-  >();
+  const rankingOfficerMap = new Map(
+    (
+      await prisma.officer.findMany({
+        where: {
+          id: {
+            in: rankingGroups.map((item) => item.officerId)
+          }
+        },
+        include: {
+          unit: {
+            select: {
+              name: true
+            }
+          }
+        }
+      })
+    ).map((officer) => [officer.id, officer])
+  );
 
-  presentAssessments.forEach((assessment) => {
-    const existing = officerMap.get(assessment.officerId) ?? {
-      officerId: assessment.officerId,
-      officerName: assessment.officer.name,
-      unitName: assessment.officer.unit?.name ?? "Belum ditentukan",
-      scores: []
-    };
+  const ranking = rankingGroups.map((item) => {
+    const officer = rankingOfficerMap.get(item.officerId);
 
-    if (assessment.averageScore !== null) {
-      existing.scores.push(assessment.averageScore);
-    }
-
-    officerMap.set(assessment.officerId, existing);
-  });
-
-  const ranking = [...officerMap.values()]
-    .map((item) => ({
+    return {
       officerId: item.officerId,
-      officerName: item.officerName,
-      unitName: item.unitName,
-      averageScore: average(item.scores),
-      totalAssessments: item.scores.length
-    }))
-    .sort((a, b) => b.averageScore - a.averageScore)
-    .slice(0, 10);
+      officerName: officer?.name ?? "Petugas",
+      unitName: officer?.unit?.name ?? "Belum ditentukan",
+      averageScore: Number(item._avg.averageScore?.toFixed(2) ?? 0),
+      totalAssessments: item._count._all
+    };
+  });
 
   const criteriaMap = new Map<string, { label: string; scores: number[] }>();
 
-  presentAssessments.forEach((assessment) => {
-    assessment.scores.forEach((score) => {
-      const existing = criteriaMap.get(score.criteriaId) ?? {
-        label: score.criteria.name,
-        scores: []
-      };
+  criteriaScores.forEach((score) => {
+    const existing = criteriaMap.get(score.criteriaId) ?? {
+      label: score.criteria.name,
+      scores: []
+    };
 
-      existing.scores.push(score.score);
-      criteriaMap.set(score.criteriaId, existing);
-    });
+    existing.scores.push(score.score);
+    criteriaMap.set(score.criteriaId, existing);
   });
 
   const criteriaDistribution = [...criteriaMap.values()]
@@ -216,15 +290,8 @@ export async function getDashboardSummary(params: DashboardParams) {
   const weeklyTrend = buildTrendMap(presentAssessments, "weekly");
   const monthlyTrend = buildTrendMap(presentAssessments, "monthly");
 
-  const totalAssessments = allAssessments.length;
-  const totalPresent = presentAssessments.length;
-  const totalAbsent = allAssessments.filter(
-    (assessment) => assessment.status === "ABSENT"
-  ).length;
-  const overallAverage = average(
-    presentAssessments
-      .map((assessment) => assessment.averageScore)
-      .filter((score): score is number => score !== null)
+  const overallAverage = Number(
+    (overallAverageResult._avg.averageScore ?? 0).toFixed(2)
   );
 
   const topOfficer = ranking[0] ?? null;
@@ -234,9 +301,16 @@ export async function getDashboardSummary(params: DashboardParams) {
       timePreset,
       from: range.from,
       to: range.to,
-      unitId: params.unitId ?? ""
+      unitId: params.unitId ?? "",
+      officerId: params.officerId ?? ""
     },
     units,
+    officers: officers.map((officer) => ({
+      id: officer.id,
+      name: officer.name,
+      nip: officer.nip,
+      unitName: officer.unit?.name ?? "Belum ditentukan"
+    })),
     summaryCards: {
       totalAssessments,
       totalPresent,

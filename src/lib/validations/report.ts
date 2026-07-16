@@ -1,13 +1,20 @@
 import { z } from "zod";
+import { optionalDateInputString } from "@/lib/validations/shared";
 
 export const reportExportSchema = z
   .object({
     format: z.enum(["pdf", "xlsx"], {
       message: "Format export harus pdf atau xlsx."
     }),
-    from: z.string().trim().optional().or(z.literal("")),
-    to: z.string().trim().optional().or(z.literal("")),
-    unitId: z.string().trim().optional().or(z.literal(""))
+    search: z.string().trim().optional().or(z.literal("")),
+    from: optionalDateInputString(
+      "Tanggal mulai wajib memakai tanggal yang valid."
+    ),
+    to: optionalDateInputString(
+      "Tanggal akhir wajib memakai tanggal yang valid."
+    ),
+    unitId: z.string().trim().optional().or(z.literal("")),
+    officerId: z.string().trim().optional().or(z.literal(""))
   })
   .refine(
     (value) => {

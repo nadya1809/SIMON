@@ -17,15 +17,9 @@ import {
 } from "recharts";
 import { SectionCard } from "@/components/ui/section-card";
 
-const palette = [
-  "var(--accent-strong)",
-  "var(--accent-sky)",
-  "var(--accent-teal)",
-  "#77c5ec",
-  "#8fd4cd"
-];
 const gridStroke = "var(--chart-grid)";
-const axisStroke = "var(--chart-axis)";
+const axisStroke = "#cbd5e1";
+const legendTextColor = "#e2e8f0";
 const tooltipStyle = {
   backgroundColor: "var(--card)",
   color: "var(--foreground)",
@@ -34,9 +28,48 @@ const tooltipStyle = {
   boxShadow: "var(--shadow-md)"
 };
 const legendStyle = {
-  color: "var(--muted)"
+  color: legendTextColor
 };
 const scoreDomain: [number, number] = [0, 100];
+const lineGlowStyle = {
+  filter: "drop-shadow(0 0 8px rgba(56, 189, 248, 0.28))"
+};
+const dailyLineColor = "#38BDF8";
+const weeklyLineColor = "#38BDF8";
+const monthlyLineColor = "#34D399";
+const trendAccentColor = "#A78BFA";
+const criteriaColorMap: Record<string, string> = {
+  Disiplin: "#38BDF8",
+  Inovatif: "#2DD4BF",
+  Kerjasama: "#34D399",
+  Kinerja: "#A78BFA",
+  Komplain: "#F87171",
+  Penampilan: "#FACC15",
+  "Penilaian Pengguna Layanan": "#FB923C"
+};
+const criteriaFallbackPalette = [
+  "#38BDF8",
+  "#2DD4BF",
+  "#34D399",
+  "#A78BFA",
+  "#F87171",
+  "#FACC15",
+  "#FB923C"
+];
+const unitColorMap: Record<string, string> = {
+  "Frontline 1": "#38BDF8",
+  "Frontline 2": "#34D399",
+  "Petugas Online": "#A78BFA"
+};
+
+function resolveCriteriaColor(label: string, index: number) {
+  return criteriaColorMap[label] ?? criteriaFallbackPalette[index % criteriaFallbackPalette.length];
+}
+
+function resolveUnitColor(label: string, index: number) {
+  const fallbackPalette = ["#38BDF8", "#34D399", "#A78BFA", "#2DD4BF", "#FB923C"];
+  return unitColorMap[label] ?? fallbackPalette[index % fallbackPalette.length];
+}
 
 function tooltipFormatter(
   value: number | string | ReadonlyArray<number | string> | undefined,
@@ -50,6 +83,14 @@ function tooltipFormatter(
         : value ?? "-";
 
   return [formattedValue, name ? String(name) : "Nilai"] as [string, string];
+}
+
+function legendFormatter(value: string, entry?: { color?: string }) {
+  return (
+    <span style={{ color: entry?.color ?? legendTextColor, fontWeight: 600 }}>
+      {value}
+    </span>
+  );
 }
 
 type TrendPoint = {
@@ -96,13 +137,15 @@ export function DailyTrendChart({ data }: { data: TrendPoint[] }) {
           <XAxis dataKey="label" fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
           <YAxis domain={scoreDomain} fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
           <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
-          <Legend wrapperStyle={legendStyle} />
+          <Legend wrapperStyle={legendStyle} formatter={legendFormatter} />
           <Line
             type="monotone"
             dataKey="averageScore"
-            stroke="var(--accent-strong)"
+            stroke={dailyLineColor}
             strokeWidth={3}
-            dot={{ r: 3, fill: "var(--accent-strong)" }}
+            dot={{ r: 3, fill: dailyLineColor, stroke: "#e0f2fe", strokeWidth: 1.5 }}
+            activeDot={{ r: 5, fill: trendAccentColor, stroke: dailyLineColor, strokeWidth: 2 }}
+            style={lineGlowStyle}
             name="Rata-rata"
           />
         </LineChart>
@@ -145,21 +188,25 @@ export function PeriodTrendChart({
           <XAxis dataKey="period" fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
           <YAxis domain={scoreDomain} fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
           <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
-          <Legend wrapperStyle={legendStyle} />
+          <Legend wrapperStyle={legendStyle} formatter={legendFormatter} />
           <Line
             type="monotone"
             dataKey="weekly"
-            stroke="var(--accent-sky)"
+            stroke={weeklyLineColor}
             strokeWidth={3}
-            dot={{ r: 3, fill: "var(--accent-sky)" }}
+            dot={{ r: 3, fill: weeklyLineColor, stroke: "#e0f2fe", strokeWidth: 1.5 }}
+            activeDot={{ r: 5, fill: trendAccentColor, stroke: weeklyLineColor, strokeWidth: 2 }}
+            style={lineGlowStyle}
             name="Mingguan"
           />
           <Line
             type="monotone"
             dataKey="monthly"
-            stroke="var(--accent-teal)"
+            stroke={monthlyLineColor}
             strokeWidth={3}
-            dot={{ r: 3, fill: "var(--accent-teal)" }}
+            dot={{ r: 3, fill: monthlyLineColor, stroke: "#dcfce7", strokeWidth: 1.5 }}
+            activeDot={{ r: 5, fill: trendAccentColor, stroke: monthlyLineColor, strokeWidth: 2 }}
+            style={{ filter: "drop-shadow(0 0 8px rgba(52, 211, 153, 0.24))" }}
             name="Bulanan"
           />
         </LineChart>
@@ -189,11 +236,11 @@ export function CriteriaDistributionChart({
             paddingAngle={4}
           >
             {data.map((entry, index) => (
-              <Cell key={entry.label} fill={palette[index % palette.length]} />
+              <Cell key={entry.label} fill={resolveCriteriaColor(entry.label, index)} />
             ))}
           </Pie>
           <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
-          <Legend wrapperStyle={legendStyle} />
+          <Legend wrapperStyle={legendStyle} formatter={legendFormatter} />
         </PieChart>
       </ResponsiveContainer>
     </ChartCard>
@@ -216,8 +263,12 @@ export function UnitComparisonChart({
           <XAxis dataKey="label" fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
           <YAxis domain={scoreDomain} fontSize={12} tick={{ fill: axisStroke }} axisLine={false} tickLine={false} />
           <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter} />
-          <Legend wrapperStyle={legendStyle} />
-          <Bar dataKey="averageScore" fill="var(--accent-strong)" radius={[10, 10, 0, 0]} name="Rata-rata" />
+          <Legend wrapperStyle={legendStyle} formatter={legendFormatter} />
+          <Bar dataKey="averageScore" radius={[10, 10, 0, 0]} name="Rata-rata">
+            {data.map((entry, index) => (
+              <Cell key={entry.label} fill={resolveUnitColor(entry.label, index)} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </ChartCard>

@@ -1,14 +1,14 @@
 import { ReactNode } from "react";
 import { DataTableShell } from "@/components/ui/data-table-shell";
 import { PaginationBar, type PaginationBarProps } from "@/components/ui/pagination-bar";
-import { Table } from "@/components/ui/table";
+import { Table, type TableHeaderItem } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 type ModuleTableSectionProps = {
   title?: string;
   description?: string;
   actions?: ReactNode;
-  headers: string[];
+  headers: Array<string | TableHeaderItem>;
   children: ReactNode;
   isEmpty?: boolean;
   emptyState?: ReactNode;

@@ -168,6 +168,8 @@ export function RecommendationDetailDialog({
               >
                 <Input
                   placeholder="Perbarui kategori jika diperlukan"
+                  maxLength={100}
+                  autoCapitalize="sentences"
                   {...form.register("category")}
                 />
               </FormField>
@@ -179,6 +181,7 @@ export function RecommendationDetailDialog({
               >
                 <Textarea
                   placeholder="Tulis alasan atau detail keputusan"
+                  maxLength={255}
                   {...form.register("notes")}
                 />
               </FormField>

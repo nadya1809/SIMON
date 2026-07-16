@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { ReactNode, useEffect } from "react";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
   faCheck,
@@ -16,7 +16,7 @@ import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 type ConfirmDialogProps = {
   open: boolean;
   title: string;
-  description: string;
+  description: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   isLoading?: boolean;
@@ -136,7 +136,9 @@ export function ConfirmDialog({
             <h3 id="confirm-dialog-title" className="text-xl font-bold tracking-[-0.01em]">
               {title}
             </h3>
-            <p className="text-sm leading-6 text-[var(--muted)]">{description}</p>
+            <div className="text-sm leading-6 text-[var(--muted)]">
+              {typeof description === "string" ? <p>{description}</p> : description}
+            </div>
           </div>
         </div>
 

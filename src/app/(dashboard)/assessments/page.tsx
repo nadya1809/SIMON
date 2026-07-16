@@ -3,8 +3,20 @@ import { requireAuth } from "@/lib/auth-guard";
 import { AssessmentManagement } from "@/components/assessments/assessment-management";
 import { getAssessmentList } from "@/lib/assessments";
 
-export default async function AssessmentsPage() {
+type AssessmentsPageProps = {
+  searchParams?: Promise<{
+    notification?: string;
+    from?: string;
+    to?: string;
+    status?: string;
+  }>;
+};
+
+export default async function AssessmentsPage({
+  searchParams
+}: AssessmentsPageProps) {
   const session = await requireAuth();
+  const resolvedSearchParams = await searchParams;
 
   const [assessmentData, officers, criteria] = await Promise.all([
     getAssessmentList({
@@ -36,6 +48,16 @@ export default async function AssessmentsPage() {
       criteria={criteria}
       userName={session.user.name ?? "Pengguna"}
       role={session.user.role}
+      initialInfoMessage={resolvedSearchParams?.notification}
+      initialNavigationState={{
+        from: resolvedSearchParams?.from ?? "",
+        to: resolvedSearchParams?.to ?? "",
+        statusFilter:
+          resolvedSearchParams?.status === "PRESENT" ||
+          resolvedSearchParams?.status === "ABSENT"
+            ? resolvedSearchParams.status
+            : "all"
+      }}
     />
   );
 }

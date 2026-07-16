@@ -1,7 +1,5 @@
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/forms/login-form";
-import { authOptions } from "@/lib/auth";
+import { normalizeCallbackPath } from "@/lib/auth-callback";
 
 type LoginPageProps = {
   searchParams?: Promise<{
@@ -10,14 +8,11 @@ type LoginPageProps = {
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const session = await getServerSession(authOptions);
-
-  if (session?.user) {
-    redirect("/dashboard");
-  }
-
   const resolvedSearchParams = await searchParams;
-  const callbackUrl = resolvedSearchParams?.callbackUrl || "/dashboard";
+  const callbackUrl = normalizeCallbackPath(
+    resolvedSearchParams?.callbackUrl,
+    "/dashboard"
+  );
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-10">

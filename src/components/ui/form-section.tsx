@@ -17,7 +17,7 @@ export function FormSection({
   return (
     <section
       className={cn(
-        "space-y-4 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)]/75 p-4",
+        "space-y-4 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-sm)]",
         className
       )}
     >

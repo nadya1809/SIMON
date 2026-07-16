@@ -28,6 +28,7 @@ type OfficerListSectionProps = {
   unitFilter: string;
   statusFilter: "all" | "active" | "inactive";
   sortBy: "name" | "nip" | "unit";
+  sortDirection: "asc" | "desc";
   units: Array<{ id: string; name: string }>;
   officers: Array<{
     id: string;
@@ -60,6 +61,7 @@ export function OfficerListSection({
   unitFilter,
   statusFilter,
   sortBy,
+  sortDirection,
   units,
   officers,
   totalItems,
@@ -134,7 +136,32 @@ export function OfficerListSection({
       <ModuleTableSection
         title="Daftar petugas PST"
         description={`${totalItems} data sesuai filter aktif.`}
-        headers={["NIP", "Nama", "Unit", "Jabatan", "Status", "Aksi"]}
+        headers={[
+          {
+            key: "nip",
+            label: "NIP",
+            sortable: true,
+            sortDirection: sortBy === "nip" ? sortDirection : null,
+            onSort: () => onSortChange("nip")
+          },
+          {
+            key: "name",
+            label: "Nama",
+            sortable: true,
+            sortDirection: sortBy === "name" ? sortDirection : null,
+            onSort: () => onSortChange("name")
+          },
+          {
+            key: "unit",
+            label: "Unit",
+            sortable: true,
+            sortDirection: sortBy === "unit" ? sortDirection : null,
+            onSort: () => onSortChange("unit")
+          },
+          "Jabatan",
+          "Status",
+          "Aksi"
+        ]}
         isEmpty={!officers.length}
         emptyState={
           <EmptyState

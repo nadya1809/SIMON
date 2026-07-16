@@ -1,15 +1,19 @@
 import {
-  Prisma,
-  RewardPunishmentStatus,
-  RewardPunishmentType
+  NotificationType,
+  Prisma
 } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth-guard";
 import { toAuditJson, writeAuditLog } from "@/lib/audit";
 import {
+  buildRewardPunishmentWhere,
   getRecommendationCandidates
 } from "@/lib/reward-punishment";
+import {
+  buildNotificationMetadata,
+  createNotificationsByRoles
+} from "@/lib/notifications";
 import {
   createPaginationMeta,
   resolvePaginationParams
@@ -41,6 +45,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search")?.trim();
+  const officerId = searchParams.get("officerId")?.trim();
   const unitId = searchParams.get("unitId")?.trim();
   const status = searchParams.get("status")?.trim();
   const type = searchParams.get("type")?.trim();
@@ -50,43 +55,15 @@ export async function GET(request: Request) {
     searchParams.get("page"),
     searchParams.get("rowsPerPage")
   );
-  const resolvedStatus =
-    status === "RECOMMENDED" || status === "APPROVED" || status === "REJECTED"
-      ? (status as RewardPunishmentStatus)
-      : null;
-  const resolvedType =
-    type === "REWARD" || type === "PUNISHMENT" || type === "EVALUASI"
-      ? (type as RewardPunishmentType)
-      : null;
-  const officerWhere =
-    search || unitId
-      ? {
-          ...(unitId ? { unitId } : {}),
-          ...(search
-            ? {
-                OR: [
-                  { name: { contains: search, mode: "insensitive" as const } },
-                  { nip: { contains: search, mode: "insensitive" as const } }
-                ]
-              }
-            : {})
-        }
-      : undefined;
-  const where: Prisma.RewardPunishmentWhereInput = {
-    ...(officerWhere ? { officer: officerWhere } : {}),
-    ...(resolvedStatus ? { status: resolvedStatus } : {}),
-    ...(resolvedType ? { type: resolvedType } : {}),
-    ...((from || to)
-      ? {
-          periodStart: {
-            ...(to ? { lte: new Date(`${to}T23:59:59.999Z`) } : {})
-          },
-          periodEnd: {
-            ...(from ? { gte: new Date(`${from}T00:00:00.000Z`) } : {})
-          }
-        }
-      : {})
-  };
+  const where = buildRewardPunishmentWhere({
+    search,
+    officerId,
+    unitId,
+    status,
+    type,
+    from,
+    to
+  });
 
   const [totalItems, recommendations, recommendedCount, approvedCount, rejectedCount] =
     await Promise.all([
@@ -268,6 +245,67 @@ export async function POST(request: Request) {
       })
     )
   );
+
+  const createdEvaluasiCount = createdRecommendations.filter(
+    (item) => item.type === "EVALUASI"
+  ).length;
+  const createdRewardPunishmentCount = createdRecommendations.filter(
+    (item) => item.type === "REWARD" || item.type === "PUNISHMENT"
+  ).length;
+
+  await Promise.all([
+    createNotificationsByRoles({
+      roles: ["ADMIN", "SUPERVISOR"],
+      type: NotificationType.RECOMMENDATION_GENERATED,
+      title: "Generate rekomendasi selesai",
+      message: `${createdRecommendations.length} data evaluasi, reward, atau punishment berhasil dibuat untuk periode terpilih.`,
+      href: "/reward-punishment",
+      entity: "RewardPunishmentBatch",
+      entityId: resolvedReferenceDate.toISOString(),
+      metadata: buildNotificationMetadata(
+        {
+          module: "reward-punishment",
+          view: "list",
+          from: periodStart.toISOString().slice(0, 10),
+          to: periodEnd.toISOString().slice(0, 10)
+        },
+        {
+          periodKind,
+          referenceDate,
+          generationMode,
+          createdCount: createdRecommendations.length
+        }
+      ),
+      excludeUserIds: [session.user.id]
+    }),
+    createdRewardPunishmentCount > 0
+      ? createNotificationsByRoles({
+          roles: ["PIMPINAN"],
+          type: NotificationType.RECOMMENDATION_PENDING_APPROVAL,
+          title: "Ada rekomendasi menunggu keputusan",
+          message: `${createdRewardPunishmentCount} data reward atau punishment baru siap ditinjau dan diputuskan.`,
+          href: "/reward-punishment",
+          entity: "RewardPunishmentBatch",
+          entityId: resolvedReferenceDate.toISOString(),
+          metadata: buildNotificationMetadata(
+            {
+              module: "reward-punishment",
+              view: "list",
+              status: "RECOMMENDED",
+              from: periodStart.toISOString().slice(0, 10),
+              to: periodEnd.toISOString().slice(0, 10)
+            },
+            {
+              periodKind,
+              referenceDate,
+              generationMode,
+              recommendationCount: createdRewardPunishmentCount,
+              evaluasiCount: createdEvaluasiCount
+            }
+          )
+        })
+      : Promise.resolve({ count: 0 })
+  ]);
 
   return NextResponse.json(
     {

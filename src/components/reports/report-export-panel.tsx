@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { faFileArrowDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { toast } from "sonner";
@@ -10,35 +10,79 @@ import { FormSection } from "@/components/ui/form-section";
 import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Select } from "@/components/ui/select";
 import { SectionCard } from "@/components/ui/section-card";
+import {
+  getDefaultTimePreset,
+  getTimePresetRange,
+  TIME_PRESET_OPTIONS,
+  type TimePreset
+} from "@/lib/time-presets";
 import { cn } from "@/lib/utils";
 
 type ReportExportPanelProps = {
+  search?: string;
+  timePreset: TimePreset;
   from: string;
   to: string;
   unitId: string;
+  officerId: string;
+  units: Array<{ id: string; name: string }>;
+  officers: Array<{ id: string; name: string; nip: string; unitName: string }>;
   className?: string;
 };
 
 export function ReportExportPanel({
+  search = "",
+  timePreset,
   from,
   to,
   unitId,
+  officerId,
+  units,
+  officers,
   className
 }: ReportExportPanelProps) {
   const [format, setFormat] = useState<"pdf" | "xlsx">("xlsx");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [exportSearch, setExportSearch] = useState(search);
+  const [exportTimePreset, setExportTimePreset] = useState<TimePreset>(timePreset);
+  const [exportUnitId, setExportUnitId] = useState(unitId);
+  const [exportOfficerId, setExportOfficerId] = useState(officerId);
+  const exportRange = getTimePresetRange(exportTimePreset);
+  const exportFrom = exportTimePreset === "all" ? from : exportRange.from;
+  const exportTo = exportTimePreset === "all" ? to : exportRange.to;
+  const filteredOfficers = useMemo(
+    () =>
+      officers.filter((officer) =>
+        exportUnitId
+          ? officer.unitName === units.find((unit) => unit.id === exportUnitId)?.name
+          : true
+      ),
+    [exportUnitId, officers, units]
+  );
+
+  function resetExportFilters() {
+    setExportSearch("");
+    setExportTimePreset(getDefaultTimePreset());
+    setExportUnitId("");
+    setExportOfficerId("");
+  }
 
   async function handleExport() {
     startTransition(async () => {
       const searchParams = new URLSearchParams({
         format,
-        from,
-        to
+        search: exportSearch,
+        from: exportFrom,
+        to: exportTo
       });
 
-      if (unitId) {
-        searchParams.set("unitId", unitId);
+      if (exportUnitId) {
+        searchParams.set("unitId", exportUnitId);
+      }
+
+      if (exportOfficerId) {
+        searchParams.set("officerId", exportOfficerId);
       }
 
       const response = await fetch(`/api/reports/export?${searchParams.toString()}`);
@@ -88,7 +132,7 @@ export function ReportExportPanel({
                   Aksi Export
                 </p>
                 <h3 className="mt-1 text-lg font-bold text-[var(--foreground)]">
-                  Unduh laporan sesuai filter aktif
+                  Unduh laporan penilaian harian
                 </h3>
               </div>
             </div>
@@ -98,7 +142,7 @@ export function ReportExportPanel({
               SIMON PST.
             </p>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-              Format export mengikuti periode dan unit yang sedang dipilih
+              Format export mengikuti periode, unit, dan petugas yang sedang dipilih
             </p>
           </div>
 
@@ -117,6 +161,87 @@ export function ReportExportPanel({
         description="Pilih format file lalu generate laporan sesuai filter aktif."
       >
         <div className="space-y-4">
+          <FormSection
+            title="Filter data unduhan"
+            description="Atur waktu, unit, dan petugas yang ingin dimasukkan ke file unduhan."
+          >
+            <div className="mb-4 flex justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={resetExportFilters}
+              >
+                Reset
+              </Button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <FormField label="Cari petugas">
+                <input
+                  value={exportSearch}
+                  onChange={(event) => setExportSearch(event.target.value)}
+                  className="flex h-11 w-full rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] outline-none"
+                  placeholder="Cari nama atau NIP"
+                />
+              </FormField>
+              <FormField label="Filter waktu">
+                <Select
+                  value={exportTimePreset}
+                  onChange={(event) =>
+                    setExportTimePreset(event.target.value as TimePreset)
+                  }
+                >
+                  {TIME_PRESET_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+
+              <FormField label="Filter unit">
+                <Select
+                  value={exportUnitId}
+                  onChange={(event) => {
+                    const nextUnitId = event.target.value;
+                    setExportUnitId(nextUnitId);
+                    const selectedOfficerStillVisible = officers.some(
+                      (officer) =>
+                        officer.id === exportOfficerId &&
+                        (!nextUnitId ||
+                          officer.unitName ===
+                            units.find((unit) => unit.id === nextUnitId)?.name)
+                    );
+
+                    if (!selectedOfficerStillVisible) {
+                      setExportOfficerId("");
+                    }
+                  }}
+                >
+                  <option value="">Semua unit</option>
+                  {units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+
+              <FormField label="Filter petugas">
+                <Select
+                  value={exportOfficerId}
+                  onChange={(event) => setExportOfficerId(event.target.value)}
+                >
+                  <option value="">Semua petugas</option>
+                  {filteredOfficers.map((officer) => (
+                    <option key={officer.id} value={officer.id}>
+                      {officer.name} - {officer.nip} - {officer.unitName}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            </div>
+          </FormSection>
+
           <FormSection
             title="Pilih format file"
             description="Gunakan Excel untuk olah data lanjutan atau PDF untuk pelaporan formal."

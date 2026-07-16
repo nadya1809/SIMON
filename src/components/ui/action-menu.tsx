@@ -18,11 +18,13 @@ type ActionMenuItem = {
 type ActionMenuProps = {
   items: ActionMenuItem[];
   align?: "left" | "right";
+  triggerLabel?: string;
 };
 
 export function ActionMenu({
   items,
-  align = "right"
+  align = "right",
+  triggerLabel = "Aksi data"
 }: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{
@@ -124,9 +126,10 @@ export function ActionMenu({
       <button
         ref={triggerRef}
         type="button"
-        aria-label="Aksi data"
+        aria-label={triggerLabel}
         aria-expanded={isOpen}
         aria-controls={isOpen ? menuId : undefined}
+        title={triggerLabel}
         onClick={() => setIsOpen((current) => !current)}
         className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] text-[var(--muted)] shadow-[var(--shadow-sm)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
       >

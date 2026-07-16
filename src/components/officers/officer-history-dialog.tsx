@@ -3,8 +3,8 @@
 import { FormField } from "@/components/forms/form-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DateInput } from "@/components/ui/date-input";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/input";
 import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Table } from "@/components/ui/table";
 import { formatAverageScore } from "@/lib/scoring";
@@ -98,15 +98,13 @@ export function OfficerHistoryDialog({
             }}
           >
             <FormField label="Dari tanggal">
-              <Input
-                type="date"
+              <DateInput
                 value={historyFrom}
                 onChange={(event) => onFromChange(event.target.value)}
               />
             </FormField>
             <FormField label="Sampai tanggal">
-              <Input
-                type="date"
+              <DateInput
                 value={historyTo}
                 onChange={(event) => onToChange(event.target.value)}
               />

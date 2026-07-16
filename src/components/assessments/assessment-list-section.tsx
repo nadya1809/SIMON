@@ -22,15 +22,17 @@ import {
   ModulePagination,
   ModuleTableSection
 } from "@/components/ui/module-table-section";
-import { formatDateOnlyUtc } from "@/lib/date-only";
+import { formatDateOnlyDisplay } from "@/lib/date-only";
 import { formatAverageScore } from "@/lib/scoring";
 import { TIME_PRESET_OPTIONS, type TimePreset } from "@/lib/time-presets";
 
 type AssessmentListSectionProps = {
   searchOfficer: string;
+  officerFilter: string;
   unitFilter: string;
   statusFilter: "all" | "PRESENT" | "ABSENT";
   timePreset: TimePreset;
+  officers: Array<{ id: string; name: string; nip: string; unitName: string }>;
   units: Array<{ id: string; name: string }>;
   assessments: Array<{
     id: string;
@@ -57,6 +59,7 @@ type AssessmentListSectionProps = {
   isListLoading: boolean;
   deletingAssessmentId: string | null;
   onSearchChange: (value: string) => void;
+  onOfficerChange: (value: string) => void;
   onUnitChange: (value: string) => void;
   onStatusChange: (value: "all" | "PRESENT" | "ABSENT") => void;
   onTimePresetChange: (value: TimePreset) => void;
@@ -70,9 +73,11 @@ type AssessmentListSectionProps = {
 
 export function AssessmentListSection({
   searchOfficer,
+  officerFilter,
   unitFilter,
   statusFilter,
   timePreset,
+  officers,
   units,
   assessments,
   pagination,
@@ -81,6 +86,7 @@ export function AssessmentListSection({
   isListLoading,
   deletingAssessmentId,
   onSearchChange,
+  onOfficerChange,
   onUnitChange,
   onStatusChange,
   onTimePresetChange,
@@ -94,13 +100,26 @@ export function AssessmentListSection({
   return (
     <section className="space-y-5">
       <ModuleFilters>
-        <FilterFields>
+        <FilterFields columnsClassName="md:grid-cols-2 xl:grid-cols-5">
           <FilterSearchField
             label="Cari petugas"
             value={searchOfficer}
             onChange={onSearchChange}
             placeholder="Cari nama atau NIP"
           />
+
+          <FilterSelectField
+            label="Filter petugas"
+            value={officerFilter}
+            onChange={onOfficerChange}
+          >
+            <option value="all">Semua petugas</option>
+            {officers.map((officer) => (
+              <option key={officer.id} value={officer.id}>
+                {officer.name} - {officer.nip} - {officer.unitName}
+              </option>
+            ))}
+          </FilterSelectField>
 
           <FilterSelectField
             label="Filter unit"
@@ -174,7 +193,7 @@ export function AssessmentListSection({
             }
             description={
               hasActiveFilters
-                ? "Ubah filter tanggal, unit, atau nama petugas untuk melihat data yang lain."
+                ? "Ubah filter tanggal, unit, petugas, atau nama petugas untuk melihat data yang lain."
                 : "Tambahkan penilaian pertama agar monitoring harian petugas PST mulai berjalan."
             }
             icon="A"
@@ -186,7 +205,7 @@ export function AssessmentListSection({
         {assessments.map((item) => (
           <tr key={item.id} className="border-t border-[var(--border)]">
             <td className="px-5 py-4 font-medium">
-              {formatDateOnlyUtc(item.assessmentDate)}
+              {formatDateOnlyDisplay(item.assessmentDate)}
             </td>
             <td className="px-5 py-4">
               <EntityIdentityCell

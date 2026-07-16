@@ -22,6 +22,9 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
+  const sortBy = searchParams.get("sortBy")?.trim();
+  const sortDirection =
+    searchParams.get("sortDirection")?.trim() === "desc" ? "desc" : "asc";
   const { page, rowsPerPage } = resolvePaginationParams(
     searchParams.get("page"),
     searchParams.get("rowsPerPage")
@@ -33,7 +36,14 @@ export async function GET(request: Request) {
   const criteria = await prisma.criteria.findMany({
     skip: (meta.page - 1) * meta.rowsPerPage,
     take: meta.rowsPerPage,
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    orderBy:
+      sortBy === "name"
+        ? [{ name: sortDirection }]
+        : sortBy === "status"
+          ? [{ isActive: sortDirection }, { sortOrder: "asc" }]
+          : sortBy === "scores"
+            ? [{ scores: { _count: sortDirection } }, { sortOrder: "asc" }]
+            : [{ sortOrder: sortDirection }, { name: "asc" }],
     include: {
       _count: {
         select: {
