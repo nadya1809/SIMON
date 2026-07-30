@@ -115,9 +115,9 @@ function ReferenceComments({ comments }: { comments: string[] }) {
         Komentar
       </p>
       <div className="space-y-1">
-        {comments.map((comment) => (
+        {comments.map((comment, index) => (
           <p
-            key={comment}
+            key={`${index}-${comment}`}
             className="rounded-[0.75rem] bg-[var(--card)] px-3 py-2 text-xs leading-5 text-[var(--muted)]"
           >
             {comment}
