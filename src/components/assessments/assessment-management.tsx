@@ -40,6 +40,7 @@ import {
   type TimePreset
 } from "@/lib/time-presets";
 import { calculateAverageScore, formatAverageScore } from "@/lib/scoring";
+import { type UserAssessmentReference } from "@/lib/user-assessment-reference";
 import {
   assessmentSchema,
   type AssessmentFormInput,
@@ -155,6 +156,41 @@ async function requestAssessmentList(
   return result.data;
 }
 
+async function requestUserAssessmentReference(
+  params: {
+    nip: string;
+    assessmentDate: string;
+  },
+  signal?: AbortSignal
+) {
+  const searchParams = new URLSearchParams({
+    nip: params.nip,
+    assessmentDate: params.assessmentDate
+  });
+  const response = await fetch(
+    `/api/user-assessment-reference?${searchParams.toString()}`,
+    {
+      signal,
+      cache: "no-store"
+    }
+  );
+  const result = (await response.json()) as {
+    message?: string;
+    data?: UserAssessmentReference | null;
+  };
+
+  if (!response.ok) {
+    throw new Error(
+      getApiErrorMessage(result, "Gagal memuat referensi penilaian pengguna.")
+    );
+  }
+
+  return {
+    data: result.data ?? null,
+    message: result.message
+  };
+}
+
 export function AssessmentManagement({
   initialAssessmentData,
   officers,
@@ -207,6 +243,16 @@ export function AssessmentManagement({
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
   const [duplicateAssessmentMessage, setDuplicateAssessmentMessage] =
     useState("");
+  const [userAssessmentReference, setUserAssessmentReference] =
+    useState<UserAssessmentReference | null>(null);
+  const [
+    userAssessmentReferenceMessage,
+    setUserAssessmentReferenceMessage
+  ] = useState("Belum ada referensi penilaian pengguna");
+  const [
+    isUserAssessmentReferenceLoading,
+    setIsUserAssessmentReferenceLoading
+  ] = useState(false);
   const [isPending, startTransition] = useTransition();
   const hasMountedRef = useRef(false);
   const deferredSearch = useDeferredValue(searchOfficer);
@@ -357,6 +403,9 @@ export function AssessmentManagement({
     setStatusValue("PRESENT");
     setDuplicateAssessmentMessage("");
     setIsCheckingDuplicate(false);
+    setUserAssessmentReference(null);
+    setUserAssessmentReferenceMessage("Belum ada referensi penilaian pengguna");
+    setIsUserAssessmentReferenceLoading(false);
     setSelectedOfficerId("");
     setOfficerPickerQuery("");
     reset({
@@ -570,6 +619,60 @@ export function AssessmentManagement({
   }
 
   const activeOfficer = officers.find((item) => item.id === selectedOfficerId);
+  const canLoadUserAssessmentReference =
+    isFormDialogOpen &&
+    Boolean(activeOfficer?.nip) &&
+    isDateInputValue(watchedAssessmentDate ?? "");
+
+  useEffect(() => {
+    if (!canLoadUserAssessmentReference || !activeOfficer?.nip) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const activeOfficerNip = activeOfficer.nip;
+    const activeAssessmentDate = watchedAssessmentDate;
+
+    async function loadReference() {
+      setIsUserAssessmentReferenceLoading(true);
+      setUserAssessmentReferenceMessage("");
+
+      try {
+        const result = await requestUserAssessmentReference(
+          {
+            nip: activeOfficerNip,
+            assessmentDate: activeAssessmentDate
+          },
+          controller.signal
+        );
+
+        setUserAssessmentReference(result.data);
+        setUserAssessmentReferenceMessage(
+          result.message || "Belum ada referensi penilaian pengguna"
+        );
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Gagal memuat referensi penilaian pengguna.";
+
+        setUserAssessmentReference(null);
+        setUserAssessmentReferenceMessage(message);
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsUserAssessmentReferenceLoading(false);
+        }
+      }
+    }
+
+    void loadReference();
+
+    return () => controller.abort();
+  }, [activeOfficer?.nip, canLoadUserAssessmentReference, watchedAssessmentDate]);
 
   function selectOfficer(officer: OfficerOption) {
     setSelectedOfficerId(officer.id);
@@ -588,6 +691,9 @@ export function AssessmentManagement({
     setOfficerPickerQuery("");
     setDuplicateAssessmentMessage("");
     setIsCheckingDuplicate(false);
+    setUserAssessmentReference(null);
+    setUserAssessmentReferenceMessage("Belum ada referensi penilaian pengguna");
+    setIsUserAssessmentReferenceLoading(false);
     setValue("officerId", "", {
       shouldDirty: true,
       shouldTouch: true,
@@ -694,6 +800,17 @@ export function AssessmentManagement({
         selectedOfficerId={selectedOfficerId}
         officerPickerQuery={officerPickerQuery}
         activeOfficer={activeOfficer}
+        userAssessmentReference={
+          canLoadUserAssessmentReference ? userAssessmentReference : null
+        }
+        isUserAssessmentReferenceLoading={
+          canLoadUserAssessmentReference && isUserAssessmentReferenceLoading
+        }
+        userAssessmentReferenceMessage={
+          canLoadUserAssessmentReference
+            ? userAssessmentReferenceMessage
+            : "Belum ada referensi penilaian pengguna"
+        }
         statusValue={statusValue}
         liveAverageScore={liveAverageScore}
         isPending={isPending}

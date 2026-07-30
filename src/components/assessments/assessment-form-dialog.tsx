@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { UseFormReturn } from "react-hook-form";
 import { FormField } from "@/components/forms/form-field";
@@ -14,6 +14,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SCORE_NUMERIC_ONLY_MESSAGE } from "@/lib/input-rules";
 import { formatAverageScore } from "@/lib/scoring";
+import { type UserAssessmentReference } from "@/lib/user-assessment-reference";
 import {
   type AssessmentFormInput,
   type AssessmentFormValues
@@ -41,6 +42,9 @@ type AssessmentFormDialogProps = {
   selectedOfficerId: string;
   officerPickerQuery: string;
   activeOfficer?: OfficerOption;
+  userAssessmentReference: UserAssessmentReference | null;
+  isUserAssessmentReferenceLoading: boolean;
+  userAssessmentReferenceMessage?: string;
   statusValue: "PRESENT" | "ABSENT";
   liveAverageScore: number | null;
   isPending: boolean;
@@ -57,6 +61,161 @@ type AssessmentFormDialogProps = {
   getOfficerDisplayLabel: (officer: Pick<OfficerOption, "name" | "nip">) => string;
 };
 
+function isServiceUserRatingCriteria(criteriaName: string) {
+  return criteriaName.trim().toLowerCase() === "penilaian pengguna layanan";
+}
+
+function isUserCommentCriteria(criteriaName: string) {
+  return criteriaName.trim().toLowerCase() === "komplain";
+}
+
+function normalizeReferenceRating(value: number) {
+  return Math.min(5, Math.max(1, Math.round(value)));
+}
+
+function ReferenceBadge({
+  children,
+  tone = "neutral"
+}: {
+  children: ReactNode;
+  tone?: "neutral" | "danger";
+}) {
+  return (
+    <span
+      className={`rounded-[999px] px-2.5 py-1 text-xs font-semibold ${tone === "danger"
+          ? "bg-[var(--danger-bg)] text-[var(--danger-fg)]"
+          : "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
+        }`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function RatingBadge({
+  label,
+  value
+}: {
+  label: string;
+  value: number;
+}) {
+  const rating = normalizeReferenceRating(value);
+
+  return (
+    <ReferenceBadge tone={rating <= 2 ? "danger" : "neutral"}>
+      {label}: {rating}/5
+    </ReferenceBadge>
+  );
+}
+
+function ReferenceComments({ comments }: { comments: string[] }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-semibold text-[var(--foreground)]">
+        Komentar
+      </p>
+      <div className="space-y-1">
+        {comments.map((comment) => (
+          <p
+            key={comment}
+            className="rounded-[0.75rem] bg-[var(--card)] px-3 py-2 text-xs leading-5 text-[var(--muted)]"
+          >
+            {comment}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ReferenceRatingRow({ item }: { item: UserAssessmentReference["assessments"][number] }) {
+  return (
+    <div className="space-y-2 rounded-[0.85rem] bg-[var(--card)] px-3 py-2">
+      <div className="flex flex-wrap gap-2">
+        <RatingBadge label="Rating layanan" value={item.serviceRating} />
+        <RatingBadge label="Rating petugas" value={item.officerRating} />
+      </div>
+      <p className="text-xs leading-5 text-[var(--muted)]">
+        {item.comment}
+      </p>
+    </div>
+  );
+}
+
+function UserAssessmentReferenceHint({
+  criteriaName,
+  reference,
+  isLoading,
+  message
+}: {
+  criteriaName: string;
+  reference: UserAssessmentReference | null;
+  isLoading: boolean;
+  message?: string;
+}) {
+  const shouldShowServiceReference = isServiceUserRatingCriteria(criteriaName);
+  const shouldShowCommentReference = isUserCommentCriteria(criteriaName);
+
+  if (!shouldShowServiceReference && !shouldShowCommentReference) {
+    return null;
+  }
+
+  if (isLoading) {
+    return (
+      <p className="rounded-[var(--radius-control)] border border-dashed border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-medium text-[var(--muted)]">
+        Memuat referensi penilaian pengguna...
+      </p>
+    );
+  }
+
+  if (!reference || !reference.assessments.length) {
+    return (
+      <p className="rounded-[var(--radius-control)] border border-dashed border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-medium text-[var(--muted)]">
+        {message || "Belum ada referensi penilaian pengguna"}
+      </p>
+    );
+  }
+
+  if (shouldShowServiceReference) {
+    return (
+      <div className="space-y-3 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+            Referensi pengguna
+          </p>
+          <ReferenceBadge>
+            {reference.assessmentCount} rating
+          </ReferenceBadge>
+        </div>
+        <div className="space-y-2">
+          {reference.assessments.map((item, referenceIndex) => (
+            <ReferenceRatingRow
+              key={`${item.serviceRating}-${item.officerRating}-${referenceIndex}`}
+              item={item}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+          Referensi komentar
+        </p>
+        <ReferenceBadge>
+          {reference.commentCount} komentar
+        </ReferenceBadge>
+      </div>
+      <ReferenceComments
+        comments={reference.assessments.map((item) => item.comment)}
+      />
+    </div>
+  );
+}
+
 export function AssessmentFormDialog({
   open,
   editingAssessment,
@@ -66,6 +225,9 @@ export function AssessmentFormDialog({
   selectedOfficerId,
   officerPickerQuery,
   activeOfficer,
+  userAssessmentReference,
+  isUserAssessmentReferenceLoading,
+  userAssessmentReferenceMessage,
   statusValue,
   liveAverageScore,
   isPending,
@@ -157,11 +319,10 @@ export function AssessmentFormDialog({
                                 onSelectOfficer(officer.id);
                                 setIsOfficerDropdownOpen(false);
                               }}
-                              className={`flex w-full items-start justify-between gap-3 rounded-[0.85rem] px-3 py-2 text-left transition ${
-                                isSelected
+                              className={`flex w-full items-start justify-between gap-3 rounded-[0.85rem] px-3 py-2 text-left transition ${isSelected
                                   ? "bg-[var(--accent-soft)] text-[var(--accent)]"
                                   : "hover:bg-[var(--card)]"
-                              }`}
+                                }`}
                             >
                               <div>
                                 <p className="font-medium">{officer.name}</p>
@@ -273,43 +434,53 @@ export function AssessmentFormDialog({
                   hint={`Urutan tampil: ${item.sortOrder} · Input angka bulat 1-100`}
                   error={formState.errors.scores?.[index]?.score?.message}
                 >
-                  <Input
-                    type="number"
-                    min="1"
-                    max="100"
-                    step="1"
-                    inputMode="numeric"
-                    onInput={(event) => {
-                      const rawValue = event.currentTarget.value;
-                      const numericValue = rawValue.replace(/\D+/g, "");
+                  <div className="space-y-2">
+                    <Input
+                      type="number"
+                      min="1"
+                      max="100"
+                      step="1"
+                      inputMode="numeric"
+                      onInput={(event) => {
+                        const rawValue = event.currentTarget.value;
+                        const numericValue = rawValue.replace(/\D+/g, "");
 
-                      if (numericValue !== rawValue) {
-                        event.currentTarget.value = numericValue;
-                        setError(`scores.${index}.score` as const, {
-                          type: "manual",
-                          message: SCORE_NUMERIC_ONLY_MESSAGE
-                        });
-                        return;
-                      }
+                        if (numericValue !== rawValue) {
+                          event.currentTarget.value = numericValue;
+                          setError(`scores.${index}.score` as const, {
+                            type: "manual",
+                            message: SCORE_NUMERIC_ONLY_MESSAGE
+                          });
+                          return;
+                        }
 
-                      if (numericValue && Number(numericValue) > 100) {
-                        event.currentTarget.value = "100";
-                      }
+                        if (numericValue && Number(numericValue) > 100) {
+                          event.currentTarget.value = "100";
+                        }
 
-                      void trigger(`scores.${index}.score` as const);
-                    }}
-                    onKeyDown={(event) => {
-                      if ([".", ",", "e", "E", "+", "-"].includes(event.key)) {
-                        event.preventDefault();
-                      }
-                    }}
-                    {...register(`scores.${index}.score` as const, {
-                      setValueAs: (value) =>
-                        value === "" || value === null || value === undefined
-                          ? ""
-                          : Number.parseInt(String(value), 10)
-                    })}
-                  />
+                        void trigger(`scores.${index}.score` as const);
+                      }}
+                      onKeyDown={(event) => {
+                        if ([".", ",", "e", "E", "+", "-"].includes(event.key)) {
+                          event.preventDefault();
+                        }
+                      }}
+                      {...register(`scores.${index}.score` as const, {
+                        setValueAs: (value) =>
+                          value === "" || value === null || value === undefined
+                            ? ""
+                            : Number.parseInt(String(value), 10)
+                      })}
+                    />
+                    {activeOfficer ? (
+                      <UserAssessmentReferenceHint
+                        criteriaName={item.name}
+                        reference={userAssessmentReference}
+                        isLoading={isUserAssessmentReferenceLoading}
+                        message={userAssessmentReferenceMessage}
+                      />
+                    ) : null}
+                  </div>
                 </FormField>
               </div>
             ))}
