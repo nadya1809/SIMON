@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EntityIdentityCell } from "@/components/ui/entity-identity-cell";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FormField } from "@/components/forms/form-field";
 import {
   FilterActions,
   FilterFields,
@@ -22,6 +23,7 @@ import {
   ModulePagination,
   ModuleTableSection
 } from "@/components/ui/module-table-section";
+import { SearchableOfficerSelect } from "@/components/ui/searchable-officer-select";
 import { formatDateOnlyDisplay } from "@/lib/date-only";
 import { formatAverageScore } from "@/lib/scoring";
 import { TIME_PRESET_OPTIONS, type TimePreset } from "@/lib/time-presets";
@@ -108,18 +110,14 @@ export function AssessmentListSection({
             placeholder="Cari nama atau NIP"
           />
 
-          <FilterSelectField
-            label="Filter petugas"
-            value={officerFilter}
-            onChange={onOfficerChange}
-          >
-            <option value="all">Semua petugas</option>
-            {officers.map((officer) => (
-              <option key={officer.id} value={officer.id}>
-                {officer.name} - {officer.nip} - {officer.unitName}
-              </option>
-            ))}
-          </FilterSelectField>
+          <FormField label="Filter petugas">
+            <SearchableOfficerSelect
+              value={officerFilter}
+              officers={officers}
+              allValue="all"
+              onChange={onOfficerChange}
+            />
+          </FormField>
 
           <FilterSelectField
             label="Filter unit"

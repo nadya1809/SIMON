@@ -563,7 +563,6 @@ export function RewardPunishmentManagement({
 
       {showExportPanel ? (
         <RewardPunishmentExportPanel
-          search={search}
           officerId={officerFilter === "all" ? "" : officerFilter}
           unitId={unitFilter === "all" ? "" : unitFilter}
           type={typeFilter === "all" ? "" : typeFilter}
@@ -593,7 +592,7 @@ export function RewardPunishmentManagement({
           totalPages={totalPages}
           rowsPerPage={rowsPerPage}
           deletingRecommendationId={deletingRecommendationId}
-          hasSeedData={Boolean(
+          hasAnyData={Boolean(
             search ||
               officerFilter !== "all" ||
               unitFilter !== "all" ||

@@ -6,6 +6,7 @@ import { normalizeCallbackPath } from "@/lib/auth-callback";
 import { prisma } from "@/lib/prisma";
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt"
   },

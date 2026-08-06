@@ -387,7 +387,7 @@ export function OfficerManagement({
         totalPages={totalPages}
         rowsPerPage={rowsPerPage}
         deletingOfficerId={deletingOfficerId}
-        hasSeedData={Boolean(search || unitFilter !== "all" || statusFilter !== "all" || totalItems > 0)}
+        hasAnyData={Boolean(search || unitFilter !== "all" || statusFilter !== "all" || totalItems > 0)}
         onSearchChange={(value) => {
           setSearch(value);
           setPage(1);

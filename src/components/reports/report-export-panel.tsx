@@ -10,6 +10,7 @@ import { FormSection } from "@/components/ui/form-section";
 import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Select } from "@/components/ui/select";
 import { SectionCard } from "@/components/ui/section-card";
+import { SearchableOfficerSelect } from "@/components/ui/searchable-officer-select";
 import {
   getDefaultTimePreset,
   getTimePresetRange,
@@ -19,7 +20,6 @@ import {
 import { cn } from "@/lib/utils";
 
 type ReportExportPanelProps = {
-  search?: string;
   timePreset: TimePreset;
   from: string;
   to: string;
@@ -31,7 +31,6 @@ type ReportExportPanelProps = {
 };
 
 export function ReportExportPanel({
-  search = "",
   timePreset,
   from,
   to,
@@ -44,7 +43,6 @@ export function ReportExportPanel({
   const [format, setFormat] = useState<"pdf" | "xlsx">("xlsx");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [exportSearch, setExportSearch] = useState(search);
   const [exportTimePreset, setExportTimePreset] = useState<TimePreset>(timePreset);
   const [exportUnitId, setExportUnitId] = useState(unitId);
   const [exportOfficerId, setExportOfficerId] = useState(officerId);
@@ -62,7 +60,6 @@ export function ReportExportPanel({
   );
 
   function resetExportFilters() {
-    setExportSearch("");
     setExportTimePreset(getDefaultTimePreset());
     setExportUnitId("");
     setExportOfficerId("");
@@ -72,7 +69,6 @@ export function ReportExportPanel({
     startTransition(async () => {
       const searchParams = new URLSearchParams({
         format,
-        search: exportSearch,
         from: exportFrom,
         to: exportTo
       });
@@ -175,14 +171,6 @@ export function ReportExportPanel({
               </Button>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <FormField label="Cari petugas">
-                <input
-                  value={exportSearch}
-                  onChange={(event) => setExportSearch(event.target.value)}
-                  className="flex h-11 w-full rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] outline-none"
-                  placeholder="Cari nama atau NIP"
-                />
-              </FormField>
               <FormField label="Filter waktu">
                 <Select
                   value={exportTimePreset}
@@ -227,17 +215,11 @@ export function ReportExportPanel({
               </FormField>
 
               <FormField label="Filter petugas">
-                <Select
+                <SearchableOfficerSelect
                   value={exportOfficerId}
-                  onChange={(event) => setExportOfficerId(event.target.value)}
-                >
-                  <option value="">Semua petugas</option>
-                  {filteredOfficers.map((officer) => (
-                    <option key={officer.id} value={officer.id}>
-                      {officer.name} - {officer.nip} - {officer.unitName}
-                    </option>
-                  ))}
-                </Select>
+                  officers={filteredOfficers}
+                  onChange={setExportOfficerId}
+                />
               </FormField>
             </div>
           </FormSection>

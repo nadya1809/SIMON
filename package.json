@@ -12,17 +12,14 @@
     "start:lan": "next start -H 0.0.0.0",
     "lint": "eslint .",
     "qa:smoke": "tsx --tsconfig tsconfig.json scripts/qa-smoke.ts",
-    "seed:dummy-rp": "tsx --tsconfig tsconfig.json scripts/seed-reward-punishment-dummy.ts",
-    "seed:three-month-assessments": "tsx --tsconfig tsconfig.json scripts/seed-three-month-assessments.ts",
-    "seed:generated-recommendations": "tsx --tsconfig tsconfig.json scripts/generate-seeded-recommendations.ts",
-    "seed:rp-testing": "tsx --tsconfig tsconfig.json scripts/seed-reward-punishment-testing.ts",
+    "contoh:3-bulan": "tsx --tsconfig tsconfig.json scripts/isi-contoh-data-tiga-bulan.ts",
     "clean:dummy-rp": "tsx --tsconfig tsconfig.json scripts/clean-reward-punishment-dummy.ts",
     "repair:reward-periods": "tsx --tsconfig tsconfig.json scripts/repair-reward-periods.ts",
     "import:officers": "tsx scripts/import-pst-officers.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:bootstrap": "tsx prisma/bootstrap.ts"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
@@ -61,8 +58,5 @@
     "tailwindcss": "^4.1.11",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   }
 }

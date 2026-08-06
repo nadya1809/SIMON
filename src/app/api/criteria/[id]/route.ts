@@ -12,8 +12,8 @@ import {
 import { criteriaUpdateSchema } from "@/lib/validations/criteria";
 
 const protectedCriteriaIds = new Set([
-  "seed-discipline-criteria",
-  "seed-performance-criteria"
+  "default-discipline-criteria",
+  "default-performance-criteria"
 ]);
 
 type RouteContext = {

@@ -1,15 +1,18 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import type { Role } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { apiForbidden, apiUnauthorized } from "@/lib/api-response";
 
+const getCachedServerSession = cache(() => getServerSession(authOptions));
+
 export async function requireAuth() {
-  const session = await getServerSession(authOptions);
+  const session = await getCachedServerSession();
 
   if (!session?.user) {
-    redirect("/login");
+    redirect("/api/auth/clear-session?callbackUrl=/login");
   }
 
   return session;

@@ -10,6 +10,7 @@ import { FormSection } from "@/components/ui/form-section";
 import { ModalDialog } from "@/components/ui/modal-dialog";
 import { SectionCard } from "@/components/ui/section-card";
 import { Select } from "@/components/ui/select";
+import { SearchableOfficerSelect } from "@/components/ui/searchable-officer-select";
 import {
   getDefaultTimePreset,
   getTimePresetRange,
@@ -19,7 +20,6 @@ import {
 import { cn } from "@/lib/utils";
 
 type RewardPunishmentExportPanelProps = {
-  search: string;
   officerId: string;
   unitId: string;
   type: string;
@@ -33,7 +33,6 @@ type RewardPunishmentExportPanelProps = {
 };
 
 export function RewardPunishmentExportPanel({
-  search,
   officerId,
   unitId,
   type,
@@ -48,7 +47,6 @@ export function RewardPunishmentExportPanel({
   const [format, setFormat] = useState<"pdf" | "xlsx">("xlsx");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [exportSearch, setExportSearch] = useState(search);
   const [exportTimePreset, setExportTimePreset] = useState<TimePreset>(timePreset);
   const [exportUnitId, setExportUnitId] = useState(unitId);
   const [exportOfficerId, setExportOfficerId] = useState(officerId);
@@ -66,7 +64,6 @@ export function RewardPunishmentExportPanel({
   );
 
   function resetExportFilters() {
-    setExportSearch("");
     setExportTimePreset(getDefaultTimePreset());
     setExportUnitId("");
     setExportOfficerId("");
@@ -76,7 +73,6 @@ export function RewardPunishmentExportPanel({
     startTransition(async () => {
       const searchParams = new URLSearchParams({
         format,
-        search: exportSearch,
         officerId: exportOfficerId,
         unitId: exportUnitId,
         type,
@@ -144,7 +140,7 @@ export function RewardPunishmentExportPanel({
               yang sedang aktif.
             </p>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-              Format export mengikuti pencarian, waktu, petugas, unit, tipe, dan status yang sedang dipilih
+              Format export mengikuti waktu, petugas, unit, tipe, dan status yang sedang dipilih
             </p>
           </div>
 
@@ -177,14 +173,6 @@ export function RewardPunishmentExportPanel({
               </Button>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <FormField label="Cari petugas">
-                <input
-                  value={exportSearch}
-                  onChange={(event) => setExportSearch(event.target.value)}
-                  className="flex h-11 w-full rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] outline-none"
-                  placeholder="Cari nama atau NIP"
-                />
-              </FormField>
               <FormField label="Filter waktu">
                 <Select
                   value={exportTimePreset}
@@ -229,17 +217,11 @@ export function RewardPunishmentExportPanel({
               </FormField>
 
               <FormField label="Filter petugas">
-                <Select
+                <SearchableOfficerSelect
                   value={exportOfficerId}
-                  onChange={(event) => setExportOfficerId(event.target.value)}
-                >
-                  <option value="">Semua petugas</option>
-                  {filteredOfficers.map((officer) => (
-                    <option key={officer.id} value={officer.id}>
-                      {officer.name} - {officer.nip} - {officer.unitName}
-                    </option>
-                  ))}
-                </Select>
+                  officers={filteredOfficers}
+                  onChange={setExportOfficerId}
+                />
               </FormField>
             </div>
           </FormSection>

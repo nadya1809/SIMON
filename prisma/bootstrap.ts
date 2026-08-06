@@ -4,10 +4,10 @@ import { PrismaClient, Role } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  const unitName = process.env.SEED_DEFAULT_UNIT_NAME || "PST Utama";
-  const adminName = process.env.SEED_ADMIN_NAME || "Admin SIMON";
-  const adminEmail = process.env.SEED_ADMIN_EMAIL || "admin@simon.local";
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD || "ChangeMe123!";
+  const unitName = process.env.BOOTSTRAP_DEFAULT_UNIT_NAME || "Frontline 1";
+  const adminName = process.env.BOOTSTRAP_ADMIN_NAME || "Admin SIMON";
+  const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL || "admin@simon.local";
+  const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD || "ChangeMe123!";
 
   const passwordHash = await bcrypt.hash(adminPassword, 10);
 
@@ -25,7 +25,7 @@ async function main() {
   }
 
   await prisma.criteria.upsert({
-    where: { id: "seed-discipline-criteria" },
+    where: { id: "default-discipline-criteria" },
     update: {
       name: "Disiplin",
       description: "Penilaian kedisiplinan petugas PST.",
@@ -33,7 +33,7 @@ async function main() {
       isActive: true
     },
     create: {
-      id: "seed-discipline-criteria",
+      id: "default-discipline-criteria",
       name: "Disiplin",
       description: "Penilaian kedisiplinan petugas PST.",
       sortOrder: 1,
@@ -42,7 +42,7 @@ async function main() {
   });
 
   await prisma.criteria.upsert({
-    where: { id: "seed-performance-criteria" },
+    where: { id: "default-performance-criteria" },
     update: {
       name: "Kinerja",
       description: "Penilaian kinerja harian petugas PST.",
@@ -50,7 +50,7 @@ async function main() {
       isActive: true
     },
     create: {
-      id: "seed-performance-criteria",
+      id: "default-performance-criteria",
       name: "Kinerja",
       description: "Penilaian kinerja harian petugas PST.",
       sortOrder: 2,

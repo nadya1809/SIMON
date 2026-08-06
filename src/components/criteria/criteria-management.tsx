@@ -40,9 +40,9 @@ import {
   type CriteriaFormValues
 } from "@/lib/validations/criteria";
 
-const defaultSeedIds = new Set([
-  "seed-discipline-criteria",
-  "seed-performance-criteria"
+const protectedDefaultCriteriaIds = new Set([
+  "default-discipline-criteria",
+  "default-performance-criteria"
 ]);
 
 type CriteriaItem = {
@@ -355,7 +355,8 @@ export function CriteriaManagement({
             }
           >
             {criteria.map((item) => {
-              const isSeedDefault = defaultSeedIds.has(item.id);
+              const isProtectedDefault =
+                protectedDefaultCriteriaIds.has(item.id);
 
               return (
                 <tr key={item.id} className="border-t border-[var(--border)]">
@@ -372,8 +373,8 @@ export function CriteriaManagement({
                     {item._count.scores} skor
                   </td>
                   <td className="px-5 py-4 text-[var(--muted)]">
-                    {isSeedDefault
-                      ? "Kriteria default seed, jangan dihapus."
+                    {isProtectedDefault
+                      ? "Kriteria default sistem, jangan dihapus."
                       : item.description || "-"}
                   </td>
                   <td className="px-5 py-4">
@@ -392,7 +393,8 @@ export function CriteriaManagement({
                           icon: faTrash,
                           variant: "danger",
                           disabled:
-                            isSeedDefault || deletingCriteriaId === item.id,
+                            isProtectedDefault ||
+                            deletingCriteriaId === item.id,
                           onClick: () => setConfirmingCriteria(item)
                         }
                       ]}
@@ -580,7 +582,7 @@ export function CriteriaManagement({
             ? `Hapus kriteria ${confirmingCriteria.name}?`
             : "Hapus kriteria?"
         }
-        description="Kriteria hanya bisa dihapus jika bukan data seed dan belum memiliki histori skor."
+        description="Kriteria hanya bisa dihapus jika bukan kriteria default sistem dan belum memiliki histori skor."
         isLoading={
           Boolean(confirmingCriteria) &&
           deletingCriteriaId === confirmingCriteria?.id

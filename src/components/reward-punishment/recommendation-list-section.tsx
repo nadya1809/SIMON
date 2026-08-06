@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EntityIdentityCell } from "@/components/ui/entity-identity-cell";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FormField } from "@/components/forms/form-field";
 import {
   FilterActions,
   FilterFields,
@@ -22,6 +23,7 @@ import {
   ModulePagination,
   ModuleTableSection
 } from "@/components/ui/module-table-section";
+import { SearchableOfficerSelect } from "@/components/ui/searchable-officer-select";
 import { formatRecommendationPeriodLabel } from "@/lib/reward-punishment";
 import { formatAverageScore } from "@/lib/scoring";
 import { TIME_PRESET_OPTIONS, type TimePreset } from "@/lib/time-presets";
@@ -78,7 +80,7 @@ type RecommendationListSectionProps = {
   onDelete: (recommendationId: string) => void;
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rows: number) => void;
-  hasSeedData: boolean;
+  hasAnyData: boolean;
   showControls?: boolean;
 };
 
@@ -114,7 +116,7 @@ export function RecommendationListSection({
   onDelete,
   onPageChange,
   onRowsPerPageChange,
-  hasSeedData,
+  hasAnyData,
   showControls = true
 }: RecommendationListSectionProps) {
   return (
@@ -141,18 +143,14 @@ export function RecommendationListSection({
               ))}
             </FilterSelectField>
 
-            <FilterSelectField
-              label="Petugas"
-              value={officerFilter}
-              onChange={onOfficerChange}
-            >
-              <option value="all">Semua petugas</option>
-              {officers.map((officer) => (
-                <option key={officer.id} value={officer.id}>
-                  {officer.name} - {officer.nip} - {officer.unitName}
-                </option>
-              ))}
-            </FilterSelectField>
+            <FormField label="Petugas">
+              <SearchableOfficerSelect
+                value={officerFilter}
+                officers={officers}
+                allValue="all"
+                onChange={onOfficerChange}
+              />
+            </FormField>
 
             <FilterSelectField label="Unit" value={unitFilter} onChange={onUnitChange}>
               <option value="all">Semua unit</option>
@@ -213,12 +211,12 @@ export function RecommendationListSection({
         emptyState={
           <EmptyState
             title={
-              hasSeedData
+              hasAnyData
                 ? "Tidak ada data untuk filter ini"
                 : "Belum ada data yang dibuat"
             }
             description={
-              hasSeedData
+              hasAnyData
                 ? "Ubah periode, petugas, status, tipe, atau unit agar data lain muncul."
                 : "Generate evaluasi, reward, atau punishment baru agar daftar mulai terisi."
             }

@@ -10,6 +10,8 @@ import {
   FilterSelectField,
   ModuleFilters
 } from "@/components/ui/module-filters";
+import { FormField } from "@/components/forms/form-field";
+import { SearchableOfficerSelect } from "@/components/ui/searchable-officer-select";
 import { TIME_PRESET_OPTIONS, type TimePreset } from "@/lib/time-presets";
 
 type TimeUnitFiltersProps = {
@@ -125,22 +127,17 @@ export function TimeUnitFilters({
             ))}
           </FilterSelectField>
 
-          <FilterSelectField
-            label="Filter petugas"
-            value={officerId}
-            disabled={isPending}
-            onChange={(value) => {
-              setOfficerId(value);
-              applyFilters(timePreset, unitId, value);
-            }}
-          >
-            <option value="">Semua petugas</option>
-            {filteredOfficers.map((officer) => (
-              <option key={officer.id} value={officer.id}>
-                {officer.name} - {officer.nip} - {officer.unitName}
-              </option>
-            ))}
-          </FilterSelectField>
+          <FormField label="Filter petugas">
+            <SearchableOfficerSelect
+              value={officerId}
+              officers={filteredOfficers}
+              disabled={isPending}
+              onChange={(value) => {
+                setOfficerId(value);
+                applyFilters(timePreset, unitId, value);
+              }}
+            />
+          </FormField>
         </FilterFields>
 
         <FilterActions>

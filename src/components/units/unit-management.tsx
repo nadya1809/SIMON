@@ -383,7 +383,7 @@ export function UnitManagement({
               <FormField
                 label="Nama unit"
                 error={formState.errors.name?.message}
-                hint="Contoh: PST Utama, Layanan Statistik, atau Front Office."
+                hint="Contoh: Frontline 1, Frontline 2, atau Petugas Online."
               >
                 <Input
                   placeholder="Masukkan nama unit"

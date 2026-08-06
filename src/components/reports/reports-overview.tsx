@@ -37,7 +37,6 @@ export function ReportsOverview({
             </div>
 
             <ReportExportPanel
-              search={report.filters.search}
               timePreset={report.filters.timePreset}
               from={report.filters.from}
               to={report.filters.to}

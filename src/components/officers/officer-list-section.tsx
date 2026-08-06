@@ -43,7 +43,7 @@ type OfficerListSectionProps = {
   totalPages: number;
   rowsPerPage: number;
   deletingOfficerId: string | null;
-  hasSeedData: boolean;
+  hasAnyData: boolean;
   onSearchChange: (value: string) => void;
   onUnitChange: (value: string) => void;
   onStatusChange: (value: "all" | "active" | "inactive") => void;
@@ -69,7 +69,7 @@ export function OfficerListSection({
   totalPages,
   rowsPerPage,
   deletingOfficerId,
-  hasSeedData,
+  hasAnyData,
   onSearchChange,
   onUnitChange,
   onStatusChange,
@@ -166,12 +166,12 @@ export function OfficerListSection({
         emptyState={
           <EmptyState
             title={
-              hasSeedData
+              hasAnyData
                 ? "Tidak ada hasil untuk filter ini"
                 : "Belum ada petugas PST"
             }
             description={
-              hasSeedData
+              hasAnyData
                 ? "Ubah kata kunci, filter unit, atau status aktif agar data lain muncul."
                 : "Tambahkan petugas baru agar modul penilaian dan jadwal bisa mulai dipakai."
             }
