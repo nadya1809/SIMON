@@ -8,6 +8,7 @@
     "dev:localhost": "next dev",
     "dev:lan": "next dev -H 0.0.0.0",
     "build": "next build",
+    "prebuild": "prisma generate",
     "start": "next start -H 0.0.0.0",
     "start:lan": "next start -H 0.0.0.0",
     "lint": "eslint .",
@@ -58,5 +59,15 @@
     "tailwindcss": "^4.1.11",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }
