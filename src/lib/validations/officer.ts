@@ -7,8 +7,8 @@ import {
 } from "@/lib/input-rules";
 
 export const officerJabatanOptions = [
-  "Statistisi ahli pertama",
-  "Statistisi ahli muda"
+  "Statistisi Ahli Pertama",
+  "Statistisi Ahli Muda"
 ] as const;
 
 export const officerSchema = z.object({

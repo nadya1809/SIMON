@@ -194,7 +194,7 @@ async function main() {
       data: {
         nip: `QA-${Date.now()}`,
         name: `Petugas ${uniqueKey}`,
-        jabatan: "Statistisi ahli pertama",
+        jabatan: "Statistisi Ahli Pertama",
         unitId: unit.id,
         isActive: true
       }
@@ -207,7 +207,7 @@ async function main() {
         id: officer.id
       },
       data: {
-        jabatan: "Statistisi ahli muda",
+        jabatan: "Statistisi Ahli Muda",
         isActive: false
       }
     });

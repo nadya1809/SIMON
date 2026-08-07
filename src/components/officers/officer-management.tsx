@@ -87,6 +87,16 @@ type OfficerManagementProps = {
 type SortOption = "name" | "nip" | "unit";
 type StatusFilter = "all" | "active" | "inactive";
 
+function normalizeOfficerJabatanOption(jabatan: string | null) {
+  const normalizedJabatan = jabatan?.trim().toLowerCase();
+
+  return (
+    officerJabatanOptions.find(
+      (option) => option.toLowerCase() === normalizedJabatan
+    ) ?? ""
+  );
+}
+
 export function OfficerManagement({
   initialOfficers,
   units,
@@ -213,11 +223,7 @@ export function OfficerManagement({
     reset({
       nip: officer.nip,
       name: officer.name,
-      jabatan: officerJabatanOptions.includes(
-        officer.jabatan as (typeof officerJabatanOptions)[number]
-      )
-        ? (officer.jabatan as (typeof officerJabatanOptions)[number])
-        : "",
+      jabatan: normalizeOfficerJabatanOption(officer.jabatan),
       unitId: officer.unitId ?? "",
       isActive: officer.isActive
     });
