@@ -17,6 +17,16 @@ const checks = [
     pattern: "overflow-x-hidden"
   },
   {
+    file: "src/components/dashboard/dashboard-frame.tsx",
+    label: "Desktop sidebar stays fixed on long pages",
+    pattern: "fixed inset-y-5 left-6"
+  },
+  {
+    file: "src/components/dashboard/dashboard-frame.tsx",
+    label: "Desktop content offsets for fixed sidebar",
+    pattern: "lg:ml-[19.25rem]"
+  },
+  {
     file: "src/components/dashboard/topbar.tsx",
     label: "Topbar uses compact mobile spacing",
     pattern: "px-3 py-3"

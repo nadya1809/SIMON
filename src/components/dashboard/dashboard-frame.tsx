@@ -23,7 +23,7 @@ export function DashboardFrame({
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-transparent">
-      <div className="mx-auto flex min-h-screen gap-4 px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5">
+      <div className="mx-auto min-h-screen px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5">
         {isSidebarOpen ? (
           <button
             type="button"
@@ -34,7 +34,7 @@ export function DashboardFrame({
         ) : null}
 
         <aside
-          className={`sticky top-5 hidden max-h-[calc(100vh-2.5rem)] self-start overflow-y-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--panel-bg)] p-5 shadow-[var(--shadow-md)] transition-[width,padding] duration-300 lg:block ${
+          className={`fixed inset-y-5 left-6 z-20 hidden overflow-y-auto overscroll-contain rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--panel-bg)] p-5 shadow-[var(--shadow-md)] transition-[width,padding] duration-300 lg:block ${
             isSidebarCollapsed ? "w-28 px-3" : "w-72"
           }`}
         >
@@ -58,7 +58,11 @@ export function DashboardFrame({
           <SidebarNav onNavigate={() => setIsSidebarOpen(false)} />
         </aside>
 
-        <div className="min-w-0 flex-1 overflow-x-hidden">
+        <div
+          className={`min-w-0 overflow-x-hidden transition-[margin] duration-300 ${
+            isSidebarCollapsed ? "lg:ml-[8.75rem]" : "lg:ml-[19.25rem]"
+          }`}
+        >
           <Topbar
             userName={userName}
             role={role}
