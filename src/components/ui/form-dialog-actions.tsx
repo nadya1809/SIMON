@@ -28,7 +28,7 @@ export function FormDialogActions({
   children
 }: FormDialogActionsProps) {
   return (
-    <div className="flex justify-end gap-3">
+    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&_button]:w-full sm:[&_button]:w-auto">
       {children}
       <Button type="button" variant="secondary" onClick={onCancel}>
         {cancelLabel}

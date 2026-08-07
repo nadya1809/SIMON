@@ -12,6 +12,36 @@ const checks = [
     pattern: "overflow-y-auto"
   },
   {
+    file: "src/components/dashboard/dashboard-frame.tsx",
+    label: "Dashboard frame prevents mobile horizontal overflow",
+    pattern: "overflow-x-hidden"
+  },
+  {
+    file: "src/components/dashboard/topbar.tsx",
+    label: "Topbar uses compact mobile spacing",
+    pattern: "px-3 py-3"
+  },
+  {
+    file: "src/components/ui/dialog.tsx",
+    label: "Dialog respects dynamic mobile viewport",
+    pattern: "100dvh"
+  },
+  {
+    file: "src/components/ui/module-filters.tsx",
+    label: "Filter actions stack neatly on mobile",
+    pattern: "flex-col gap-3 sm:flex-row"
+  },
+  {
+    file: "src/components/ui/form-dialog-actions.tsx",
+    label: "Form dialog actions stack on mobile",
+    pattern: "flex-col-reverse"
+  },
+  {
+    file: "src/components/ui/table.tsx",
+    label: "Tables contain horizontal scroll on mobile",
+    pattern: "overscroll-x-contain"
+  },
+  {
     file: "src/components/users/user-management.tsx",
     label: "User password visibility state",
     pattern: "isPasswordVisible"

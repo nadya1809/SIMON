@@ -73,7 +73,7 @@ export function FilterFields({
   className
 }: FilterFieldsProps) {
   return (
-    <div className={cn("grid flex-1 gap-4", columnsClassName, className)}>
+    <div className={cn("grid min-w-0 flex-1 gap-4", columnsClassName, className)}>
       {children}
     </div>
   );
@@ -81,7 +81,7 @@ export function FilterFields({
 
 export function FilterActions({ children, className }: FilterActionsProps) {
   return (
-    <div className={cn("flex items-end gap-3 xl:min-w-fit", className)}>
+    <div className={cn("flex w-full flex-col gap-3 sm:flex-row sm:items-end lg:w-auto xl:min-w-fit [&_button]:w-full sm:[&_button]:w-auto", className)}>
       {children}
     </div>
   );
@@ -151,7 +151,7 @@ export function FilterResetLink({
       href={href}
       aria-disabled={disabled}
       className={cn(
-        "inline-flex h-11 items-center justify-center gap-2 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] px-4 text-sm font-semibold text-[var(--foreground)] shadow-[var(--shadow-sm)] transition hover:bg-[var(--surface)]",
+        "inline-flex h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] px-4 text-sm font-semibold text-[var(--foreground)] shadow-[var(--shadow-sm)] transition hover:bg-[var(--surface)] sm:w-auto",
         disabled && "pointer-events-none opacity-60"
       )}
     >

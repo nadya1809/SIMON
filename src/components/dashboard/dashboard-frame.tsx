@@ -22,8 +22,8 @@ export function DashboardFrame({
   useBodyScrollLock(isSidebarOpen);
 
   return (
-    <div className="min-h-screen bg-transparent">
-      <div className="mx-auto flex min-h-screen gap-5 px-4 py-5 md:px-6">
+    <div className="min-h-screen overflow-x-hidden bg-transparent">
+      <div className="mx-auto flex min-h-screen gap-4 px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5">
         {isSidebarOpen ? (
           <button
             type="button"
@@ -58,7 +58,7 @@ export function DashboardFrame({
           <SidebarNav onNavigate={() => setIsSidebarOpen(false)} />
         </aside>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 overflow-x-hidden">
           <Topbar
             userName={userName}
             role={role}

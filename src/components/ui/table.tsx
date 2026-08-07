@@ -28,8 +28,8 @@ export function TableContainer({
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div data-slot="table-container" className={cn("overflow-hidden", className)} {...props}>
-      <div className="overflow-x-auto">{children}</div>
+    <div data-slot="table-container" className={cn("max-w-full overflow-hidden", className)} {...props}>
+      <div className="overflow-x-auto overscroll-x-contain">{children}</div>
     </div>
   );
 }
@@ -43,7 +43,7 @@ export function TableRoot({
     <table
       data-slot="table"
       className={cn(
-        "min-w-[760px] text-left text-sm md:min-w-full [&_tbody_td]:align-top [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-[var(--table-row-hover)]",
+        "min-w-[680px] text-left text-sm sm:min-w-[760px] md:min-w-full [&_tbody_td]:align-top [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-[var(--table-row-hover)]",
         className
       )}
       {...props}

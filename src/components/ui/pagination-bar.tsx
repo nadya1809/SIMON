@@ -22,8 +22,8 @@ export function PaginationBar({
   onRowsPerPageChange
 }: PaginationBarProps) {
   return (
-    <div className="flex flex-col gap-3 border-t border-[var(--border)] px-5 py-4 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-3 text-sm text-[var(--muted)]">
+    <div className="flex flex-col gap-4 border-t border-[var(--border)] px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5">
+      <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--muted)] sm:gap-3">
         <span>Tampilkan</span>
         <Select
           value={String(rowsPerPage)}
@@ -39,12 +39,12 @@ export function PaginationBar({
         <span>data per halaman</span>
       </div>
 
-      <div className="flex items-center justify-between gap-4 md:justify-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between md:justify-end">
         <p className="text-sm text-[var(--muted)]">
           {totalItems} data • Halaman {page} dari {totalPages}
         </p>
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
           <Button
             type="button"
             variant="secondary"
@@ -52,6 +52,7 @@ export function PaginationBar({
             icon={faChevronLeft}
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
+            className="w-full sm:w-auto"
           >
             Sebelumnya
           </Button>
@@ -63,6 +64,7 @@ export function PaginationBar({
             iconPosition="right"
             disabled={page >= totalPages}
             onClick={() => onPageChange(page + 1)}
+            className="w-full sm:w-auto"
           >
             Berikutnya
           </Button>

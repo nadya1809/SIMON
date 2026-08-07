@@ -26,13 +26,13 @@ export function DataTableShell({
     <SectionCard data-slot="data-table-shell" className={cn("overflow-hidden", className)}>
       {title || description || actions ? (
         <div data-slot="data-table-header" className={cn(sectionHeaderClassName, headerClassName)}>
-          <div className="space-y-1">
+          <div className="min-w-0 space-y-1">
             {title ? <h3 className="text-lg font-bold">{title}</h3> : null}
             {description ? (
               <p className="text-sm text-[var(--muted)]">{description}</p>
             ) : null}
           </div>
-          {actions ? <div>{actions}</div> : null}
+          {actions ? <div className="w-full md:w-auto">{actions}</div> : null}
         </div>
       ) : null}
       <div data-slot="data-table-body" className={bodyClassName}>
