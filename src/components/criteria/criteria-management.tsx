@@ -373,9 +373,14 @@ export function CriteriaManagement({
                     {item._count.scores} skor
                   </td>
                   <td className="px-5 py-4 text-[var(--muted)]">
-                    {isProtectedDefault
-                      ? "Kriteria default sistem, jangan dihapus."
-                      : item.description || "-"}
+                    <div className="space-y-1">
+                      <p>{item.description || "-"}</p>
+                      {isProtectedDefault ? (
+                        <p className="text-xs font-medium text-[var(--muted)]">
+                          Kriteria default sistem, tidak bisa dihapus.
+                        </p>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-5 py-4">
                     <ActionMenu
@@ -467,12 +472,12 @@ export function CriteriaManagement({
               </FormField>
 
               <FormField
-                label="Deskripsi"
+                label="Catatan"
                 hint="Opsional. Gunakan untuk menjelaskan cakupan penilaian."
                 error={formState.errors.description?.message}
               >
                 <Textarea
-                  placeholder="Tulis deskripsi singkat"
+                  placeholder="Tulis catatan singkat"
                   maxLength={255}
                   {...register("description")}
                 />
