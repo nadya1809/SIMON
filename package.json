@@ -18,6 +18,7 @@
     "repair:reward-periods": "tsx --tsconfig tsconfig.json scripts/repair-reward-periods.ts",
     "import:officers": "tsx scripts/import-pst-officers.ts",
     "import:officers:coolify": "node scripts/import-pst-officers-coolify.cjs",
+    "import:quarterly-assessments:coolify": "node scripts/import-quarterly-assessments-coolify.cjs",
     "normalize:officer-jabatan:coolify": "node scripts/normalize-officer-jabatan-coolify.cjs",
     "check:criteria-notes:coolify": "node scripts/check-criteria-notes-coolify.cjs",
     "check:ui-fixes:coolify": "node scripts/check-ui-fixes-coolify.cjs",
