@@ -47,7 +47,7 @@ export function DashboardFrame({
         </aside>
 
         <aside
-          className={`fixed inset-y-4 left-4 z-40 w-[min(20rem,calc(100vw-2rem))] rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--panel-bg)] p-5 shadow-[0_30px_80px_rgba(24,50,71,0.18)] transition duration-200 lg:hidden ${
+          className={`fixed inset-y-4 left-4 z-40 max-h-[calc(100dvh-2rem)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5 shadow-[0_30px_80px_rgba(24,50,71,0.18)] transition duration-200 lg:hidden ${
             isSidebarOpen
               ? "translate-x-0 opacity-100"
               : "-translate-x-[110%] opacity-0"

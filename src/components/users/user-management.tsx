@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
+  faEye,
+  faEyeSlash,
   faPenToSquare,
   faPlus,
   faTrash
 } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -77,6 +80,7 @@ export function UserManagement({
   const [confirmingUser, setConfirmingUser] = useState<UserItem | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [isActiveValue, setIsActiveValue] = useState(true);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isPending, startTransition] = useTransition();
   const hasMountedRef = useRef(false);
 
@@ -156,6 +160,7 @@ export function UserManagement({
     setIsFormDialogOpen(false);
     setEditingUser(null);
     setIsActiveValue(true);
+    setIsPasswordVisible(false);
     createForm.reset({
       name: "",
       email: "",
@@ -176,6 +181,7 @@ export function UserManagement({
     setIsFormDialogOpen(true);
     setEditingUser(user);
     setIsActiveValue(user.isActive);
+    setIsPasswordVisible(false);
     updateForm.reset({
       name: user.name,
       email: user.email,
@@ -512,15 +518,38 @@ export function UserManagement({
                 }
                 error={formState.errors.password?.message}
               >
-                <Input
-                  type="password"
-                  placeholder={
-                    editingUser ? "Opsional saat edit" : "Masukkan password"
-                  }
-                  minLength={editingUser ? 0 : 8}
-                  maxLength={100}
-                  {...register("password")}
-                />
+                <div className="relative">
+                  <Input
+                    type={isPasswordVisible ? "text" : "password"}
+                    placeholder={
+                      editingUser ? "Opsional saat edit" : "Masukkan password"
+                    }
+                    minLength={editingUser ? 0 : 8}
+                    maxLength={100}
+                    className="pr-12"
+                    {...register("password")}
+                  />
+                  <button
+                    type="button"
+                    aria-label={
+                      isPasswordVisible
+                        ? "Sembunyikan password"
+                        : "Tampilkan password"
+                    }
+                    title={
+                      isPasswordVisible
+                        ? "Sembunyikan password"
+                        : "Tampilkan password"
+                    }
+                    onClick={() => setIsPasswordVisible((current) => !current)}
+                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-[var(--radius-control)] text-[var(--muted)] transition hover:bg-[var(--surface)] hover:text-[var(--accent)]"
+                  >
+                    <FontAwesomeIcon
+                      icon={isPasswordVisible ? faEyeSlash : faEye}
+                      className="h-4 w-4"
+                    />
+                  </button>
+                </div>
               </FormField>
 
               <BooleanStatusField

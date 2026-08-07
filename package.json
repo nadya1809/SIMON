@@ -20,6 +20,7 @@
     "import:officers:coolify": "node scripts/import-pst-officers-coolify.cjs",
     "normalize:officer-jabatan:coolify": "node scripts/normalize-officer-jabatan-coolify.cjs",
     "check:criteria-notes:coolify": "node scripts/check-criteria-notes-coolify.cjs",
+    "check:ui-fixes:coolify": "node scripts/check-ui-fixes-coolify.cjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
