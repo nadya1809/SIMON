@@ -17,6 +17,7 @@
     "clean:dummy-rp": "tsx --tsconfig tsconfig.json scripts/clean-reward-punishment-dummy.ts",
     "repair:reward-periods": "tsx --tsconfig tsconfig.json scripts/repair-reward-periods.ts",
     "import:officers": "tsx scripts/import-pst-officers.ts",
+    "import:officers:coolify": "node scripts/import-pst-officers-coolify.cjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
